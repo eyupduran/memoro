@@ -5,7 +5,8 @@ const STORAGE_KEYS = {
   LEARNED_WORDS: 'learnedWords',
   OFFLINE_MODE: 'offlineMode',
   WORD_LIST_PREFIX: 'wordList_',
-  LAST_SYNC_DATE: 'lastSyncDate'
+  LAST_SYNC_DATE: 'lastSyncDate',
+  SELECTED_LANGUAGE: 'selectedLanguage'
 };
 
 class StorageService {
@@ -88,6 +89,25 @@ class StorageService {
       return true;
     } catch (error) {
       console.error('Error setting last sync date:', error);
+      return false;
+    }
+  }
+
+  async getItem(key: string): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch (error) {
+      console.error('Error getting item:', error);
+      return null;
+    }
+  }
+
+  async setItem(key: string, value: string): Promise<boolean> {
+    try {
+      await AsyncStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      console.error('Error setting item:', error);
       return false;
     }
   }

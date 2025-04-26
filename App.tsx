@@ -18,6 +18,7 @@ import { RootStackParamList } from './app/types/navigation';
 import * as Notifications from 'expo-notifications';
 import { View } from 'react-native';
 import { ThemeProvider, useTheme } from './app/context/ThemeContext';
+import { LanguageProvider } from './app/contexts/LanguageContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -194,7 +195,9 @@ const ThemedAppContainer = () => {
 export default function App() {
   return (
     <ThemeProvider>
-      <ThemedAppContainer />
+      <LanguageProvider>
+        <ThemedAppContainer />
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

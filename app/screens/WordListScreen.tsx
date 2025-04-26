@@ -12,7 +12,7 @@ import { useTheme } from '../context/ThemeContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
-import { wordLists } from '../data/wordLists';
+import { getWordLists } from '../data/wordLists';
 import { storageService } from '../services/storage';
 import type { Word, LearnedWord } from '../types/words';
 
@@ -38,6 +38,7 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
       const learnedWords = await storageService.getLearnedWords();
       
       // Seviyeye ait tüm kelimeleri al
+      const wordLists = await getWordLists();
       const levelWordList = await wordLists[level as keyof typeof wordLists];
       const levelWords = levelWordList?.words || [];
       

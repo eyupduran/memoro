@@ -9,36 +9,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { Extrapolate } from 'react-native-reanimated';
+import { LanguageSelector } from '../components/LanguageSelector';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
-
-const onboardingData = [
-  {
-    title: 'Hoş Geldiniz',
-    description: 'Memoro ile İngilizce kelime öğrenmeye hazır mısınız?',
-    icon: 'school',
-  },
-  {
-    title: 'Seviyenizi Seçin',
-    description: 'A1\'den C2\'ye kadar istediğiniz seviyede kelimeler öğrenin.',
-    icon: 'grade',
-  },
-  {
-    title: 'Görselleştirin',
-    description: 'Kelimeleri görsellerle birleştirerek daha kalıcı öğrenin.',
-    icon: 'image',
-  },
-  {
-    title: 'Sözlük',
-    description: 'İstediğiniz kelimeleri seçip kendi öğrenme setinizi oluşturun.',
-    icon: 'menu-book',
-  },
-  {
-    title: 'İlerleyişinizi Takip Edin',
-    description: 'Öğrendiğiniz kelimeleri kaydedin ve gelişiminizi görün.',
-    icon: 'trending-up',
-  },
-];
 
 type OnboardingScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 
@@ -46,7 +20,42 @@ export const OnboardingScreen = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
   const [activeIndex, setActiveIndex] = useState(0);
   const { colors } = useTheme();
+  const { translations } = useLanguage();
   const carouselRef = useRef<ICarouselInstance>(null);
+
+  const onboardingData = [
+    {
+      title: translations.onboarding.languageSelection,
+      description: translations.onboarding.nativeLanguage,
+      icon: 'language',
+      component: LanguageSelector,
+    },
+    {
+      title: 'Hoş Geldiniz',
+      description: 'Memoro ile İngilizce kelime öğrenmeye hazır mısınız?',
+      icon: 'school',
+    },
+    {
+      title: 'Seviyenizi Seçin',
+      description: 'A1\'den C2\'ye kadar istediğiniz seviyede kelimeler öğrenin.',
+      icon: 'grade',
+    },
+    {
+      title: 'Görselleştirin',
+      description: 'Kelimeleri görsellerle birleştirerek daha kalıcı öğrenin.',
+      icon: 'image',
+    },
+    {
+      title: 'Sözlük',
+      description: 'İstediğiniz kelimeleri seçip kendi öğrenme setinizi oluşturun.',
+      icon: 'menu-book',
+    },
+    {
+      title: 'İlerleyişinizi Takip Edin',
+      description: 'Öğrendiğiniz kelimeleri kaydedin ve gelişiminizi görün.',
+      icon: 'trending-up',
+    },
+  ];
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -81,13 +90,19 @@ export const OnboardingScreen = () => {
   const renderItem = ({ item, index }: { item: typeof onboardingData[0]; index: number }) => {
     return (
       <View style={[styles.slide, { backgroundColor: colors.background }]}>
-        <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
-          <MaterialIcons name={item.icon as any} size={100} color={colors.primary} />
-        </View>
-        <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: colors.text.primary }]}>{item.title}</Text>
-          <Text style={[styles.description, { color: colors.text.secondary }]}>{item.description}</Text>
-        </View>
+        {item.component ? (
+          <item.component />
+        ) : (
+          <>
+            <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
+              <MaterialIcons name={item.icon as any} size={100} color={colors.primary} />
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={[styles.title, { color: colors.text.primary }]}>{item.title}</Text>
+              <Text style={[styles.description, { color: colors.text.secondary }]}>{item.description}</Text>
+            </View>
+          </>
+        )}
       </View>
     );
   };

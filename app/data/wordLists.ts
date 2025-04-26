@@ -1,7 +1,11 @@
 import { storageService } from '../services/storage';
 import type { Word, WordList, AsyncWordLists } from '../types/words';
 
-const BASE_URL = 'https://raw.githubusercontent.com/eyupduran/english-words-api/main/levels';
+const getBaseUrl = async () => {
+  const nativeLanguage = await storageService.getItem('selectedLanguage') || 'tr';
+  const learningLanguage = await storageService.getItem('learningLanguage') || 'en';
+  return `https://raw.githubusercontent.com/eyupduran/english-words-api/main/languages/${learningLanguage}-${nativeLanguage}`;
+};
 
 const fetchWordList = async (level: string): Promise<WordList> => {
   // Önce offline modda mı kontrol et
@@ -13,11 +17,14 @@ const fetchWordList = async (level: string): Promise<WordList> => {
   // Offline data yoksa API'den al
   try {
     const fileName = level.toLowerCase();
-    const response = await fetch(`${BASE_URL}/${fileName}.json`);
+    const baseUrl = await getBaseUrl();
+    const response = await fetch(`${baseUrl}/${fileName}.json`);
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
     const data = await response.json();
+    // Yeni veriyi offline storage'a kaydet
+    await storageService.saveWordList(level, data);
     return data;
   } catch (error) {
     console.error(`Error fetching word list for ${level}:`, error);
@@ -29,11 +36,14 @@ const fetchWordList = async (level: string): Promise<WordList> => {
 const forceFetchWordList = async (level: string): Promise<WordList> => {
   try {
     const fileName = level.toLowerCase();
-    const response = await fetch(`${BASE_URL}/${fileName}.json`);
+    const baseUrl = await getBaseUrl();
+    const response = await fetch(`${baseUrl}/${fileName}.json`);
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
     const data = await response.json();
+    // Yeni veriyi offline storage'a kaydet
+    await storageService.saveWordList(level, data);
     return data;
   } catch (error) {
     console.error(`Error fetching word list for ${level}:`, error);
@@ -41,15 +51,18 @@ const forceFetchWordList = async (level: string): Promise<WordList> => {
   }
 };
 
-export const wordLists: AsyncWordLists = {
-  A1: fetchWordList('A1'),
-  A2: fetchWordList('A2'),
-  B1: fetchWordList('B1'),
-  B1_PLUS: fetchWordList('B1_PLUS'),
-  B2: fetchWordList('B2'),
-  C1: fetchWordList('C1'),
-  C2: fetchWordList('C2'),
-  YDS: fetchWordList('YDS'),
+// Kelime listelerini getiren fonksiyon
+export const getWordLists = async (): Promise<AsyncWordLists> => {
+  return {
+    A1: fetchWordList('A1'),
+    A2: fetchWordList('A2'),
+    B1: fetchWordList('B1'),
+    B1_PLUS: fetchWordList('B1_PLUS'),
+    B2: fetchWordList('B2'),
+    C1: fetchWordList('C1'),
+    C2: fetchWordList('C2'),
+    YDS: fetchWordList('YDS'),
+  };
 };
 
 export const forceUpdateWordLists = {
