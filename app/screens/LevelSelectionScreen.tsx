@@ -34,7 +34,6 @@ const LEVELS: Level[] = [
   { id: 'A1', name: 'A1', icon: 'school', description: 'Başlangıç' },
   { id: 'A2', name: 'A2', icon: 'auto-stories', description: 'Temel' },
   { id: 'B1', name: 'B1', icon: 'menu-book', description: 'Orta Öncesi' },
-  { id: 'B1_PLUS', name: 'B1+', icon: 'local-library', description: 'Orta' },
   { id: 'B2', name: 'B2', icon: 'psychology', description: 'Orta Üstü' },
   { id: 'C1', name: 'C1', icon: 'workspace-premium', description: 'İleri' },
   { id: 'C2', name: 'C2', icon: 'military-tech', description: 'Üst' },

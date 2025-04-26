@@ -21,7 +21,6 @@ const LEVELS = [
   { id: 'A1', name: 'A1', description: 'Beginner' },
   { id: 'A2', name: 'A2', description: 'Elementary' },
   { id: 'B1', name: 'B1', description: 'Pre-Intermediate' },
-  { id: 'B1_PLUS', name: 'B1+', description: 'Intermediate' },
   { id: 'B2', name: 'B2', description: 'Upper Intermediate' },
   { id: 'C1', name: 'C1', description: 'Advanced' },
   { id: 'C2', name: 'C2', description: 'Proficiency' },

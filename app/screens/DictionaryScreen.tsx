@@ -14,7 +14,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types/navigation';
 import { NumberSelector } from '../components/NumberSelector';
 import { WordCard } from '../components/WordCard';
-import { wordLists } from '../data/wordLists';
+import { getWordLists } from '../data/wordLists';
 import type { Word, WordList } from '../types/words';
 import { useTheme } from '../context/ThemeContext';
 
@@ -37,8 +37,10 @@ const DictionaryScreen = () => {
   const fetchAllWords = async () => {
     setLoading(true);
     try {
-      const levels = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
+      const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'YDS'] as const;
       let allWords: Word[] = [];
+      
+      const wordLists = await getWordLists();
       
       for (const level of levels) {
         try {

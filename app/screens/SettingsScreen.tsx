@@ -6,7 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
-import { wordLists, forceUpdateWordLists } from '../data/wordLists';
+import { getWordLists, forceUpdateWordLists } from '../data/wordLists';
 import { fetchGithubImages } from '../services/storage';
 import * as Notifications from 'expo-notifications';
 
@@ -167,7 +167,9 @@ export const SettingsScreen: React.FC<Props> = () => {
   const downloadAllData = async () => {
     try {
       setIsDownloading(true);
-      const levels = ['A1', 'A2', 'B1', 'B1_PLUS', 'B2', 'C1', 'C2', 'YDS'];
+      const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'YDS'];
+      
+      const wordLists = await getWordLists();
       
       for (const level of levels) {
         const data = await wordLists[level];
@@ -202,7 +204,7 @@ export const SettingsScreen: React.FC<Props> = () => {
   const syncData = async () => {
     try {
       setIsDownloading(true);
-      const levels = ['A1', 'A2', 'B1', 'B1_PLUS', 'B2', 'C1', 'C2', 'YDS'] as const;
+      const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'YDS'] as const;
       
       for (const level of levels) {
         const data = await forceUpdateWordLists[level]();

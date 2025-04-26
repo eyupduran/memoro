@@ -22,7 +22,7 @@ const translations: Record<NativeLanguage, typeof tr> = {
   pt,
 };
 
-const WORD_LIST_LEVELS = ['A1', 'A2', 'B1', 'B1_PLUS', 'B2', 'C1', 'C2', 'YDS'];
+const WORD_LIST_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'YDS'];
 const DEFAULT_LANGUAGE: NativeLanguage = 'tr';
 const DEFAULT_LEARNING_LANGUAGE: LearningLanguage = 'en';
 
