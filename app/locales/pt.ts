@@ -51,7 +51,7 @@ export default {
       subtext: 'As palavras aparecerão aqui conforme você for aprendendo'
     },
     reinforcement: {
-      info: 'Você pode selecionar de 3 a 6 palavras para reforçar seu aprendizado. Você pode praticar novamente com correspondência visual usando as palavras selecionadas.',
+      info: 'Você pode selecionar de 2 a 5 palavras para reforçar seu aprendizado. Você pode praticar novamente com correspondência visual usando as palavras selecionadas.',
       button: 'Reforçar {0} Palavras'
     }
   },
@@ -104,15 +104,15 @@ export default {
     }
   },
   wordCount: {
-    title: 'Meta Diária',
-    subtitle: 'Quantas palavras você quer aprender por dia?',
+    title: 'Número de Palavras',
+    subtitle: 'Quantas palavras você quer adicionar à sua tela de bloqueio?',
     wordText: '{0} Palavras',
     levelText: 'Nível {0}',
     levels: {
-      3: 'Iniciante',
+      2: 'Iniciante',
+      3: 'Básico',
       4: 'Intermediário',
-      5: 'Bom',
-      6: 'Avançado'
+      5: 'Avançado'
     }
   },
   imageSelection: {
@@ -122,8 +122,8 @@ export default {
   },
   dictionaryScreen: {
     title: 'Dicionário',
-    wordCount: 'Quantas palavras você deseja aprender?',
-    infoText: 'Selecione {0} palavras da lista ou pesquise. Com as palavras selecionadas, você pode escolher uma imagem de fundo para colocar as palavras e personalizar sua experiência de aprendizado.',
+    wordCount: 'Quantas palavras você quer adicionar à sua tela de bloqueio?',
+    infoText: 'Selecione {0} palavras da lista ou pesquise. Com as palavras selecionadas, você pode escolher uma imagem de fundo para colocar as palavras na sua tela de bloqueio e personalizar sua experiência de aprendizado.',
     searchPlaceholder: 'Pesquisar palavra em inglês ou significado em português...',
     examplePrefix: 'Exemplo:',
     continueButton: 'Continuar ({0}/{1})'

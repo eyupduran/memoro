@@ -8,7 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WordCount'>;
 
-const WORD_COUNTS = [3, 4, 5, 6];
+const WORD_COUNTS = [2, 3, 4, 5];
 const { width } = Dimensions.get('window');
 const CARD_MARGIN = 10;
 const CARD_WIDTH = (width - 40 - CARD_MARGIN * 2) / 2;

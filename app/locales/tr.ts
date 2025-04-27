@@ -51,7 +51,7 @@ export default {
       subtext: 'Yeni kelimeler öğrendikçe burada listelenecek'
     },
     reinforcement: {
-      info: 'Öğrendiğiniz kelimeleri pekiştirmek için 3-6 arası kelime seçebilirsiniz. Seçtiğiniz kelimelerle görsel eşleştirme yaparak tekrar çalışabilirsiniz.',
+      info: 'Öğrendiğiniz kelimeleri pekiştirmek için 2-5 arası kelime seçebilirsiniz. Seçtiğiniz kelimelerle görsel eşleştirme yaparak tekrar çalışabilirsiniz.',
       button: '{0} Kelimeyi Pekiştir'
     }
   },
@@ -104,15 +104,15 @@ export default {
     }
   },
   wordCount: {
-    title: 'Günlük Hedef',
-    subtitle: 'Her gün kaç kelime öğrenmek istiyorsunuz?',
+    title: 'Kelime Sayısı',
+    subtitle: 'Kilit ekranınıza kaç kelime eklemek istiyorsunuz?',
     wordText: '{0} Kelime',
     levelText: '{0} Seviye',
     levels: {
-      3: 'Başlangıç',
+      2: 'Başlangıç',
+      3: 'Kolay',
       4: 'Orta',
-      5: 'İyi',
-      6: 'İleri'
+      5: 'İleri'
     }
   },
   imageSelection: {
@@ -122,8 +122,8 @@ export default {
   },
   dictionaryScreen: {
     title: 'Sözlük',
-    wordCount: 'Kaç kelime öğrenmek istiyorsunuz?',
-    infoText: 'Listeden veya arama yaparak {0} kelime seçin. Seçtiğiniz kelimelerle bir arka plan görseli seçerek kelimeleri görsel üzerine yerleştirebilir ve öğrenme deneyiminizi kişiselleştirebilirsiniz.',
+    wordCount: 'Kilit ekranınıza kaç kelime eklemek istiyorsunuz?',
+    infoText: 'Listeden veya arama yaparak {0} kelime seçin. Seçtiğiniz kelimelerle bir arka plan görseli seçerek kelimeleri kilit ekranınıza yerleştirebilir ve öğrenme deneyiminizi kişiselleştirebilirsiniz.',
     searchPlaceholder: 'İngilizce kelime veya Türkçe anlamını ara...',
     examplePrefix: 'Örnek:',
     continueButton: 'Devam Et ({0}/{1})'

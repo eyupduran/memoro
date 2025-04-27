@@ -29,7 +29,7 @@ const DictionaryScreen = () => {
   const [words, setWords] = useState<Word[]>([]);
   const [filteredWords, setFilteredWords] = useState<Word[]>([]);
   const [selectedWords, setSelectedWords] = useState<Word[]>([]);
-  const [wordCount, setWordCount] = useState(3);
+  const [wordCount, setWordCount] = useState(2);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -136,7 +136,7 @@ const DictionaryScreen = () => {
   );
 
   const renderWordCountSelector = () => {
-    const counts = [3, 4, 5, 6];
+    const counts = [2, 3, 4, 5];
     return (
       <View style={styles.wordCountContainer}>
         <Text style={[styles.label, { color: colors.text.primary }]}>

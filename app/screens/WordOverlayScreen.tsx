@@ -48,7 +48,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const [fontSizeScale, setFontSizeScale] = useState(1);
   const [textColor, setTextColor] = useState(colors.text.onPrimary);
   const [layoutStyle, setLayoutStyle] = useState<'plain' | 'box' | 'gradient' | 'shadow' | 'outline' | 'minimal' | 'card3d' | 'neon' | 'vintage' | 'watercolor' | 'boxShadow'>('plain');
-  const [wordFormat, setWordFormat] = useState<WordFormat>('standard');
+  const [wordFormat, setWordFormat] = useState<WordFormat>('inline');
   const [isCustomizeVisible, setIsCustomizeVisible] = useState(false);
   const [fontFamily, setFontFamily] = useState<string | undefined>(undefined);
   const [positionOffsetX, setPositionOffsetX] = useState(0);
@@ -586,7 +586,14 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
               styles.overlay,
               { backgroundColor: 'rgba(0, 0, 0, 0.2)' }
             ]} 
-            contentContainerStyle={styles.contentContainer}
+            contentContainerStyle={[
+              styles.contentContainer, 
+              { 
+                flexGrow: 1, 
+                justifyContent: 'flex-start', 
+                paddingTop: Dimensions.get('window').height * 0.4 
+              }
+            ]}
           >
             <View style={[styles.wordContainer, { transform: [{ translateX: positionOffsetX }, { translateY: positionOffsetY }] }]}>
               {selectedWords.map((word, index) => (
@@ -651,23 +658,23 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                     <TouchableOpacity
                       style={[
                         styles.formatButton,
-                        { backgroundColor: wordFormat === 'standard' ? colors.primary : 'rgba(0, 0, 0, 0.05)' },
-                      ]}
-                      onPress={() => setWordFormat('standard')}
-                    >
-                      <Text style={[{ color: wordFormat === 'standard' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Standart
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.formatButton,
                         { backgroundColor: wordFormat === 'inline' ? colors.primary : 'rgba(0, 0, 0, 0.05)' },
                       ]}
                       onPress={() => setWordFormat('inline')}
                     >
                       <Text style={[{ color: wordFormat === 'inline' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
                         Satır İçi
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.formatButton,
+                        { backgroundColor: wordFormat === 'standard' ? colors.primary : 'rgba(0, 0, 0, 0.05)' },
+                      ]}
+                      onPress={() => setWordFormat('standard')}
+                    >
+                      <Text style={[{ color: wordFormat === 'standard' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
+                        Standart
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -1080,9 +1087,10 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 20,
     paddingBottom: 100,
+    minHeight: Dimensions.get('window').height - 100,
+    display: 'flex',
   },
   wordContainer: {
-    flex: 1,
     justifyContent: 'center',
   },
   wordBox: {
