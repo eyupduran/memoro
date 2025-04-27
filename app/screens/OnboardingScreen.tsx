@@ -25,12 +25,6 @@ export const OnboardingScreen = () => {
 
   const onboardingData = [
     {
-      title: translations.onboarding.languageSelection,
-      description: translations.onboarding.nativeLanguage,
-      icon: 'language',
-      component: LanguageSelector,
-    },
-    {
       title: translations.onboarding.welcome,
       description: translations.onboarding.welcomeDescription,
       icon: 'school',
@@ -54,6 +48,12 @@ export const OnboardingScreen = () => {
       title: translations.onboarding.trackProgress,
       description: translations.onboarding.trackProgressDescription,
       icon: 'trending-up',
+    },
+    {
+      title: translations.onboarding.languageSelection,
+      description: translations.onboarding.nativeLanguage,
+      icon: 'language',
+      component: LanguageSelector,
     },
   ];
 
