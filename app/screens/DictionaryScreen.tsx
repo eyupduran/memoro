@@ -17,12 +17,14 @@ import { WordCard } from '../components/WordCard';
 import { getWordLists } from '../data/wordLists';
 import type { Word, WordList } from '../types/words';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 type DictionaryScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const DictionaryScreen = () => {
   const navigation = useNavigation<DictionaryScreenNavigationProp>();
   const { colors } = useTheme();
+  const { translations } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [words, setWords] = useState<Word[]>([]);
   const [filteredWords, setFilteredWords] = useState<Word[]>([]);
@@ -100,6 +102,12 @@ const DictionaryScreen = () => {
     }
   };
 
+  const formatString = (template: string, ...args: any[]) => {
+    return template.replace(/{(\d+)}/g, (match, number) => {
+      return typeof args[number] !== 'undefined' ? args[number] : match;
+    });
+  };
+
   const renderItem = ({ item }: { item: Word }) => (
     <TouchableOpacity
       style={[
@@ -120,7 +128,7 @@ const DictionaryScreen = () => {
         <Text style={[styles.meaningText, { color: colors.text.secondary }]}>{item.meaning}</Text>
         {item.example && (
           <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
-            Örnek: {item.example}
+            {translations.dictionaryScreen.examplePrefix} {item.example}
           </Text>
         )}
       </View>
@@ -132,7 +140,7 @@ const DictionaryScreen = () => {
     return (
       <View style={styles.wordCountContainer}>
         <Text style={[styles.label, { color: colors.text.primary }]}>
-          Kaç kelime öğrenmek istiyorsunuz?
+          {translations.dictionaryScreen.wordCount}
         </Text>
         <View style={styles.wordCountList}>
           {counts.map((count) => (
@@ -185,7 +193,7 @@ const DictionaryScreen = () => {
 
       <View style={[styles.infoContainer, { backgroundColor: colors.surfaceVariant }]}>
         <Text style={[styles.infoText, { color: colors.text.secondary }]}>
-          Listeden veya arama yaparak {wordCount} kelime seçin. Seçtiğiniz kelimelerle bir arka plan görseli seçerek kelimeleri görsel üzerine yerleştirebilir ve öğrenme deneyiminizi kişiselleştirebilirsiniz.
+          {formatString(translations.dictionaryScreen.infoText, wordCount)}
         </Text>
       </View>
 
@@ -198,7 +206,7 @@ const DictionaryScreen = () => {
             color: colors.text.primary,
           }
         ]}
-        placeholder="İngilizce kelime veya Türkçe anlamını ara..."
+        placeholder={translations.dictionaryScreen.searchPlaceholder}
         placeholderTextColor={colors.text.secondary}
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -235,7 +243,7 @@ const DictionaryScreen = () => {
             selectedWords.length !== wordCount && { color: colors.text.secondary },
           ]}
         >
-          Devam Et ({selectedWords.length}/{wordCount})
+          {formatString(translations.dictionaryScreen.continueButton, selectedWords.length, wordCount)}
         </Text>
       </TouchableOpacity>
     </View>

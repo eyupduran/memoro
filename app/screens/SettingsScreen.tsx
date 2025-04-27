@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import type { ThemeType } from '../theme/themes';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,11 +10,13 @@ import { RootStackParamList } from '../types/navigation';
 import { getWordLists, forceUpdateWordLists } from '../data/wordLists';
 import { fetchGithubImages } from '../services/storage';
 import * as Notifications from 'expo-notifications';
+import { LanguageSelectorSettings } from '../components/LanguageSelectorSettings';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export const SettingsScreen: React.FC<Props> = () => {
   const { theme, setTheme, colors } = useTheme();
+  const { translations } = useLanguage();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isOfflineEnabled, setIsOfflineEnabled] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -236,21 +239,21 @@ export const SettingsScreen: React.FC<Props> = () => {
   const themes: { type: ThemeType; label: string; icon: keyof typeof MaterialIcons.glyphMap; description: string }[] = [
     {
       type: 'light',
-      label: 'Açık Tema',
+      label: translations.settings.themes.light.label,
       icon: 'wb-sunny',
-      description: 'Beyaz arka plan ve koyu renkli metinler',
+      description: translations.settings.themes.light.description,
     },
     {
       type: 'dark',
-      label: 'Koyu Tema',
+      label: translations.settings.themes.dark.label,
       icon: 'nights-stay',
-      description: 'Koyu arka plan ve açık renkli metinler',
+      description: translations.settings.themes.dark.description,
     },
     {
       type: 'pastel',
-      label: 'Pastel Tema',
+      label: translations.settings.themes.pastel.label,
       icon: 'palette',
-      description: 'Yumuşak ve rahatlatıcı renkler',
+      description: translations.settings.themes.pastel.description,
     },
   ];
 
@@ -261,10 +264,10 @@ export const SettingsScreen: React.FC<Props> = () => {
     >
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-          Tema Seçimi
+          {translations.settings.themeSelection}
         </Text>
         <Text style={[styles.sectionDescription, { color: colors.text.secondary }]}>
-          Uygulama görünümünü özelleştirin
+          {translations.settings.themeDescription}
         </Text>
         <View style={styles.themeContainer}>
           {themes.map((item) => (
@@ -318,10 +321,14 @@ export const SettingsScreen: React.FC<Props> = () => {
       </View>
 
       <View style={styles.section}>
+        <LanguageSelectorSettings />
+      </View>
+
+      <View style={styles.section}>
         <View style={styles.notificationHeader}>
           <View style={styles.notificationTextContainer}>
             <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-              Bildirimler
+              {translations.settings.notifications}
             </Text>
           </View>
           <Switch
@@ -333,7 +340,7 @@ export const SettingsScreen: React.FC<Props> = () => {
         </View>
         {notificationsEnabled && (
           <Text style={[styles.notificationTimeInfo, { color: colors.text.secondary }]}>
-            Hatırlatmalar her gün sabah 10:00'da gönderilecektir.
+            {translations.settings.notificationTime}
           </Text>
         )}
       </View>
@@ -341,7 +348,7 @@ export const SettingsScreen: React.FC<Props> = () => {
       <View style={[styles.section, styles.offlineSection]}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-            Çevrimdışı Kullanım
+            {translations.settings.offlineMode}
           </Text>
           {lastSyncDate && (
             <Switch
@@ -352,13 +359,12 @@ export const SettingsScreen: React.FC<Props> = () => {
         </View>
 
         <Text style={[styles.sectionDescription, { color: colors.text.secondary }]}>
-          Çevrimdışı mod, internet bağlantınız olmadığında bile kelime listelerine erişmenizi sağlar. 
-          Bunun için önce verileri indirmeniz gerekir.
+          {translations.settings.offlineModeDescription}
         </Text>
         
         {lastSyncDate && (
           <Text style={[styles.syncInfo, { color: colors.text.secondary }]}>
-            Son güncelleme: {new Date(lastSyncDate).toLocaleDateString('tr-TR', {
+            {translations.settings.lastUpdated} {new Date(lastSyncDate).toLocaleDateString('tr-TR', {
               year: 'numeric',
               month: 'long',
               day: 'numeric',
@@ -372,7 +378,7 @@ export const SettingsScreen: React.FC<Props> = () => {
           <View style={styles.downloadingContainer}>
             <ActivityIndicator size="small" color={colors.primary} />
             <Text style={[styles.downloadingText, { color: colors.text.secondary }]}>
-              Veriler indiriliyor...
+              {translations.settings.downloadingData}
             </Text>
           </View>
         ) : (
@@ -384,7 +390,7 @@ export const SettingsScreen: React.FC<Props> = () => {
               >
                 <MaterialIcons name="cloud-download" size={24} color={colors.text.onPrimary} />
                 <Text style={[styles.offlineButtonText, { color: colors.text.onPrimary }]}>
-                  Tüm Verileri İndir
+                  {translations.settings.downloadAll}
                 </Text>
               </TouchableOpacity>
             )}
@@ -396,7 +402,7 @@ export const SettingsScreen: React.FC<Props> = () => {
               >
                 <MaterialIcons name="sync" size={24} color={colors.text.onPrimary} />
                 <Text style={[styles.offlineButtonText, { color: colors.text.onPrimary }]}>
-                  Verileri Güncelle
+                  {translations.settings.updateData}
                 </Text>
               </TouchableOpacity>
             )}

@@ -18,13 +18,14 @@ import { RootStackParamList } from './app/types/navigation';
 import * as Notifications from 'expo-notifications';
 import { View } from 'react-native';
 import { ThemeProvider, useTheme } from './app/context/ThemeContext';
-import { LanguageProvider } from './app/contexts/LanguageContext';
+import { LanguageProvider, useLanguage } from './app/contexts/LanguageContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
   const { colors, theme } = useTheme();
+  const { translations } = useLanguage();
 
   useEffect(() => {
     Notifications.setNotificationHandler({
@@ -139,42 +140,42 @@ const AppNavigator = () => {
         <Stack.Screen
           name="LevelSelection"
           component={LevelSelectionScreen}
-          options={{ title: 'Seviye Seçimi' }}
+          options={{ title: translations.levelSelection.title }}
         />
         <Stack.Screen
           name="WordCount"
           component={WordCountScreen}
-          options={{ title: 'Kelime Sayısı' }}
+          options={{ title: translations.wordCount.title }}
         />
         <Stack.Screen
           name="WordList"
           component={WordListScreen}
-          options={{ title: 'Kelime Seçimi' }}
+          options={{ title: translations.wordList.title.replace('{0}', '') }}
         />
         <Stack.Screen
           name="ImageSelection"
           component={ImageSelectionScreen}
-          options={{ title: 'Arka Plan Seçimi' }}
+          options={{ title: translations.imageSelection.title }}
         />
         <Stack.Screen
           name="WordOverlay"
           component={WordOverlayScreen}
-          options={{ title: 'Önizleme' }}
+          options={{ title: translations.wordOverlay.preview || 'Önizleme' }}
         />
         <Stack.Screen
           name="Stats"
           component={StatsScreen}
-          options={{ title: 'İstatistikler' }}
+          options={{ title: translations.stats.title }}
         />
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
-          options={{ title: 'Ayarlar' }}
+          options={{ title: translations.settings.title || 'Ayarlar' }}
         />
         <Stack.Screen
           name="Dictionary"
           component={DictionaryScreen}
-          options={{ title: 'Sözlük' }}
+          options={{ title: translations.dictionaryScreen.title || 'Sözlük' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

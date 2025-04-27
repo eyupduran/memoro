@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
@@ -20,6 +21,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'WordList'>;
 
 export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors } = useTheme();
+  const { translations } = useLanguage();
   const { level, wordCount } = route.params;
   const [availableWords, setAvailableWords] = useState<Word[]>([]);
   const [selectedWords, setSelectedWords] = useState<Word[]>([]);
@@ -75,12 +77,18 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  const formatString = (template: string, ...args: any[]) => {
+    return template.replace(/{(\d+)}/g, (match, number) => {
+      return typeof args[number] !== 'undefined' ? args[number] : match;
+    });
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.text.secondary }]}>
-          Kelimeler yükleniyor...
+          {translations.wordList.loading}
         </Text>
       </View>
     );
@@ -89,10 +97,10 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text.primary }]}>
-        Seçilen {wordCount} Kelime
+        {formatString(translations.wordList.title, wordCount)}
       </Text>
       <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-        Bu kelimeleri öğrenmeye hazır mısınız?
+        {translations.wordList.subtitle}
       </Text>
       
       <ScrollView style={styles.wordList}>
@@ -150,7 +158,7 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
                 <View style={styles.modalBody}>
                   <View style={styles.detailSection}>
                     <Text style={[styles.detailLabel, { color: colors.text.secondary }]}>
-                      Anlam:
+                      {translations.wordList.wordDetail.meaning}
                     </Text>
                     <Text style={[styles.detailText, { color: colors.text.primary }]}>
                       {selectedWordDetail.meaning}
@@ -158,7 +166,7 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
                   </View>
                   <View style={styles.detailSection}>
                     <Text style={[styles.detailLabel, { color: colors.text.secondary }]}>
-                      Örnek Cümle:
+                      {translations.wordList.wordDetail.example}
                     </Text>
                     <Text style={[styles.detailText, { color: colors.text.primary }]}>
                       {selectedWordDetail.example}
@@ -192,7 +200,7 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.buttonIcon}
             />
             <Text style={[styles.buttonText, { color: colors.primary }]}>
-              Yeniden Üret
+              {translations.wordList.buttons.regenerate}
             </Text>
           </View>
         </TouchableOpacity>
@@ -214,7 +222,7 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.buttonIcon}
             />
             <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
-              Devam Et
+              {translations.wordList.buttons.continue}
             </Text>
           </View>
         </TouchableOpacity>

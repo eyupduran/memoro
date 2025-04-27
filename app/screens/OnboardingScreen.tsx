@@ -31,28 +31,28 @@ export const OnboardingScreen = () => {
       component: LanguageSelector,
     },
     {
-      title: 'Hoş Geldiniz',
-      description: 'Memoro ile İngilizce kelime öğrenmeye hazır mısınız?',
+      title: translations.onboarding.welcome,
+      description: translations.onboarding.welcomeDescription,
       icon: 'school',
     },
     {
-      title: 'Seviyenizi Seçin',
-      description: 'A1\'den C2\'ye kadar istediğiniz seviyede kelimeler öğrenin.',
+      title: translations.onboarding.selectLevel,
+      description: translations.onboarding.selectLevelDescription,
       icon: 'grade',
     },
     {
-      title: 'Görselleştirin',
-      description: 'Kelimeleri görsellerle birleştirerek daha kalıcı öğrenin.',
+      title: translations.onboarding.visualize,
+      description: translations.onboarding.visualizeDescription,
       icon: 'image',
     },
     {
-      title: 'Sözlük',
-      description: 'İstediğiniz kelimeleri seçip kendi öğrenme setinizi oluşturun.',
+      title: translations.onboarding.dictionary,
+      description: translations.onboarding.dictionaryDescription,
       icon: 'menu-book',
     },
     {
-      title: 'İlerleyişinizi Takip Edin',
-      description: 'Öğrendiğiniz kelimeleri kaydedin ve gelişiminizi görün.',
+      title: translations.onboarding.trackProgress,
+      description: translations.onboarding.trackProgressDescription,
       icon: 'trending-up',
     },
   ];
@@ -157,7 +157,7 @@ export const OnboardingScreen = () => {
                 onPress={finishOnboarding}
               >
                 <Text style={[styles.skipButtonText, { color: colors.primary }]}>
-                  Atla
+                  {translations.onboarding.skip}
                 </Text>
               </TouchableOpacity>
             )}
@@ -166,7 +166,7 @@ export const OnboardingScreen = () => {
               onPress={handleNext}
             >
               <Text style={[styles.buttonText, { color: colors.background }]}>
-                {activeIndex === onboardingData.length - 1 ? 'Başla' : 'İleri'}
+                {activeIndex === onboardingData.length - 1 ? translations.onboarding.start : translations.onboarding.next}
               </Text>
             </TouchableOpacity>
           </View>

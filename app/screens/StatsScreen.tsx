@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,19 +18,22 @@ import type { LearnedWord } from '../types/words';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Stats'>;
 
+type LevelTranslationKey = 'beginner' | 'elementary' | 'preIntermediate' | 'upperIntermediate' | 'advanced' | 'proficiency' | 'examPrep' | 'dictionary';
+
 const LEVELS = [
-  { id: 'A1', name: 'A1', description: 'Beginner' },
-  { id: 'A2', name: 'A2', description: 'Elementary' },
-  { id: 'B1', name: 'B1', description: 'Pre-Intermediate' },
-  { id: 'B2', name: 'B2', description: 'Upper Intermediate' },
-  { id: 'C1', name: 'C1', description: 'Advanced' },
-  { id: 'C2', name: 'C2', description: 'Proficiency' },
-  { id: 'YDS', name: 'YDS', description: 'Sınav Hazırlık' },
-  { id: 'custom', name: 'Sözlük', description: 'Sözlükten Seçilenler' },
+  { id: 'A1', name: 'A1', translationKey: 'beginner' as LevelTranslationKey },
+  { id: 'A2', name: 'A2', translationKey: 'elementary' as LevelTranslationKey },
+  { id: 'B1', name: 'B1', translationKey: 'preIntermediate' as LevelTranslationKey },
+  { id: 'B2', name: 'B2', translationKey: 'upperIntermediate' as LevelTranslationKey },
+  { id: 'C1', name: 'C1', translationKey: 'advanced' as LevelTranslationKey },
+  { id: 'C2', name: 'C2', translationKey: 'proficiency' as LevelTranslationKey },
+  { id: 'YDS', name: 'YDS', translationKey: 'examPrep' as LevelTranslationKey },
+  { id: 'custom', name: 'Sözlük', translationKey: 'dictionary' as LevelTranslationKey },
 ];
 
 export const StatsScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
+  const { translations } = useLanguage();
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [words, setWords] = useState<LearnedWord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,14 +94,20 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const formatString = (template: string, ...args: any[]) => {
+    return template.replace(/{(\d+)}/g, (match, number) => {
+      return typeof args[number] !== 'undefined' ? args[number] : match;
+    });
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text.primary }]}>
-          İstatistikler
+          {translations.stats.title}
         </Text>
         <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-          Toplam {totalWords} kelime öğrenildi
+          {formatString(translations.stats.totalWords, totalWords)}
         </Text>
       </View>
       
@@ -125,7 +135,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
               },
             ]}
           >
-            Tümü
+            {translations.stats.levels.all}
           </Text>
           <Text
             style={[
@@ -135,7 +145,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
               },
             ]}
           >
-            Tüm Kelimeler
+            {translations.stats.levels.allDescription}
           </Text>
         </TouchableOpacity>
         {LEVELS.map((level) => (
@@ -168,7 +178,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
                 },
               ]}
             >
-              {level.description}
+              {translations.stats.levels[level.translationKey]}
             </Text>
           </TouchableOpacity>
         ))}
@@ -186,11 +196,11 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
           />
           <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
             {selectedLevel === 'all' 
-              ? 'Henüz öğrenilen kelime yok'
-              : 'Bu seviyede henüz öğrenilen kelime yok'}
+              ? translations.stats.noWords.allLevels
+              : translations.stats.noWords.specificLevel}
           </Text>
           <Text style={[styles.emptySubtext, { color: colors.text.secondary }]}>
-            Yeni kelimeler öğrendikçe burada listelenecek
+            {translations.stats.noWords.subtext}
           </Text>
         </View>
       ) : (
@@ -203,8 +213,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.infoIcon}
             />
             <Text style={[styles.infoText, { color: colors.text.secondary }]}>
-              Öğrendiğiniz kelimeleri pekiştirmek için 3-6 arası kelime seçebilirsiniz. 
-              Seçtiğiniz kelimelerle görsel eşleştirme yaparak tekrar çalışabilirsiniz.
+              {translations.stats.reinforcement.info}
             </Text>
           </View>
 
@@ -266,7 +275,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleReinforce}
             >
               <Text style={[styles.reinforceButtonText, { color: colors.text.onPrimary }]}>
-                {selectedWords.length} Kelimeyi Pekiştir
+                {formatString(translations.stats.reinforcement.button, selectedWords.length)}
               </Text>
             </TouchableOpacity>
           )}

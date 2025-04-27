@@ -4,17 +4,19 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useLanguage } from '../contexts/LanguageContext';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { translations } = useLanguage();
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Memoro</Text>
-        <Text style={styles.subtitle}>İngilizce Kelime Öğrenme Asistanı</Text>
+        <Text style={styles.title}>{translations.home.title}</Text>
+        <Text style={styles.subtitle}>{translations.home.subtitle}</Text>
       </View>
       
       <View style={styles.menu}>
@@ -23,7 +25,7 @@ export const HomeScreen = () => {
           onPress={() => navigation.navigate('LevelSelection')}
         >
           <MaterialIcons name="school" size={40} color="#4A90E2" />
-          <Text style={styles.menuText}>Kelime Öğren</Text>
+          <Text style={styles.menuText}>{translations.home.learnWords}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -31,7 +33,7 @@ export const HomeScreen = () => {
           onPress={() => navigation.navigate('Stats')}
         >
           <MaterialIcons name="trending-up" size={40} color="#4A90E2" />
-          <Text style={styles.menuText}>İstatistikler</Text>
+          <Text style={styles.menuText}>{translations.home.statistics}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -39,7 +41,7 @@ export const HomeScreen = () => {
           onPress={() => navigation.navigate('Settings')}
         >
           <MaterialIcons name="settings" size={40} color="#4A90E2" />
-          <Text style={styles.menuText}>Ayarlar</Text>
+          <Text style={styles.menuText}>{translations.home.settings}</Text>
         </TouchableOpacity>
       </View>
     </View>

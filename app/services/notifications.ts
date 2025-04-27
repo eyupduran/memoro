@@ -21,7 +21,7 @@ export const notificationService = {
     return status === 'granted';
   },
 
-  scheduleDailyReminder: async (hour: number = 10, minute: number = 0) => {
+  scheduleDailyReminder: async (hour: number = 10, minute: number = 0, translations: any) => {
     try {
       // Önce eski bildirimi temizle
       const oldNotificationId = await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATION_ID);
@@ -45,8 +45,8 @@ export const notificationService = {
       // Yeni günlük bildirimi planla
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Günlük Kelime Zamanı! 📚',
-          body: 'Bugün yeni kelimeler öğrenmeye ne dersin?',
+          title: translations.notifications.dailyReminderTitle,
+          body: translations.notifications.dailyReminderBody,
           sound: true,
         },
         trigger,
@@ -86,11 +86,11 @@ export const notificationService = {
   },
 };
 
-export const scheduleNotification = async () => {
+export const scheduleNotification = async (translations: any) => {
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: 'Günlük Kelime Hatırlatması 📚',
-      body: 'Bugünkü kelimelerinizi öğrenmeye ne dersiniz?',
+      title: translations.notifications.dailyWordReminder,
+      body: translations.notifications.dailyWordReminderBody,
     },
     trigger: Platform.OS === 'ios' 
       ? {

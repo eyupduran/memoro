@@ -45,7 +45,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   // Özelleştirme State'leri
   const [fontSizeScale, setFontSizeScale] = useState(1);
   const [textColor, setTextColor] = useState(colors.text.onPrimary);
-  const [layoutStyle, setLayoutStyle] = useState<'plain' | 'box' | 'gradient' | 'shadow' | 'outline' | 'minimal' | 'card3d' | 'neon' | 'vintage' | 'watercolor'>('plain');
+  const [layoutStyle, setLayoutStyle] = useState<'plain' | 'box' | 'gradient' | 'shadow' | 'outline' | 'minimal' | 'card3d' | 'neon' | 'vintage' | 'watercolor' | 'boxShadow'>('plain');
   const [wordFormat, setWordFormat] = useState<WordFormat>('standard');
   const [isCustomizeVisible, setIsCustomizeVisible] = useState(false);
   const [fontFamily, setFontFamily] = useState<string | undefined>(undefined);
@@ -205,6 +205,20 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           shadowOpacity: 0.1,
           shadowRadius: 8,
           elevation: 3,
+        };
+      case 'boxShadow':
+        return {
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          padding: 16,
+          borderRadius: 12,
+          marginBottom: 16,
+          shadowColor: textColor,
+          shadowOffset: { width: 3, height: 3 },
+          shadowOpacity: 0.6,
+          shadowRadius: 5,
+          elevation: 8,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.2)',
         };
       case 'box':
         return {
@@ -921,6 +935,17 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                     >
                       <Text style={[{ color: layoutStyle === 'watercolor' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
                         Suluboya
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.layoutButton,
+                        { backgroundColor: layoutStyle === 'boxShadow' ? colors.primary : 'rgba(0, 0, 0, 0.05)' },
+                      ]}
+                      onPress={() => setLayoutStyle('boxShadow')}
+                    >
+                      <Text style={[{ color: layoutStyle === 'boxShadow' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
+                        Gölgeli Kutu
                       </Text>
                     </TouchableOpacity>
                   </ScrollView>

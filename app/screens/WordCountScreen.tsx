@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ export const WordCountScreen: React.FC<Props> = ({ route, navigation }) => {
   const { level } = route.params;
   const [selectedCount, setSelectedCount] = useState<number>(3);
   const { colors } = useTheme();
+  const { translations } = useLanguage();
 
   const handleCountSelect = (count: number) => {
     setSelectedCount(count);
@@ -25,29 +27,24 @@ export const WordCountScreen: React.FC<Props> = ({ route, navigation }) => {
     });
   };
 
+  const formatString = (template: string, ...args: any[]) => {
+    return template.replace(/{(\d+)}/g, (match, number) => {
+      return typeof args[number] !== 'undefined' ? args[number] : match;
+    });
+  };
+
   const getLevelDescription = (count: number) => {
-    switch (count) {
-      case 3:
-        return 'Başlangıç';
-      case 4:
-        return 'Orta';
-      case 5:
-        return 'İyi';
-      case 6:
-        return 'İleri';
-      default:
-        return '';
-    }
+    return translations.wordCount.levels[count as keyof typeof translations.wordCount.levels];
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text.primary }]}>
-          Günlük Hedef
+          {translations.wordCount.title}
         </Text>
         <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-          Her gün kaç kelime öğrenmek istiyorsunuz?
+          {translations.wordCount.subtitle}
         </Text>
       </View>
 
@@ -87,7 +84,7 @@ export const WordCountScreen: React.FC<Props> = ({ route, navigation }) => {
                   fontWeight: selectedCount === count ? '700' : '600'
                 }
               ]}>
-                {count} Kelime
+                {formatString(translations.wordCount.wordText, count)}
               </Text>
               <Text style={[
                 styles.descriptionText,
@@ -96,7 +93,7 @@ export const WordCountScreen: React.FC<Props> = ({ route, navigation }) => {
                   fontWeight: selectedCount === count ? '600' : '400'
                 }
               ]}>
-                {getLevelDescription(count)} Seviye
+                {formatString(translations.wordCount.levelText, getLevelDescription(count))}
               </Text>
             </View>
           </TouchableOpacity>

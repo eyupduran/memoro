@@ -7,37 +7,36 @@ import { colors } from '../theme/colors';
 type NativeLanguage = 'tr'| 'pt';
 type LearningLanguage = 'en';
 
-const nativeLanguages: { code: NativeLanguage; name: string }[] = [
-  { code: 'tr', name: 'Türkçe' },
-  { code: 'pt', name: 'Portekizce' },
-];
-
-const learningLanguages: { code: LearningLanguage; name: string }[] = [
-  { code: 'en', name: 'İngilizce' },
-];
-
 export const LanguageSelector = () => {
-  const { nativeLanguage, learningLanguage, setNativeLanguage, setLearningLanguage } = useLanguage();
+  const { nativeLanguage, learningLanguage, setNativeLanguage, setLearningLanguage, translations } = useLanguage();
   const [showNativeDropdown, setShowNativeDropdown] = useState(false);
+
+  const nativeLanguages: { code: NativeLanguage; name: string }[] = [
+    { code: 'tr', name: translations.languages.tr },
+    { code: 'pt', name: translations.languages.pt },
+  ];
+
+  const learningLanguages: { code: LearningLanguage; name: string }[] = [
+    { code: 'en', name: translations.languages.en },
+  ];
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.mainContainer}>
-        <Text style={styles.title}>Dil Seçimi</Text>
+        <Text style={styles.title}>{translations.languageSelector.title}</Text>
         
         <Text style={styles.description}>
-          Öğrenme deneyiminizi kişiselleştirmek için ana dilinizi seçin. 
-          Kelimelerin anlamları ve açıklamaları seçtiğiniz dilde gösterilecektir.
+          {translations.languageSelector.description}
         </Text>
 
         <View style={styles.dropdownContainer}>
-          <Text style={styles.label}>Ana Diliniz</Text>
+          <Text style={styles.label}>{translations.languageSelector.nativeLanguage}</Text>
           <TouchableOpacity 
             style={styles.dropdown}
             onPress={() => setShowNativeDropdown(!showNativeDropdown)}
           >
             <Text style={styles.selectedText}>
-              {nativeLanguages.find(lang => lang.code === nativeLanguage)?.name || 'Türkçe'}
+              {nativeLanguages.find(lang => lang.code === nativeLanguage)?.name || translations.languages.tr}
             </Text>
             <MaterialIcons 
               name={showNativeDropdown ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
@@ -73,22 +72,20 @@ export const LanguageSelector = () => {
         </View>
 
         <View style={styles.learningLanguageContainer}>
-          <Text style={styles.label}>Öğreneceğiniz Dil</Text>
+          <Text style={styles.label}>{translations.languageSelector.learningLanguage}</Text>
           <View style={styles.dropdown}>
             <Text style={styles.selectedText}>
-              {learningLanguages.find(lang => lang.code === learningLanguage)?.name || 'İngilizce'}
+              {learningLanguages.find(lang => lang.code === learningLanguage)?.name || translations.languages.en}
             </Text>
           </View>
           <Text style={styles.note}>
-            Şu an için sadece İngilizce öğrenme seçeneği mevcuttur. 
-            Yakında yeni diller eklenecektir.
+            {translations.languageSelector.note}
           </Text>
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.infoText}>
-            Dil seçiminizi istediğiniz zaman değiştirebilirsiniz. 
-            Değişiklik yaptığınızda, kelime listeleri yeni seçtiğiniz dile göre güncellenecektir.
+            {translations.languageSelector.info}
           </Text>
         </View>
       </View>

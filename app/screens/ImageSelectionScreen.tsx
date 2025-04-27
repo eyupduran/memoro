@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { fetchGithubImages } from '../services/storage';
@@ -33,6 +34,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ImageSelection'>;
 
 export const ImageSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
   const { colors } = useTheme();
+  const { translations } = useLanguage();
   const { selectedWords, level, wordCount } = route.params;
   const [backgrounds, setBackgrounds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,10 +96,10 @@ export const ImageSelectionScreen: React.FC<Props> = ({ navigation, route }) => 
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text.primary }]}>
-          Arka Plan Seçin
+          {translations.imageSelection.title}
         </Text>
         <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-          Kelimeleriniz için güzel bir arka plan seçin
+          {translations.imageSelection.subtitle}
         </Text>
       </View>
 

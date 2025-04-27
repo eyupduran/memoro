@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -27,22 +28,23 @@ interface Level {
   id: string;
   name: string;
   icon: LevelIconName;
-  description: string;
+  descriptionKey: string;
 }
-
-const LEVELS: Level[] = [
-  { id: 'A1', name: 'A1', icon: 'school', description: 'Başlangıç' },
-  { id: 'A2', name: 'A2', icon: 'auto-stories', description: 'Temel' },
-  { id: 'B1', name: 'B1', icon: 'menu-book', description: 'Orta Öncesi' },
-  { id: 'B2', name: 'B2', icon: 'psychology', description: 'Orta Üstü' },
-  { id: 'C1', name: 'C1', icon: 'workspace-premium', description: 'İleri' },
-  { id: 'C2', name: 'C2', icon: 'military-tech', description: 'Üst' },
-  { id: 'YDS', name: 'YDS', icon: 'grade', description: 'Sınav' },
-];
 
 export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
+  const { translations } = useLanguage();
   const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  const LEVELS: Level[] = [
+    { id: 'A1', name: 'A1', icon: 'school', descriptionKey: 'A1' },
+    { id: 'A2', name: 'A2', icon: 'auto-stories', descriptionKey: 'A2' },
+    { id: 'B1', name: 'B1', icon: 'menu-book', descriptionKey: 'B1' },
+    { id: 'B2', name: 'B2', icon: 'psychology', descriptionKey: 'B2' },
+    { id: 'C1', name: 'C1', icon: 'workspace-premium', descriptionKey: 'C1' },
+    { id: 'C2', name: 'C2', icon: 'military-tech', descriptionKey: 'C2' },
+    { id: 'YDS', name: 'YDS', icon: 'grade', descriptionKey: 'YDS' },
+  ];
 
   useEffect(() => {
     async function loadFonts() {
@@ -63,7 +65,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Text style={[styles.title, { color: colors.text.primary }]}>
-          Yükleniyor...
+          {translations.levelSelection.loading}
         </Text>
       </View>
     );
@@ -77,10 +79,10 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text.primary }]}>
-          Seviye Seçin
+          {translations.levelSelection.title}
         </Text>
         <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-          Öğrenmek istediğiniz seviyeyi seçin
+          {translations.levelSelection.subtitle}
         </Text>
       </View>
 
@@ -111,7 +113,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
               {level.name}
             </Text>
             <Text style={[styles.levelDescription, { color: colors.text.secondary }]}>
-              {level.description}
+              {translations.levelSelection.levels[level.descriptionKey as keyof typeof translations.levelSelection.levels]}
             </Text>
           </TouchableOpacity>
         ))}
@@ -127,7 +129,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
         >
           <MaterialIcons name="home" size={24} color={colors.primary} />
           <Text style={[styles.tabText, { color: colors.primary }]}>
-            Ana Sayfa
+            {translations.levelSelection.tabs.home}
           </Text>
         </TouchableOpacity>
 
@@ -137,7 +139,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
         >
           <MaterialIcons name="book" size={24} color={colors.text.secondary} />
           <Text style={[styles.tabText, { color: colors.text.secondary }]}>
-            Sözlük
+            {translations.levelSelection.tabs.dictionary}
           </Text>
         </TouchableOpacity>
 
@@ -147,7 +149,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
         >
           <MaterialIcons name="analytics" size={24} color={colors.text.secondary} />
           <Text style={[styles.tabText, { color: colors.text.secondary }]}>
-            İstatistik
+            {translations.levelSelection.tabs.stats}
           </Text>
         </TouchableOpacity>
 
@@ -157,7 +159,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
         >
           <MaterialIcons name="settings" size={24} color={colors.text.secondary} />
           <Text style={[styles.tabText, { color: colors.text.secondary }]}>
-            Ayarlar
+            {translations.levelSelection.tabs.settings}
           </Text>
         </TouchableOpacity>
       </View>
