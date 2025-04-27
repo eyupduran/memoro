@@ -420,7 +420,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
               {word.word}
             </Text>
             <Text style={[styles.meaningText, baseStyle, { fontSize: styles.meaningText.fontSize * 0.7 * fontSizeScale, marginBottom: 4 }]}>
-              /kelime telaffuzu/
+              /{translations.wordOverlay.pronunciation}/
             </Text>
             <Text style={[styles.meaningText, baseStyle, { fontSize: styles.meaningText.fontSize * fontSizeScale }]}>
               {`isim. ${word.meaning}`}
@@ -492,7 +492,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.memoContainer}>
             <View style={styles.memoHeader}>
               <Text style={[styles.memoTitle, baseStyle, { fontSize: styles.wordText.fontSize * 0.8 * fontSizeScale }]}>
-                Öğrenilecek Kelime
+                {translations.wordOverlay.wordTitle}
               </Text>
             </View>
             <View style={styles.memoContent}>
@@ -652,7 +652,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             {/* Format Seçimi */}
             {renderSection(0, (
               <>
-                <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>Format</Text>
+                <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>{translations.wordOverlay.wordFormat}</Text>
                 <View style={styles.formatSelector}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <TouchableOpacity
@@ -663,7 +663,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setWordFormat('inline')}
                     >
                       <Text style={[{ color: wordFormat === 'inline' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Satır İçi
+                        {translations.wordOverlay.formatTypes.inline}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -674,7 +674,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setWordFormat('standard')}
                     >
                       <Text style={[{ color: wordFormat === 'standard' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Standart
+                        {translations.wordOverlay.formatTypes.standard}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -685,7 +685,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setWordFormat('compact')}
                     >
                       <Text style={[{ color: wordFormat === 'compact' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Kompakt
+                        {translations.wordOverlay.formatTypes.compact}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -696,7 +696,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setWordFormat('flashcard')}
                     >
                       <Text style={[{ color: wordFormat === 'flashcard' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Kart
+                        {translations.wordOverlay.formatTypes.flashcard}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -707,7 +707,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setWordFormat('dictionary')}
                     >
                       <Text style={[{ color: wordFormat === 'dictionary' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Sözlük
+                        {translations.wordOverlay.formatTypes.dictionary}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -718,7 +718,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setWordFormat('quiz')}
                     >
                       <Text style={[{ color: wordFormat === 'quiz' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Quiz
+                        {translations.wordOverlay.formatTypes.quiz}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -729,7 +729,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setWordFormat('poetic')}
                     >
                       <Text style={[{ color: wordFormat === 'poetic' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Şiirsel
+                        {translations.wordOverlay.formatTypes.poetic}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -740,7 +740,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setWordFormat('bubble')}
                     >
                       <Text style={[{ color: wordFormat === 'bubble' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Balon
+                        {translations.wordOverlay.formatTypes.bubble}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -751,7 +751,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setWordFormat('memo')}
                     >
                       <Text style={[{ color: wordFormat === 'memo' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Not
+                        {translations.wordOverlay.formatTypes.memo}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -762,7 +762,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setWordFormat('modern')}
                     >
                       <Text style={[{ color: wordFormat === 'modern' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Modern
+                        {translations.wordOverlay.formatTypes.modern}
                       </Text>
                     </TouchableOpacity>
                   </ScrollView>
@@ -773,7 +773,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             {/* Renk Seçimi */}
             {renderSection(1, (
               <>
-                <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>Renk</Text>
+                <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>{translations.wordOverlay.color}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.colorPalette}>
                     {PREDEFINED_COLORS.map((color) => (
@@ -795,12 +795,12 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             {/* Font Seçimi */}
             {renderSection(2, (
               <>
-                <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>Yazı Tipi</Text>
+                <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>{translations.wordOverlay.font}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.fontSelector}>
                     {AVAILABLE_FONTS.map((font, index) => {
                       const isSelected = fontFamily === font;
-                      const fontDisplayName = font || 'Varsayılan';
+                      const fontDisplayName = font || translations.wordOverlay.defaultFont;
                       return (
                         <TouchableOpacity
                           key={fontDisplayName + index}
@@ -833,7 +833,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             {/* Düzen Stili */}
             {renderSection(3, (
               <>
-                <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>Düzen</Text>
+                <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>{translations.wordOverlay.layout}</Text>
                 <View style={styles.layoutSelector}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <TouchableOpacity
@@ -844,7 +844,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('plain')}
                     >
                       <Text style={[{ color: layoutStyle === 'plain' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Düz
+                        {translations.wordOverlay.layoutTypes.plain}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -855,7 +855,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('box')}
                     >
                       <Text style={[{ color: layoutStyle === 'box' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Kutulu
+                        {translations.wordOverlay.layoutTypes.box}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -866,7 +866,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('gradient')}
                     >
                       <Text style={[{ color: layoutStyle === 'gradient' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Gradyan
+                        {translations.wordOverlay.layoutTypes.gradient}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -877,7 +877,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('shadow')}
                     >
                       <Text style={[{ color: layoutStyle === 'shadow' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Gölgeli
+                        {translations.wordOverlay.layoutTypes.shadow}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -888,7 +888,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('outline')}
                     >
                       <Text style={[{ color: layoutStyle === 'outline' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Çerçeveli
+                        {translations.wordOverlay.layoutTypes.outline}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -899,7 +899,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('minimal')}
                     >
                       <Text style={[{ color: layoutStyle === 'minimal' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Minimal
+                        {translations.wordOverlay.layoutTypes.minimal}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -910,7 +910,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('card3d')}
                     >
                       <Text style={[{ color: layoutStyle === 'card3d' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        3D Kart
+                        {translations.wordOverlay.layoutTypes.card3d}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -921,7 +921,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('neon')}
                     >
                       <Text style={[{ color: layoutStyle === 'neon' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Neon
+                        {translations.wordOverlay.layoutTypes.neon}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -932,7 +932,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('vintage')}
                     >
                       <Text style={[{ color: layoutStyle === 'vintage' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Vintage
+                        {translations.wordOverlay.layoutTypes.vintage}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -943,7 +943,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('watercolor')}
                     >
                       <Text style={[{ color: layoutStyle === 'watercolor' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Suluboya
+                        {translations.wordOverlay.layoutTypes.watercolor}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -954,7 +954,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                       onPress={() => setLayoutStyle('boxShadow')}
                     >
                       <Text style={[{ color: layoutStyle === 'boxShadow' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        Gölgeli Kutu
+                        {translations.wordOverlay.layoutTypes.boxShadow}
                       </Text>
                     </TouchableOpacity>
                   </ScrollView>
@@ -966,7 +966,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             {renderSection(4, (
               <>
                 <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>
-                  Yazı Boyutu: {tempFontSize.toFixed(1)}x
+                  {translations.wordOverlay.fontSize}: {tempFontSize.toFixed(1)}x
                 </Text>
                 <Slider
                   style={styles.customizeSlider}
@@ -987,7 +987,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             {renderSection(5, (
               <>
                 <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>
-                  Yatay: {tempOffsetX.toFixed(0)}
+                  {translations.wordOverlay.horizontal}: {tempOffsetX.toFixed(0)}
                 </Text>
                 <Slider
                   style={styles.customizeSlider}
@@ -1008,7 +1008,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             {renderSection(6, (
               <>
                 <Text style={[styles.customizeLabel, { color: 'rgba(0, 0, 0, 0.8)' }]}>
-                  Dikey: {tempOffsetY.toFixed(0)}
+                  {translations.wordOverlay.vertical}: {tempOffsetY.toFixed(0)}
                 </Text>
                 <Slider
                   style={styles.customizeSlider}
@@ -1036,7 +1036,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           >
             <MaterialIcons name="save" size={24} color={colors.text.onPrimary} />
             <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
-              Kaydet
+              {translations.wordOverlay.saveButton}
             </Text>
           </TouchableOpacity>
 
@@ -1046,7 +1046,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           >
             <MaterialIcons name="tune" size={24} color={colors.text.onPrimary} />
             <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
-              Özelleştir
+              {translations.wordOverlay.customizeButton}
             </Text>
           </TouchableOpacity>
 
@@ -1056,7 +1056,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           >
             <MaterialIcons name="home" size={24} color={colors.text.onPrimary} />
             <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
-              Ana Sayfa
+              {translations.wordOverlay.homeButton}
             </Text>
           </TouchableOpacity>
         </View>
