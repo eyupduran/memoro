@@ -74,13 +74,13 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
   const handleWordSelect = (word: LearnedWord) => {
     if (selectedWords.some(w => w.word === word.word)) {
       setSelectedWords(selectedWords.filter(w => w.word !== word.word));
-    } else if (selectedWords.length < 6) {
+    } else if (selectedWords.length < 5) {
       setSelectedWords([...selectedWords, word]);
     }
   };
 
   const handleReinforce = () => {
-    if (selectedWords.length >= 3 && selectedWords.length <= 6) {
+    if (selectedWords.length >= 2 && selectedWords.length <= 5) {
       navigation.navigate('ImageSelection', {
         level: 'custom',
         wordCount: selectedWords.length,
@@ -220,7 +220,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
           <ScrollView 
             style={[
               styles.wordList, 
-              selectedWords.length >= 3 && selectedWords.length <= 6 && styles.wordListWithButton
+              selectedWords.length >= 2 && selectedWords.length <= 5 && styles.wordListWithButton
             ]} 
             showsVerticalScrollIndicator={false}
           >
@@ -269,7 +269,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
             ))}
           </ScrollView>
 
-          {selectedWords.length >= 3 && selectedWords.length <= 6 && (
+          {selectedWords.length >= 2 && selectedWords.length <= 5 && (
             <TouchableOpacity
               style={[styles.reinforceButton, { backgroundColor: colors.primary }]}
               onPress={handleReinforce}

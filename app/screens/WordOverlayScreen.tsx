@@ -44,6 +44,9 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const [hasPermission, setHasPermission] = useState(false);
   const { selectedImage, selectedWords, level } = route.params;
 
+  // Add state for resizeMode
+  const [currentResizeMode, setCurrentResizeMode] = useState<'contain' | 'cover'>('contain');
+
   // Özelleştirme State'leri
   const [fontSizeScale, setFontSizeScale] = useState(1);
   const [textColor, setTextColor] = useState(colors.text.onPrimary);
@@ -52,12 +55,12 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const [isCustomizeVisible, setIsCustomizeVisible] = useState(false);
   const [fontFamily, setFontFamily] = useState<string | undefined>(undefined);
   const [positionOffsetX, setPositionOffsetX] = useState(0);
-  const [positionOffsetY, setPositionOffsetY] = useState(0);
+  const [positionOffsetY, setPositionOffsetY] = useState(70);
 
   // Geçici görüntüleme state'leri
   const [tempFontSize, setTempFontSize] = useState(1);
   const [tempOffsetX, setTempOffsetX] = useState(0);
-  const [tempOffsetY, setTempOffsetY] = useState(0);
+  const [tempOffsetY, setTempOffsetY] = useState(70);
 
   // Renk paletini tanımla ve tekrarları kaldır
   const initialColors = [
@@ -271,12 +274,13 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         return;
       }
 
-      const window = Dimensions.get('window');
-      const screen = Dimensions.get('screen');
-  
+      // Set resizeMode to 'cover' before capturing
+      setCurrentResizeMode('cover');
 
-      await ScreenCapture.preventScreenCaptureAsync();
-      
+      // Delay capture slightly to allow state update and re-render
+      // This might need adjustment based on device performance
+      await new Promise(resolve => setTimeout(resolve, 100)); 
+
       const captureRef = viewShotRef.current;
       if (captureRef && typeof captureRef.capture === 'function') {
         // @ts-ignore - Linter, kütüphane belgelerine rağmen hata veriyor
@@ -284,6 +288,10 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           format: "png",
           quality: 1,
         });
+
+        // Reset resizeMode back to 'contain' after capture
+        // Use finally block to ensure it resets even if capture fails
+        // Moved the reset logic to the finally block below
 
         Image.getSize(uri, (width, height) => {
         }, (error) => {
@@ -310,8 +318,11 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           ],
           { cancelable: false }
         );
+      } else {
+         // If captureRef is not ready, reset mode here too
+         setCurrentResizeMode('contain'); 
       }
-    } catch (error) {
+    } catch (error) { // Ensure finally block catches this too
       console.error('Error saving:', error);
       Alert.alert(
         translations.alerts.error,
@@ -320,6 +331,8 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         { cancelable: false }
       );
     } finally {
+      // Always reset resizeMode back to 'contain' and allow screen capture
+      setCurrentResizeMode('contain');
       await ScreenCapture.allowScreenCaptureAsync();
     }
   };
@@ -574,12 +587,13 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     <View style={styles.container}>
       <ViewShot 
         ref={viewShotRef} 
-        style={styles.previewContainer} 
+        style={styles.previewContainer}
+        options={{ format: 'png', quality: 1 }} // Ensure ViewShot options are set if needed directly
       >
         <ImageBackground 
           source={{ uri: selectedImage }} 
           style={styles.backgroundImage}
-          resizeMode="cover"
+          resizeMode={currentResizeMode} // Use state for resizeMode
         >
           <ScrollView 
             style={[
@@ -590,8 +604,9 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
               styles.contentContainer, 
               { 
                 flexGrow: 1, 
-                justifyContent: 'flex-start', 
-                paddingTop: Dimensions.get('window').height * 0.4 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                paddingTop: 0 
               }
             ]}
           >
@@ -1068,30 +1083,29 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
-    width: '100%',
-    height: '100%',
+    backgroundColor: 'black',
   },
   previewContainer: {
-    width: Dimensions.get('screen').width,
-    height: Dimensions.get('screen').height,
+    flex: 1,
   },
   backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlay: {
     width: '100%',
     height: '100%',
   },
-  overlay: {
-    flex: 1,
-  },
   contentContainer: {
-    padding: 20,
-    paddingBottom: 100,
-    minHeight: Dimensions.get('window').height - 100,
-    display: 'flex',
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 0,
+    paddingHorizontal: 20,
   },
   wordContainer: {
-    justifyContent: 'center',
+    alignItems: 'center',
   },
   wordBox: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
