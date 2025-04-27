@@ -72,7 +72,7 @@ export const SettingsScreen: React.FC<Props> = () => {
       return true; // Başarılı
     } catch (error) {
         console.error("Error scheduling notification:", error);
-        Alert.alert('Hata', 'Bildirim zamanlanırken bir sorun oluştu.');
+        Alert.alert(translations.alerts.error, translations.alerts.notificationSchedulingError);
         return false; // Başarısız
     }
   }
@@ -84,7 +84,7 @@ export const SettingsScreen: React.FC<Props> = () => {
         console.log('Tüm zamanlanmış bildirimler iptal edildi.');
     } catch (error) {
         console.error("Error cancelling notifications:", error);
-        Alert.alert('Hata', 'Bildirimler iptal edilirken bir sorun oluştu.');
+        Alert.alert(translations.alerts.error, translations.alerts.notificationCancellationError);
     }
   }
 
@@ -112,7 +112,7 @@ export const SettingsScreen: React.FC<Props> = () => {
           }
         } else {
           // İzin reddedildi
-          Alert.alert('Bildirim İzni Reddedildi', 'Günlük kelime hatırlatmaları almak için bildirim iznini vermeniz gerekmektedir.');
+          Alert.alert(translations.alerts.permissionRequired, translations.notifications.dailyWordReminderBody);
           setNotificationsEnabled(false); // UI'ı geri al
           await AsyncStorage.setItem('notificationsEnabled', 'false');
         }
@@ -123,11 +123,9 @@ export const SettingsScreen: React.FC<Props> = () => {
       }
     } catch (error) {
       console.error("Error handling notification toggle:", error);
-      Alert.alert('Hata', 'Bildirim ayarları güncellenirken bir sorun oluştu.');
+      Alert.alert(translations.alerts.error, translations.alerts.processingError);
       // Hata durumunda UI durumunu önceki haline geri al
       setNotificationsEnabled(previousState);
-      // AsyncStorage'ı da geri almak güvenli olabilir, ancak şimdilik UI'ı geri alıyoruz.
-      // await AsyncStorage.setItem('notificationsEnabled', previousState.toString());
     }
   };
 
@@ -190,14 +188,14 @@ export const SettingsScreen: React.FC<Props> = () => {
       setLastSyncDate(now);
       
       Alert.alert(
-        'Başarılı',
-        'Tüm kelime listeleri ve resimler indirildi. Artık uygulamayı çevrimdışı kullanabilirsiniz.'
+        translations.alerts.success,
+        translations.alerts.dataDownloadSuccess
       );
     } catch (error) {
       console.error('Error downloading data:', error);
       Alert.alert(
-        'Hata',
-        'Veriler indirilirken bir hata oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.'
+        translations.alerts.error,
+        translations.alerts.dataDownloadError
       );
     } finally {
       setIsDownloading(false);
@@ -222,14 +220,14 @@ export const SettingsScreen: React.FC<Props> = () => {
       setLastSyncDate(now);
       
       Alert.alert(
-        'Başarılı',
-        'Veriler ve resimler başarıyla güncellendi.'
+        translations.alerts.success,
+        translations.alerts.dataSyncSuccess
       );
     } catch (error) {
       console.error('Error syncing data:', error);
       Alert.alert(
-        'Hata',
-        'Veriler güncellenirken bir hata oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.'
+        translations.alerts.error,
+        translations.alerts.dataSyncError
       );
     } finally {
       setIsDownloading(false);

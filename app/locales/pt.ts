@@ -194,5 +194,22 @@ export default {
     continueButton: 'Continuar',
     closeButton: 'Fechar',
     restartButton: 'Recomeçar'
+  },
+  alerts: {
+    permissionRequired: 'Permissão Necessária',
+    galleryPermission: 'É necessária permissão de galeria para salvar a imagem.',
+    error: 'Erro',
+    processingError: 'Ocorreu um erro durante o processo.',
+    success: 'Sucesso! 🎉',
+    imageSaved: 'Imagem salva na galeria!',
+    imageSavedWithTip: 'Imagem salva na galeria!\n\nVocê pode ir para a galeria e definir esta imagem como tela de bloqueio:\n1. Abra a imagem na galeria\n2. Clique no botão compartilhar ou menu\n3. Selecione "Definir como papel de parede"\n4. Escolha "Tela de bloqueio"',
+    imageAndWordsSaved: 'Imagem salva na galeria e palavras marcadas como aprendidas!\n\nVocê pode ir para a galeria e definir esta imagem como tela de bloqueio:\n1. Abra a imagem na galeria\n2. Clique no botão compartilhar ou menu\n3. Selecione "Definir como papel de parede"\n4. Escolha "Tela de bloqueio"',
+    okay: 'OK',
+    dataDownloadSuccess: 'Todas as listas de palavras e imagens foram baixadas. Agora você pode usar o aplicativo offline.',
+    dataDownloadError: 'Ocorreu um erro ao baixar os dados. Por favor, verifique sua conexão com a internet e tente novamente.',
+    dataSyncSuccess: 'Dados e imagens atualizados com sucesso.',
+    dataSyncError: 'Ocorreu um erro ao atualizar os dados. Por favor, verifique sua conexão com a internet e tente novamente.',
+    notificationSchedulingError: 'Ocorreu um erro ao agendar a notificação.',
+    notificationCancellationError: 'Ocorreu um erro ao cancelar as notificações.'
   }
 }; 

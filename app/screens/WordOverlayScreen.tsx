@@ -17,6 +17,7 @@ import {
   Animated,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import ViewShot from 'react-native-view-shot';
@@ -38,6 +39,7 @@ interface LearnedWord extends Word {
 
 export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors } = useTheme();
+  const { translations } = useLanguage();
   const viewShotRef = useRef<ViewShot>(null);
   const [hasPermission, setHasPermission] = useState(false);
   const { selectedImage, selectedWords, level } = route.params;
@@ -265,7 +267,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       const hasPerms = await requestPermission();
       if (!hasPerms) {
-        Alert.alert('İzin Gerekli', 'Resmi kaydetmek için galeri izni gerekiyor.');
+        Alert.alert(translations.alerts.permissionRequired, translations.alerts.galleryPermission);
         return;
       }
 
@@ -295,13 +297,13 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         }
 
         Alert.alert(
-          'Başarılı! 🎉',
+          translations.alerts.success,
           route.params.isReinforcement 
-            ? 'Resim galeriye kaydedildi!\n\nGaleriye giderek resmi kilit ekranı olarak ayarlayabilirsiniz:\n1. Galeriden resmi açın\n2. Paylaş veya menü butonuna tıklayın\n3. "Duvar kağıdı olarak ayarla" seçeneğini seçin\n4. "Kilit ekranı" seçeneğini seçin'
-            : 'Resim galeriye kaydedildi ve kelimeler öğrenildi olarak işaretlendi!\n\nGaleriye giderek resmi kilit ekranı olarak ayarlayabilirsiniz:\n1. Galeriden resmi açın\n2. Paylaş veya menü butonuna tıklayın\n3. "Duvar kağıdı olarak ayarla" seçeneğini seçin\n4. "Kilit ekranı" seçeneğini seçin',
+            ? translations.alerts.imageSavedWithTip
+            : translations.alerts.imageAndWordsSaved,
           [
             {
-              text: 'Tamam',
+              text: translations.alerts.okay,
               onPress: () => navigation.navigate('Stats'),
               style: 'default'
             }
@@ -312,9 +314,9 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     } catch (error) {
       console.error('Error saving:', error);
       Alert.alert(
-        'Hata',
-        'İşlem sırasında bir hata oluştu.',
-        [{ text: 'Tamam', style: 'default' }],
+        translations.alerts.error,
+        translations.alerts.processingError,
+        [{ text: translations.alerts.okay, style: 'default' }],
         { cancelable: false }
       );
     } finally {

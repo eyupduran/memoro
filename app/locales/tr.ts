@@ -194,5 +194,22 @@ export default {
     continueButton: 'Devam Et',
     closeButton: 'Kapat',
     restartButton: 'Yeniden Başla'
+  },
+  alerts: {
+    permissionRequired: 'İzin Gerekli',
+    galleryPermission: 'Resmi kaydetmek için galeri izni gerekiyor.',
+    error: 'Hata',
+    processingError: 'İşlem sırasında bir hata oluştu.',
+    success: 'Başarılı! 🎉',
+    imageSaved: 'Resim galeriye kaydedildi!',
+    imageSavedWithTip: 'Resim galeriye kaydedildi!\n\nGaleriye giderek resmi kilit ekranı olarak ayarlayabilirsiniz:\n1. Galeriden resmi açın\n2. Paylaş veya menü butonuna tıklayın\n3. "Duvar kağıdı olarak ayarla" seçeneğini seçin\n4. "Kilit ekranı" seçeneğini seçin',
+    imageAndWordsSaved: 'Resim galeriye kaydedildi ve kelimeler öğrenildi olarak işaretlendi!\n\nGaleriye giderek resmi kilit ekranı olarak ayarlayabilirsiniz:\n1. Galeriden resmi açın\n2. Paylaş veya menü butonuna tıklayın\n3. "Duvar kağıdı olarak ayarla" seçeneğini seçin\n4. "Kilit ekranı" seçeneğini seçin',
+    okay: 'Tamam',
+    dataDownloadSuccess: 'Tüm kelime listeleri ve resimler indirildi. Artık uygulamayı çevrimdışı kullanabilirsiniz.',
+    dataDownloadError: 'Veriler indirilirken bir hata oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
+    dataSyncSuccess: 'Veriler ve resimler başarıyla güncellendi.',
+    dataSyncError: 'Veriler güncellenirken bir hata oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
+    notificationSchedulingError: 'Bildirim zamanlanırken bir sorun oluştu.',
+    notificationCancellationError: 'Bildirimler iptal edilirken bir sorun oluştu.'
   }
 }; 
