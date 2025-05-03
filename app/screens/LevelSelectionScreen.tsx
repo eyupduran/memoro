@@ -8,6 +8,8 @@ import {
   Dimensions,
   SafeAreaView,
   Platform,
+  Image,
+  StatusBar,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -29,21 +31,21 @@ interface Level {
   name: string;
   icon: LevelIconName;
   descriptionKey: string;
+  color?: string;
 }
 
 export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
   const { translations } = useLanguage();
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
   const LEVELS: Level[] = [
-    { id: 'A1', name: 'A1', icon: 'school', descriptionKey: 'A1' },
-    { id: 'A2', name: 'A2', icon: 'auto-stories', descriptionKey: 'A2' },
-    { id: 'B1', name: 'B1', icon: 'menu-book', descriptionKey: 'B1' },
-    { id: 'B2', name: 'B2', icon: 'psychology', descriptionKey: 'B2' },
-    { id: 'C1', name: 'C1', icon: 'workspace-premium', descriptionKey: 'C1' },
-    { id: 'C2', name: 'C2', icon: 'military-tech', descriptionKey: 'C2' },
-    { id: 'YDS', name: 'YDS', icon: 'grade', descriptionKey: 'YDS' },
+    { id: 'A1', name: 'A1', icon: 'school', descriptionKey: 'A1', color: '#4CAF50' },
+    { id: 'A2', name: 'A2', icon: 'auto-stories', descriptionKey: 'A2', color: '#8BC34A' },
+    { id: 'B1', name: 'B1', icon: 'menu-book', descriptionKey: 'B1', color: '#03A9F4' },
+    { id: 'B2', name: 'B2', icon: 'psychology', descriptionKey: 'B2', color: '#3F51B5' },
+    { id: 'C1', name: 'C1', icon: 'workspace-premium', descriptionKey: 'C1', color: '#9C27B0' },
+    { id: 'C2', name: 'C2', icon: 'military-tech', descriptionKey: 'C2', color: '#F44336' },
   ];
 
   useEffect(() => {
@@ -77,6 +79,8 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
+      
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text.primary }]}>
           {translations.levelSelection.title}
@@ -91,32 +95,38 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.levelGrid}
       >
-        {LEVELS.map((level) => (
-          <TouchableOpacity
-            key={level.id}
-            style={[
-              styles.levelCard,
-              { 
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={() => handleLevelSelect(level.id)}
-          >
-            <MaterialIcons 
-              name={level.icon}
-              size={28} 
-              color={colors.primary}
-              style={styles.levelIcon}
-            />
-            <Text style={[styles.levelName, { color: colors.text.primary }]}>
-              {level.name}
-            </Text>
-            <Text style={[styles.levelDescription, { color: colors.text.secondary }]}>
-              {translations.levelSelection.levels[level.descriptionKey as keyof typeof translations.levelSelection.levels]}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {LEVELS.map((level) => {
+          const isDarkTheme = theme === 'dark';
+          const cardBgColor = isDarkTheme ? colors.surfaceVariant : colors.surface;
+          
+          return (
+            <TouchableOpacity
+              key={level.id}
+              style={[
+                styles.levelCard,
+                { 
+                  backgroundColor: cardBgColor,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => handleLevelSelect(level.id)}
+            >
+              <View style={[styles.iconWrapper, {backgroundColor: level.color + (isDarkTheme ? '30' : '15')}]}>
+                <MaterialIcons 
+                  name={level.icon}
+                  size={32} 
+                  color={level.color}
+                />
+              </View>
+              <Text style={[styles.levelName, { color: colors.text.primary }]}>
+                {level.name}
+              </Text>
+              <Text style={[styles.levelDescription, { color: colors.text.secondary }]}>
+                {translations.levelSelection.levels[level.descriptionKey as keyof typeof translations.levelSelection.levels]}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       <View style={[styles.tabBar, { 
@@ -124,43 +134,51 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
         borderTopColor: colors.border,
       }]}>
         <TouchableOpacity 
-          style={[styles.tabButton, styles.tabButtonActive]}
+          style={styles.tabButton}
           onPress={() => {}}
         >
-          <MaterialIcons name="home" size={24} color={colors.primary} />
-          <Text style={[styles.tabText, { color: colors.primary }]}>
-            {translations.levelSelection.tabs.home}
-          </Text>
+          <View style={[styles.tabButtonContent, styles.tabButtonActive]}>
+            <MaterialIcons name="home" size={24} color={colors.primary} />
+            <Text style={[styles.tabText, { color: colors.primary }]}>
+              {translations.levelSelection.tabs.home}
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity 
           style={styles.tabButton} 
           onPress={() => navigation.navigate('Dictionary')}
         >
-          <MaterialIcons name="book" size={24} color={colors.text.secondary} />
-          <Text style={[styles.tabText, { color: colors.text.secondary }]}>
-            {translations.levelSelection.tabs.dictionary}
-          </Text>
+          <View style={styles.tabButtonContent}>
+            <MaterialIcons name="book" size={24} color={colors.text.secondary} />
+            <Text style={[styles.tabText, { color: colors.text.secondary }]}>
+              {translations.levelSelection.tabs.dictionary}
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity 
           style={styles.tabButton} 
           onPress={() => navigation.navigate('Stats')}
         >
-          <MaterialIcons name="analytics" size={24} color={colors.text.secondary} />
-          <Text style={[styles.tabText, { color: colors.text.secondary }]}>
-            {translations.levelSelection.tabs.stats}
-          </Text>
+          <View style={styles.tabButtonContent}>
+            <MaterialIcons name="analytics" size={24} color={colors.text.secondary} />
+            <Text style={[styles.tabText, { color: colors.text.secondary }]}>
+              {translations.levelSelection.tabs.stats}
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity 
           style={styles.tabButton} 
           onPress={() => navigation.navigate('Settings')}
         >
-          <MaterialIcons name="settings" size={24} color={colors.text.secondary} />
-          <Text style={[styles.tabText, { color: colors.text.secondary }]}>
-            {translations.levelSelection.tabs.settings}
-          </Text>
+          <View style={styles.tabButtonContent}>
+            <MaterialIcons name="settings" size={24} color={colors.text.secondary} />
+            <Text style={[styles.tabText, { color: colors.text.secondary }]}>
+              {translations.levelSelection.tabs.settings}
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -173,7 +191,8 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingBottom: 12,
+    paddingTop: Platform.OS === 'ios' ? 12 : 20,
+    paddingBottom: 16,
   },
   title: {
     fontSize: 32,
@@ -182,6 +201,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
@@ -190,13 +210,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    padding: 20,
+    padding: 16,
     paddingBottom: 100,
   },
   levelCard: {
     width: CARD_WIDTH,
-    padding: 12,
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: 15,
     marginBottom: 16,
     borderWidth: 1,
     alignItems: 'center',
@@ -205,30 +225,36 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 6,
       },
       android: {
-        elevation: 2,
+        elevation: 3,
       },
     }),
   },
-  levelIcon: {
-    marginBottom: 8,
+  iconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   levelName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   levelDescription: {
     fontSize: 13,
     textAlign: 'center',
+    fontWeight: '500',
   },
   tabBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderTopWidth: 1,
     position: 'absolute',
     bottom: 0,
@@ -249,11 +275,17 @@ const styles = StyleSheet.create({
   tabButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
     flex: 1,
   },
+  tabButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
   tabButtonActive: {
-    borderRadius: 8,
+    backgroundColor: 'rgba(74, 144, 226, 0.1)',
   },
   tabText: {
     fontSize: 12,
