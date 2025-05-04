@@ -14,71 +14,113 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types/navigation';
 import { NumberSelector } from '../components/NumberSelector';
 import { WordCard } from '../components/WordCard';
-import { getWordLists } from '../data/wordLists';
+import { dbService } from '../services/database';
 import type { Word, WordList } from '../types/words';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { DataLoader } from '../components/DataLoader';
+import { storageService } from '../services/storage';
 
 type DictionaryScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const DictionaryScreen = () => {
   const navigation = useNavigation<DictionaryScreenNavigationProp>();
   const { colors } = useTheme();
-  const { translations } = useLanguage();
+  const { translations, currentLanguagePair } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [words, setWords] = useState<Word[]>([]);
   const [filteredWords, setFilteredWords] = useState<Word[]>([]);
   const [selectedWords, setSelectedWords] = useState<Word[]>([]);
   const [wordCount, setWordCount] = useState(2);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [showDataLoader, setShowDataLoader] = useState(false);
+  
+  const ITEMS_PER_PAGE = 50;
 
   useEffect(() => {
-    fetchAllWords();
+    checkDataAndFetchWords();
   }, []);
 
-  const fetchAllWords = async () => {
+  // SQLite'da veri var mı kontrol et, yoksa indirme ekranını göster
+  const checkDataAndFetchWords = async () => {
+    try {
+      const isLoaded = await dbService.isLanguageDataLoaded(currentLanguagePair);
+      
+      if (!isLoaded) {
+        console.log('Dictionary: Veri bulunamadı, indirme başlatılıyor');
+        setShowDataLoader(true);
+      } else {
+        console.log('Dictionary: Veri bulundu, kelimeler yükleniyor');
+        // İlk yüklemede fetchWords'ü çağırmıyoruz, aşağıdaki useEffect onu çağıracak
+      }
+    } catch (error) {
+      console.error('Dictionary: Veri kontrolü hatası', error);
+    }
+  };
+  
+  // Veri indirme tamamlandı
+  const onDataLoadComplete = () => {
+    setShowDataLoader(false);
+    fetchWords(); // Burada çağrı yapılması sorun değil çünkü indirme sonrasında tek sefer çalışacak
+  };
+
+  // Sayfalama ile kelimeleri yükle
+  const fetchWords = async () => {
     setLoading(true);
     try {
-      const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'YDS'] as const;
-      let allWords: Word[] = [];
+      let results: Word[];
       
-      const wordLists = await getWordLists();
+      if (searchQuery.trim()) {
+        results = await dbService.searchWords(searchQuery, currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+      } else {
+        results = await dbService.getAllWords(currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+      }
+
+      console.log(`Dictionary: ${results.length} kelime yüklendi`);
       
-      for (const level of levels) {
-        try {
-          const data = await wordLists[level];
-          if (data && data.words) {
-            allWords = [...allWords, ...data.words];
-          }
-        } catch (error) {
-          console.error(`Error fetching words for level ${level}:`, error);
-        }
+      if (page === 0) {
+        setWords(results);
+        setFilteredWords(results);
+      } else {
+        setWords(prev => [...prev, ...results]);
+        setFilteredWords(prev => [...prev, ...results]);
       }
       
-      // Tekrar eden kelimeleri kaldır
-      const uniqueWords = allWords.reduce((acc: Word[], current) => {
-        const exists = acc.find(word => word.word.toLowerCase() === current.word.toLowerCase());
-        if (!exists) {
-          acc.push(current);
-        }
-        return acc;
-      }, []);
-      
-      setWords(uniqueWords);
-      setFilteredWords(uniqueWords);
+      setHasMore(results.length === ITEMS_PER_PAGE);
     } catch (error) {
       console.error('Error fetching words:', error);
     }
     setLoading(false);
   };
 
+  // Arama yapıldığında veya sayfa ilk kez yüklendiğinde kelimeleri getir
   useEffect(() => {
-    const filtered = words.filter(word =>
-      word.word.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      word.meaning.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    setFilteredWords(filtered);
-  }, [searchQuery, words]);
+    // Sayfa durumunu sıfırla
+    setPage(0);
+    
+    // Kullanıcı bir şeyler yazarken bekleyelim (debounce)
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        // Arama terimine göre ara
+        fetchWords();
+      } else {
+        // Arama terimi yoksa ilk sayfayı göster
+        fetchWords();
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, currentLanguagePair]); // currentLanguagePair ekledik ki dil değiştiğinde tekrar sorgu yapılsın
+
+  // Daha fazla kelime yükle
+  const loadMoreWords = () => {
+    if (!loading && hasMore) {
+      setPage(prev => prev + 1);
+      fetchWords();
+    }
+  };
 
   const handleWordSelect = (word: Word) => {
     if (selectedWords.some(w => w.word === word.word)) {
@@ -90,6 +132,20 @@ const DictionaryScreen = () => {
 
   const handleContinue = () => {
     if (selectedWords.length === wordCount) {
+      // Öğrenilen kelimeleri kaydet
+      const now = new Date().toISOString();
+      const learnedWords = selectedWords.map(word => ({
+        word: word.word,
+        meaning: word.meaning,
+        example: word.example || '',
+        level: word.level || 'custom', // Level yoksa custom kullan
+        learnedAt: now
+      }));
+      
+      // Kelimeleri öğrenilmiş olarak kaydet
+      storageService.saveLearnedWords(learnedWords);
+      
+      // Görüntü seçim ekranına git
       navigation.navigate('ImageSelection', {
         level: 'custom',
         wordCount,
@@ -123,17 +179,40 @@ const DictionaryScreen = () => {
       ]}
       onPress={() => handleWordSelect(item)}
     >
-      <View>
-        <Text style={[styles.wordText, { color: colors.text.primary }]}>{item.word}</Text>
-        <Text style={[styles.meaningText, { color: colors.text.secondary }]}>{item.meaning}</Text>
-        {item.example && (
-          <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
-            {translations.dictionaryScreen.examplePrefix} {item.example}
+      <View style={styles.wordHeader}>
+        <View style={styles.wordMain}>
+          <Text style={[styles.wordText, { color: colors.text.primary }]}>{item.word}</Text>
+          <Text style={[styles.meaningText, { color: colors.text.secondary }]}>{item.meaning}</Text>
+          {item.example && (
+            <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
+              {translations.dictionaryScreen.examplePrefix} {item.example}
+            </Text>
+          )}
+        </View>
+        <View style={styles.wordMeta}>
+          <Text style={[styles.levelTag, { 
+            backgroundColor: colors.primary + '20',
+            color: colors.primary,
+          }]}>
+            {item.level}
           </Text>
-        )}
+        </View>
       </View>
     </TouchableOpacity>
   );
+
+  const renderFooter = () => {
+    if (!loading || page === 0) return null;
+    
+    return (
+      <View style={styles.footer}>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={[styles.footerText, { color: colors.text.secondary }]}>
+          {translations.dictionaryScreen.loadingMore}
+        </Text>
+      </View>
+    );
+  };
 
   const renderWordCountSelector = () => {
     const counts = [2, 3, 4, 5];
@@ -212,7 +291,7 @@ const DictionaryScreen = () => {
         onChangeText={setSearchQuery}
       />
 
-      {loading ? (
+      {loading && page === 0 ? (
         <ActivityIndicator size="large" color={colors.primary} />
       ) : (
         <FlatList
@@ -220,6 +299,9 @@ const DictionaryScreen = () => {
           renderItem={renderItem}
           keyExtractor={(item, index) => `${item.word}-${index}`}
           style={styles.wordList}
+          onEndReached={loadMoreWords}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
         />
       )}
 
@@ -246,6 +328,12 @@ const DictionaryScreen = () => {
           {formatString(translations.dictionaryScreen.continueButton, selectedWords.length, wordCount)}
         </Text>
       </TouchableOpacity>
+      
+      <DataLoader 
+        visible={showDataLoader} 
+        onComplete={onDataLoadComplete}
+        languagePair={currentLanguagePair}
+      />
     </View>
   );
 };
@@ -319,6 +407,14 @@ const styles = StyleSheet.create({
   selectedWordItem: {
     borderWidth: 2,
   },
+  wordHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  wordMain: {
+    flex: 1,
+  },
   wordText: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -332,6 +428,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
   },
+  wordMeta: {
+    marginLeft: 8,
+    alignItems: 'flex-end',
+  },
+  levelTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    fontSize: 11,
+    fontWeight: '600',
+  },
   continueButton: {
     padding: 16,
     borderRadius: 8,
@@ -341,6 +448,16 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  footer: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  footerText: {
+    fontSize: 14,
+    marginLeft: 8,
   },
 });
 

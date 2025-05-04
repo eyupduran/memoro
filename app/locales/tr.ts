@@ -24,6 +24,14 @@ export default {
     es: 'İspanyolca',
     en: 'İngilizce'
   },
+  dataLoader: {
+    loading: 'Kelime verileri indiriliyor...',
+    completed: 'Kelime verileri başarıyla yüklendi!',
+    error: 'Kelime verileri yüklenirken hata oluştu.',
+    progress: 'İlerleme: {0}%',
+    pleaseWait: 'Lütfen bekleyin, bu işlem 1-2 dakika sürebilir.',
+    loadingImages: 'Arkaplan resimleri hazırlanıyor...'
+  },
   notifications: {
     dailyReminderTitle: 'Günlük Kelime Zamanı! 📚',
     dailyReminderBody: 'Bugün yeni kelimeler öğrenmeye ne dersin?',
@@ -94,7 +102,6 @@ export default {
       B2: 'Orta Üstü',
       C1: 'İleri',
       C2: 'Üst',
-      YDS: 'Sınav'
     },
     tabs: {
       home: 'Ana Sayfa',
@@ -126,7 +133,8 @@ export default {
     infoText: 'Listeden veya arama yaparak {0} kelime seçin. Seçtiğiniz kelimelerle bir arka plan görseli seçerek kelimeleri kilit ekranınıza yerleştirebilir ve öğrenme deneyiminizi kişiselleştirebilirsiniz.',
     searchPlaceholder: 'İngilizce kelime veya Türkçe anlamını ara...',
     examplePrefix: 'Örnek:',
-    continueButton: 'Devam Et ({0}/{1})'
+    continueButton: 'Devam Et ({0}/{1})',
+    loadingMore: 'Daha fazla kelime yükleniyor...'
   },
   settings: {
     title: 'Ayarlar',

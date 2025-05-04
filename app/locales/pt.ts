@@ -24,6 +24,14 @@ export default {
     es: 'Espanhol',
     en: 'Inglês'
   },
+  dataLoader: {
+    loading: 'Baixando dados de palavras...',
+    completed: 'Dados de palavras carregados com sucesso!',
+    error: 'Erro ao carregar dados de palavras.',
+    progress: 'Progresso: {0}%',
+    pleaseWait: 'Por favor, aguarde. Isso pode levar 1-2 minutos.',
+    loadingImages: 'Preparando imagens de fundo...'
+  },
   notifications: {
     dailyReminderTitle: 'Hora da Palavra Diária! 📚',
     dailyReminderBody: 'Que tal aprender novas palavras hoje?',
@@ -94,7 +102,6 @@ export default {
       B2: 'Intermediário Superior',
       C1: 'Avançado',
       C2: 'Proficiente',
-      YDS: 'Exame'
     },
     tabs: {
       home: 'Início',
@@ -126,7 +133,8 @@ export default {
     infoText: 'Selecione {0} palavras da lista ou pesquise. Com as palavras selecionadas, você pode escolher uma imagem de fundo para colocar as palavras na sua tela de bloqueio e personalizar sua experiência de aprendizado.',
     searchPlaceholder: 'Pesquisar palavra em inglês ou significado em português...',
     examplePrefix: 'Exemplo:',
-    continueButton: 'Continuar ({0}/{1})'
+    continueButton: 'Continuar ({0}/{1})',
+    loadingMore: 'Carregando mais palavras...'
   },
   settings: {
     title: 'Configurações',

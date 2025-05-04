@@ -18,7 +18,7 @@ import type { LearnedWord } from '../types/words';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Stats'>;
 
-type LevelTranslationKey = 'beginner' | 'elementary' | 'preIntermediate' | 'upperIntermediate' | 'advanced' | 'proficiency' | 'examPrep' | 'dictionary';
+type LevelTranslationKey = 'beginner' | 'elementary' | 'preIntermediate' | 'upperIntermediate' | 'advanced' | 'proficiency' | 'examPrep';
 
 const LEVELS = [
   { id: 'A1', name: 'A1', translationKey: 'beginner' as LevelTranslationKey },
@@ -27,8 +27,6 @@ const LEVELS = [
   { id: 'B2', name: 'B2', translationKey: 'upperIntermediate' as LevelTranslationKey },
   { id: 'C1', name: 'C1', translationKey: 'advanced' as LevelTranslationKey },
   { id: 'C2', name: 'C2', translationKey: 'proficiency' as LevelTranslationKey },
-  { id: 'YDS', name: 'YDS', translationKey: 'examPrep' as LevelTranslationKey },
-  { id: 'custom', name: 'Sözlük', translationKey: 'dictionary' as LevelTranslationKey },
 ];
 
 export const StatsScreen: React.FC<Props> = ({ navigation }) => {

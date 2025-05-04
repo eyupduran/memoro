@@ -1,34 +1,41 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+  FlatList,
   Image,
+  TouchableOpacity,
   Dimensions,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
-import { fetchGithubImages } from '../services/storage';
+import { storageService } from '../services/storage';
+import { dbService } from '../services/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Word } from '../types/words';
 
 const { width } = Dimensions.get('window');
-const CARD_MARGIN = 8;
-const CARD_WIDTH = (width - 48) / 2;
+// Kenar boşluklarını dikkate alarak hesaplama yapalım
+const CONTAINER_PADDING = 16;
+const GRID_SPACING = 16;
+// Her kart için eşit genişlik (container padding ve kartlar arası boşluk dahil)
+const CARD_WIDTH = (width - (CONTAINER_PADDING * 2) - GRID_SPACING) / 2;
+const CARD_HEIGHT = CARD_WIDTH * 1.5; // 3:2 aspect ratio
 
-// Fisher-Yates shuffle algoritması
-const shuffleArray = (array: string[]) => {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
+// Fisher-Yates (Knuth) Shuffle
+function shuffleArray<T>(array: T[]): T[] {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
   }
-  return shuffled;
-};
+  return newArray;
+}
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ImageSelection'>;
 
@@ -47,28 +54,36 @@ export const ImageSelectionScreen: React.FC<Props> = ({ navigation, route }) => 
     try {
       setLoading(true);
       
-      // Çevrimdışı mod kontrolü
-      const isOfflineMode = await AsyncStorage.getItem('offlineMode');
+      // Doğrudan veritabanından kaydedilmiş resimleri al
+      const dbImages = await dbService.getBackgroundImages();
       
-      if (isOfflineMode === 'true') {
-        // Çevrimdışı modda AsyncStorage'dan resimleri al
-        const cachedImages = await AsyncStorage.getItem('backgroundImages');
-        if (cachedImages) {
-          const images = JSON.parse(cachedImages);
-          setBackgrounds(shuffleArray(images));
+      if (dbImages.length > 0) {
+        // Resimler veritabanından alınıyor
+        console.log('Arkaplan resimleri veritabanından alındı');
+        
+        // Yerel dosya yolları olan resimleri öncelikle kullan
+        const localImages = dbImages
+          .filter(img => img.localPath !== null)
+          .map(img => img.localPath as string);
+          
+        if (localImages.length > 0) {
+          // Yerel dosyalara öncelik ver
+          setBackgrounds(shuffleArray(localImages));
         } else {
-          // Cache'de resim yoksa GitHub'dan çek ve kaydet
-          const images = await fetchGithubImages();
-          await AsyncStorage.setItem('backgroundImages', JSON.stringify(images));
-          setBackgrounds(shuffleArray(images));
+          // Yerel dosya yoksa URL'leri kullan
+          const imageUrls = dbImages.map(img => img.url);
+          setBackgrounds(shuffleArray(imageUrls));
         }
       } else {
-        // Çevrimiçi modda direkt GitHub'dan çek
-        const images = await fetchGithubImages();
+        // Veritabanında resim yok, StorageService üzerinden yükle
+        console.log('Veritabanında resim bulunamadı, StorageService kullanılıyor');
+        const images = await storageService.getBackgroundImages();
         setBackgrounds(shuffleArray(images));
       }
     } catch (error) {
-      console.error('Error loading images:', error);
+      console.error('Resimler yüklenirken hata oluştu:', error);
+      // Hata durumunda boş bile olsa bir array dönmeli
+      setBackgrounds([]);
     } finally {
       setLoading(false);
     }
@@ -88,43 +103,63 @@ export const ImageSelectionScreen: React.FC<Props> = ({ navigation, route }) => 
     return (
       <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.text.secondary }]}>
+          {translations.imageSelection.loading}
+        </Text>
+      </View>
+    );
+  }
+
+  if (backgrounds.length === 0) {
+    return (
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>
+          Resimler yüklenemedi. Lütfen internet bağlantınızı kontrol edin.
+        </Text>
+        <TouchableOpacity 
+          style={[styles.retryButton, { backgroundColor: colors.primary }]}
+          onPress={loadImages}
+        >
+          <Text style={[styles.retryButtonText, { color: colors.background }]}>
+            Tekrar Dene
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
-          {translations.imageSelection.title}
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-          {translations.imageSelection.subtitle}
-        </Text>
-      </View>
-
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.imageGrid}
-      >
-        {backgrounds.map((imageUrl, index) => (
+      <Text style={[styles.title, { color: colors.text.primary }]}>
+        {translations.imageSelection.title}
+      </Text>
+      <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
+        {translations.imageSelection.subtitle}
+      </Text>
+      
+      <FlatList
+        data={backgrounds}
+        numColumns={2}
+        keyExtractor={(item, index) => `${item}-${index}`}
+        renderItem={({ item }) => (
           <TouchableOpacity
-            key={index}
             style={[
               styles.imageCard,
-              { 
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                width: CARD_WIDTH,
-              },
+              { backgroundColor: colors.card.background }
             ]}
-            onPress={() => handleImageSelect(imageUrl)}
+            onPress={() => handleImageSelect(item)}
           >
-            <Image source={{ uri: imageUrl }} style={styles.image} />
+            <Image
+              source={{ uri: item }}
+              style={styles.image}
+              resizeMode="cover"
+            />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+        )}
+        contentContainerStyle={styles.grid}
+        columnWrapperStyle={styles.row}
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 };
@@ -132,46 +167,60 @@ export const ImageSelectionScreen: React.FC<Props> = ({ navigation, route }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: CONTAINER_PADDING,
   },
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    marginBottom: 20,
-  },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: 'bold',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
+    marginBottom: 24,
   },
-  scrollView: {
-    flex: 1,
+  grid: {
+    paddingBottom: 20,
   },
-  imageGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  row: {
     justifyContent: 'space-between',
-    paddingBottom: 16,
+    width: '100%',
   },
   imageCard: {
-    borderRadius: 16,
-    marginBottom: 16,
-    borderWidth: 1,
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    marginBottom: GRID_SPACING,
+    borderRadius: 12,
     overflow: 'hidden',
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3.84,
   },
   image: {
     width: '100%',
-    height: CARD_WIDTH * 1.2,
-    resizeMode: 'cover',
+    height: '100%',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 }); 

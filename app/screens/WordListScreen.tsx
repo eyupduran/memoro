@@ -13,7 +13,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
-import { getWordLists } from '../data/wordLists';
+import { dbService } from '../services/database';
 import { storageService } from '../services/storage';
 import type { Word, LearnedWord } from '../types/words';
 
@@ -21,7 +21,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'WordList'>;
 
 export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors } = useTheme();
-  const { translations } = useLanguage();
+  const { translations, currentLanguagePair } = useLanguage();
   const { level, wordCount } = route.params;
   const [availableWords, setAvailableWords] = useState<Word[]>([]);
   const [selectedWords, setSelectedWords] = useState<Word[]>([]);
@@ -33,24 +33,27 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
     loadAvailableWords();
   }, []);
 
+  // Sadece seçilen seviyedeki kelimeleri getir
   const loadAvailableWords = async () => {
     try {
       setLoading(true);
+      console.log(`Seçilen seviye için kelimeler getiriliyor: ${level}, ${wordCount} kelime`);
+      
       // Daha önce öğrenilen kelimeleri al
       const learnedWords = await storageService.getLearnedWords();
       
-      // Seviyeye ait tüm kelimeleri al
-      const wordLists = await getWordLists();
-      const levelWordList = await wordLists[level as keyof typeof wordLists];
-      const levelWords = levelWordList?.words || [];
+      // Sadece seçilen seviyedeki kelimeleri yükle
+      const levelWords = await dbService.getWords(level, currentLanguagePair);
+      console.log(`Seviye ${level} için ${levelWords.length} kelime getirildi`);
       
       // Öğrenilmemiş kelimeleri filtrele
       const unlearned = levelWords.filter(word => 
         !learnedWords.some(learned => learned.word === word.word)
       );
+      console.log(`Öğrenilmemiş ${unlearned.length} kelime bulundu`);
 
       // Rastgele kelime seçimi
-      const shuffled = unlearned.sort(() => 0.5 - Math.random());
+      const shuffled = shuffleArray(unlearned);
       const selected = shuffled.slice(0, wordCount);
       
       setAvailableWords(unlearned);
@@ -60,6 +63,16 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Fisher-Yates (Knuth) Shuffle - daha etkili rastgele dizilim için
+  const shuffleArray = (array: Word[]): Word[] => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
   };
 
   const showWordDetail = (word: Word) => {

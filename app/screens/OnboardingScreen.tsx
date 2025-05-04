@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { Extrapolate } from 'react-native-reanimated';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { useLanguage } from '../contexts/LanguageContext';
+import { DataLoader } from '../components/DataLoader';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,8 +21,9 @@ export const OnboardingScreen = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
   const [activeIndex, setActiveIndex] = useState(0);
   const { colors } = useTheme();
-  const { translations } = useLanguage();
+  const { translations, currentLanguagePair, checkAndLoadLanguageData } = useLanguage();
   const carouselRef = useRef<ICarouselInstance>(null);
+  const [showDataLoader, setShowDataLoader] = useState(false);
 
   const onboardingData = [
     {
@@ -72,10 +74,20 @@ export const OnboardingScreen = () => {
 
   const finishOnboarding = async () => {
     try {
-      await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-      navigation.replace('LevelSelection');
+      setShowDataLoader(true);
+      // Veri indirme işlemi tamamlandıktan sonra ana sayfaya yönlendir
     } catch (error) {
       console.error('Error saving onboarding status:', error);
+    }
+  };
+
+  const onDataLoadComplete = async () => {
+    try {
+      await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+      setShowDataLoader(false);
+      navigation.replace('LevelSelection');
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
     }
   };
 
@@ -109,10 +121,7 @@ export const OnboardingScreen = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View 
-        style={[styles.container]}
-        {...panResponder.panHandlers}
-      >
+      <View style={[styles.container]}>
         <Carousel
           ref={carouselRef}
           width={width}
@@ -151,16 +160,6 @@ export const OnboardingScreen = () => {
             ))}
           </View>
           <View style={styles.buttonContainer}>
-            {activeIndex !== onboardingData.length - 1 && (
-              <TouchableOpacity
-                style={[styles.skipButton, { borderColor: colors.primary }]}
-                onPress={finishOnboarding}
-              >
-                <Text style={[styles.skipButtonText, { color: colors.primary }]}>
-                  {translations.onboarding.skip}
-                </Text>
-              </TouchableOpacity>
-            )}
             <TouchableOpacity
               style={[styles.button, { backgroundColor: colors.primary }]}
               onPress={handleNext}
@@ -171,6 +170,14 @@ export const OnboardingScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
+        
+        {showDataLoader && (
+          <DataLoader 
+            visible={showDataLoader} 
+            onComplete={onDataLoadComplete}
+            languagePair={currentLanguagePair}
+          />
+        )}
       </View>
     </GestureHandlerRootView>
   );
@@ -237,7 +244,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    width: '100%',
   },
   button: {
     flex: 1,
@@ -245,18 +252,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  skipButton: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-  },
   buttonText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  skipButtonText: {
     fontSize: 18,
     fontWeight: '600',
   },

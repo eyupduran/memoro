@@ -45,15 +45,6 @@ export const LanguageSelectorSettings: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-          {translations.languageSelector.title}
-        </Text>
-        <Text style={[styles.sectionDescription, { color: colors.text.secondary }]}>
-          {translations.languageSelector.description}
-        </Text>
-      </View>
-
       <View style={styles.languageCards}>
         {/* Ana Dil Seçimi */}
         <View style={[styles.languageCard, { backgroundColor: colors.card.background }]}>
@@ -142,9 +133,6 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: 16,
   },
-  header: {
-    marginBottom: 16,
-  },
   languageCards: {
     gap: 20,
   },
@@ -169,15 +157,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    lineHeight: 20,
   },
   dropdown: {
     flexDirection: 'row',

@@ -1,13 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
 import type { LearnedWord, WordList } from '../types/words';
+import { dbService } from './database';
 
 const STORAGE_KEYS = {
   LEARNED_WORDS: 'learnedWords',
   OFFLINE_MODE: 'offlineMode',
   WORD_LIST_PREFIX: 'wordList_',
   LAST_SYNC_DATE: 'lastSyncDate',
-  SELECTED_LANGUAGE: 'selectedLanguage'
+  SELECTED_LANGUAGE: 'selectedLanguage',
+  BACKGROUND_IMAGES: 'backgroundImages',
+  CACHED_IMAGES: 'cachedImages'
 };
+
+// Resimleri saklayacağımız klasör
+const IMAGE_CACHE_DIR = `${FileSystem.cacheDirectory}background_images/`;
 
 class StorageService {
   async getLearnedWords(): Promise<LearnedWord[]> {
@@ -111,10 +118,180 @@ class StorageService {
       return false;
     }
   }
+  
+  // Görselleri getiren yeni fonksiyon - öncelikle SQLite veritabanından, yoksa API'den alıp kaydeder
+  async getBackgroundImages(): Promise<string[]> {
+    try {
+      // Önce SQLite veritabanından resimleri kontrol edelim
+      const dbImages = await dbService.getBackgroundImages();
+      
+      // Yerel dosya yolları olan resimleri filtreleyelim
+      const cachedImages = dbImages
+        .filter(img => img.localPath !== null)
+        .map(img => img.localPath as string);
+      
+      if (cachedImages.length > 0) {
+        console.log('Veritabanı önbelleğinden resimler yükleniyor...');
+        
+        // Dosyaların gerçekten var olduğunu doğrulayalım
+        const validImages = await this.validateCachedImages(cachedImages);
+        
+        if (validImages.length > 0) {
+          return validImages;
+        }
+      }
+      
+      // Yerel dosyalarda yoksa, URL listesini API'den al
+      console.log('API\'den resim listesi alınıyor...');
+      const imageUrls = await this.fetchImageUrls();
+      
+      if (imageUrls.length === 0) {
+        console.error('Resim URL\'leri yüklenemedi!');
+        return [];
+      }
+      
+      // Resimleri indir ve önbelleğe al
+      console.log('Resimler indiriliyor ve önbelleğe alınıyor...');
+      const newCachedImages = await this.downloadAndCacheImages(imageUrls);
+      
+      return newCachedImages;
+    } catch (error) {
+      console.error('Resimleri getirirken hata:', error);
+      
+      // Hata durumunda API'den alınan URL'leri döndürelim
+      const fallbackImages = await fetchGithubImages().catch(() => []);
+      return fallbackImages;
+    }
+  }
+
+  // Yerel dosyaları doğrulama (dosyalar gerçekten var mı?)
+  private async validateCachedImages(imagePaths: string[]): Promise<string[]> {
+    const validImages: string[] = [];
+    
+    for (const path of imagePaths) {
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(path);
+        if (fileInfo.exists) {
+          validImages.push(path);
+        }
+      } catch (error) {
+        console.warn(`Dosya kontrolü başarısız: ${path}`, error);
+      }
+    }
+    
+    return validImages;
+  }
+
+  // API'den resim URL'lerini al
+  private async fetchImageUrls(): Promise<string[]> {
+    // Önce veritabanında kayıtlı URL'leri kontrol et
+    const dbImageUrls = await dbService.getBackgroundImageUrls();
+    
+    if (dbImageUrls.length > 0) {
+      return dbImageUrls;
+    }
+    
+    // Veritabanında yoksa API'den al ve kaydet
+    const urls = await fetchGithubImages();
+    
+    // Yeni URL'leri veritabanına kaydet
+    if (urls.length > 0) {
+      const imageObjects = urls.map(url => ({ url }));
+      await dbService.saveBackgroundImages(imageObjects);
+    }
+    
+    return urls;
+  }
+
+  // Resimleri indir ve yerel dosya sistemine kaydet
+  private async downloadAndCacheImages(imageUrls: string[]): Promise<string[]> {
+    // Önce cache dizininin var olduğundan emin olalım
+    await this.ensureCacheDirectoryExists();
+    
+    const cachedPaths: string[] = [];
+    const downloadPromises: Promise<void>[] = [];
+    
+    // Her resim için
+    for (let i = 0; i < imageUrls.length; i++) {
+      const url = imageUrls[i];
+      const fileName = this.getFileNameFromUrl(url);
+      const localFilePath = `${IMAGE_CACHE_DIR}${fileName}`;
+      
+      downloadPromises.push(
+        this.downloadImage(url, localFilePath)
+          .then(() => {
+            cachedPaths.push(localFilePath);
+            // Yerel yolu veritabanında da güncelleyelim
+            dbService.updateBackgroundImageLocalPath(url, localFilePath);
+          })
+          .catch(err => {
+            console.error(`Resim indirme hatası (${url}):`, err);
+            // Hata durumunda orijinal URL'yi listeye ekleyelim
+            cachedPaths.push(url);
+          })
+      );
+    }
+    
+    // Tüm indirme işlemlerinin tamamlanmasını bekleyelim
+    await Promise.all(downloadPromises);
+    
+    return cachedPaths;
+  }
+  
+  // Cache dizinin var olduğundan emin ol
+  private async ensureCacheDirectoryExists(): Promise<void> {
+    const dirInfo = await FileSystem.getInfoAsync(IMAGE_CACHE_DIR);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(IMAGE_CACHE_DIR, { intermediates: true });
+    }
+  }
+  
+  // URL'den dosya adını çıkar
+  private getFileNameFromUrl(url: string): string {
+    // Son / karakterinden sonraki kısmı al ve dosya adı olarak kullan
+    const parts = url.split('/');
+    return parts[parts.length - 1];
+  }
+  
+  // Resmi belirtilen yola indir
+  private async downloadImage(url: string, filePath: string): Promise<void> {
+    // Dosya zaten varsa tekrar indirmeye gerek yok
+    const fileInfo = await FileSystem.getInfoAsync(filePath);
+    if (fileInfo.exists) {
+      return;
+    }
+    
+    // Resmi indir
+    const downloadResult = await FileSystem.downloadAsync(url, filePath);
+    
+    if (downloadResult.status !== 200) {
+      throw new Error(`İndirme başarısız: ${downloadResult.status}`);
+    }
+  }
+  
+  // Önbelleği temizle ve tüm resimleri yeniden indir
+  async clearImageCache(): Promise<boolean> {
+    try {
+      // Önbellek dizinini sil
+      const dirInfo = await FileSystem.getInfoAsync(IMAGE_CACHE_DIR);
+      if (dirInfo.exists) {
+        await FileSystem.deleteAsync(IMAGE_CACHE_DIR);
+      }
+      
+      // Veritabanındaki yerel yolları temizle
+      await dbService.clearBackgroundImageCache();
+      
+      return true;
+    } catch (error) {
+      console.error('Önbellek temizleme hatası:', error);
+      return false;
+    }
+  }
 }
 
 export const storageService = new StorageService();
 
+// API'den görsel listesini getir - bu fonksiyon sadece gerektiğinde kullanılmalı
 export const fetchGithubImages = async (): Promise<string[]> => {
   try {
     const response = await fetch('https://raw.githubusercontent.com/eyupduran/english-words-api/main/assets/images/background-images.json');
