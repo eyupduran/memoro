@@ -175,6 +175,62 @@ class DatabaseService {
     }
   }
 
+  // Belirli bir seviyeye göre arama yapma
+  async searchWordsByLevel(level: string | null, languagePair: string, limit: number = 100, offset: number = 0): Promise<Word[]> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      let query: string;
+      let params: any[];
+      
+      if (level) {
+        query = `SELECT word, meaning, example, level FROM words 
+                WHERE language_pair = ? AND level = ? 
+                LIMIT ? OFFSET ?`;
+        params = [languagePair, level, limit, offset];
+      } else {
+        query = `SELECT word, meaning, example, level FROM words 
+                WHERE language_pair = ? 
+                LIMIT ? OFFSET ?`;
+        params = [languagePair, limit, offset];
+      }
+      
+      const result = await this.db.getAllAsync<Word>(query, params);
+      return result;
+    } catch (error) {
+      console.error('Error searching words by level in SQLite:', error);
+      return [];
+    }
+  }
+
+  // Arama yapma - kelime ve seviyeye göre
+  async searchWordsByQueryAndLevel(query: string, level: string | null, languagePair: string, limit: number = 100, offset: number = 0): Promise<Word[]> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      let sqlQuery: string;
+      let params: any[];
+      
+      if (level) {
+        sqlQuery = `SELECT word, meaning, example, level FROM words 
+                   WHERE language_pair = ? AND level = ? AND (word LIKE ? OR meaning LIKE ?) 
+                   LIMIT ? OFFSET ?`;
+        params = [languagePair, level, `%${query}%`, `%${query}%`, limit, offset];
+      } else {
+        sqlQuery = `SELECT word, meaning, example, level FROM words 
+                   WHERE language_pair = ? AND (word LIKE ? OR meaning LIKE ?) 
+                   LIMIT ? OFFSET ?`;
+        params = [languagePair, `%${query}%`, `%${query}%`, limit, offset];
+      }
+      
+      const result = await this.db.getAllAsync<Word>(sqlQuery, params);
+      return result;
+    } catch (error) {
+      console.error('Error searching words by query and level in SQLite:', error);
+      return [];
+    }
+  }
+
   // Öğrenilen kelimeleri SQLite'a kaydet
   async saveLearnedWords(words: LearnedWord[]): Promise<boolean> {
     try {

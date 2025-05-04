@@ -21,12 +21,14 @@ interface DataLoaderProps {
   visible: boolean;
   onComplete: () => void;
   languagePair: string;
+  forceUpdate?: boolean;
 }
 
 export const DataLoader: React.FC<DataLoaderProps> = ({ 
   visible, 
   onComplete,
-  languagePair
+  languagePair,
+  forceUpdate = false
 }) => {
   const { colors } = useTheme();
   const { translations } = useLanguage();
@@ -48,14 +50,13 @@ export const DataLoader: React.FC<DataLoaderProps> = ({
       setStatus('loading');
       setStatusText(translations.dataLoader.loading);
 
-      // Dil çifti için veriler zaten indirilmiş mi kontrol et
-      const isLoaded = await dbService.isLanguageDataLoaded(languagePair);
+      // Eğer forceUpdate true ise veya veriler henüz indirilmemişse
+      const isLoaded = !forceUpdate && await dbService.isLanguageDataLoaded(languagePair);
       
       if (isLoaded) {
         console.log(`${languagePair} dil çifti için veriler zaten indirilmiş`);
-        setProgress(80); // %80 ilerleme
+        setProgress(80);
         
-        // Arkaplan resimlerini kontrol et ve indir
         await loadBackgroundImages();
         
         setProgress(100);

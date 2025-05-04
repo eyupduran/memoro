@@ -44,23 +44,30 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const [hasPermission, setHasPermission] = useState(false);
   const { selectedImage, selectedWords, level } = route.params;
 
-  // Add state for resizeMode
-  const [currentResizeMode, setCurrentResizeMode] = useState<'contain' | 'cover'>('contain');
+  // Kelime sayısına göre başlangıç dikey konumunu belirle
+  const getInitialVerticalPosition = () => {
+    const wordCount = selectedWords.length;
+    if (wordCount >= 4) {
+      return 370; // 4 veya 5 kelime için
+    } else {
+      return 430; // 2 veya 3 kelime için
+    }
+  };
 
   // Özelleştirme State'leri
   const [fontSizeScale, setFontSizeScale] = useState(1);
   const [textColor, setTextColor] = useState(colors.text.onPrimary);
-  const [layoutStyle, setLayoutStyle] = useState<'plain' | 'box' | 'gradient' | 'shadow' | 'outline' | 'minimal' | 'card3d' | 'neon' | 'vintage' | 'watercolor' | 'boxShadow'>('plain');
+  const [layoutStyle, setLayoutStyle] = useState<'plain' | 'box' | 'gradient' | 'shadow' | 'outline' | 'minimal' | 'card3d' | 'neon' | 'vintage' | 'watercolor'>('plain');
   const [wordFormat, setWordFormat] = useState<WordFormat>('inline');
   const [isCustomizeVisible, setIsCustomizeVisible] = useState(false);
   const [fontFamily, setFontFamily] = useState<string | undefined>(undefined);
   const [positionOffsetX, setPositionOffsetX] = useState(0);
-  const [positionOffsetY, setPositionOffsetY] = useState(70);
+  const [positionOffsetY, setPositionOffsetY] = useState(getInitialVerticalPosition());
 
   // Geçici görüntüleme state'leri
   const [tempFontSize, setTempFontSize] = useState(1);
   const [tempOffsetX, setTempOffsetX] = useState(0);
-  const [tempOffsetY, setTempOffsetY] = useState(70);
+  const [tempOffsetY, setTempOffsetY] = useState(getInitialVerticalPosition());
 
   // Renk paletini tanımla ve tekrarları kaldır
   const initialColors = [
@@ -211,20 +218,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           shadowRadius: 8,
           elevation: 3,
         };
-      case 'boxShadow':
-        return {
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          padding: 16,
-          borderRadius: 12,
-          marginBottom: 16,
-          shadowColor: textColor,
-          shadowOffset: { width: 3, height: 3 },
-          shadowOpacity: 0.6,
-          shadowRadius: 5,
-          elevation: 8,
-          borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.2)',
-        };
       case 'box':
         return {
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -274,13 +267,12 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         return;
       }
 
-      // Set resizeMode to 'cover' before capturing
-      setCurrentResizeMode('cover');
+      const window = Dimensions.get('window');
+      const screen = Dimensions.get('screen');
+  
 
-      // Delay capture slightly to allow state update and re-render
-      // This might need adjustment based on device performance
-      await new Promise(resolve => setTimeout(resolve, 100)); 
-
+      await ScreenCapture.preventScreenCaptureAsync();
+      
       const captureRef = viewShotRef.current;
       if (captureRef && typeof captureRef.capture === 'function') {
         // @ts-ignore - Linter, kütüphane belgelerine rağmen hata veriyor
@@ -288,10 +280,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           format: "png",
           quality: 1,
         });
-
-        // Reset resizeMode back to 'contain' after capture
-        // Use finally block to ensure it resets even if capture fails
-        // Moved the reset logic to the finally block below
 
         Image.getSize(uri, (width, height) => {
         }, (error) => {
@@ -318,11 +306,8 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           ],
           { cancelable: false }
         );
-      } else {
-         // If captureRef is not ready, reset mode here too
-         setCurrentResizeMode('contain'); 
       }
-    } catch (error) { // Ensure finally block catches this too
+    } catch (error) {
       console.error('Error saving:', error);
       Alert.alert(
         translations.alerts.error,
@@ -331,8 +316,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         { cancelable: false }
       );
     } finally {
-      // Always reset resizeMode back to 'contain' and allow screen capture
-      setCurrentResizeMode('contain');
       await ScreenCapture.allowScreenCaptureAsync();
     }
   };
@@ -359,7 +342,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handlePositionYChange = (value: number) => {
     const roundedValue = Math.round(value / 10) * 10;
-    const limitedValue = Math.min(Math.max(roundedValue, -100), 100);
+    const limitedValue = Math.min(Math.max(roundedValue, -100), 500);
     setTempOffsetY(limitedValue);
   };
 
@@ -378,7 +361,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handlePositionYComplete = (value: number) => {
     const roundedValue = Math.round(value / 10) * 10;
-    const limitedValue = Math.min(Math.max(roundedValue, -100), 100);
+    const limitedValue = Math.min(Math.max(roundedValue, -100), 500);
     setPositionOffsetY(limitedValue);
   };
 
@@ -440,7 +423,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             </Text>
             {word.example && (
               <Text style={[styles.exampleText, baseStyle, { fontSize: styles.exampleText.fontSize * fontSizeScale, marginTop: 8, fontStyle: 'italic' }]}>
-                Örn: {word.example}
+                {translations.dictionaryScreen.examplePrefix} {word.example}
               </Text>
             )}
           </View>
@@ -587,28 +570,19 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     <View style={styles.container}>
       <ViewShot 
         ref={viewShotRef} 
-        style={styles.previewContainer}
-        options={{ format: 'png', quality: 1 }} // Ensure ViewShot options are set if needed directly
+        style={styles.previewContainer} 
       >
         <ImageBackground 
           source={{ uri: selectedImage }} 
           style={styles.backgroundImage}
-          resizeMode={currentResizeMode} // Use state for resizeMode
+          resizeMode="cover"
         >
           <ScrollView 
             style={[
               styles.overlay,
               { backgroundColor: 'rgba(0, 0, 0, 0.2)' }
             ]} 
-            contentContainerStyle={[
-              styles.contentContainer, 
-              { 
-                flexGrow: 1, 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                paddingTop: 0 
-              }
-            ]}
+            contentContainerStyle={styles.contentContainer}
           >
             <View style={[styles.wordContainer, { transform: [{ translateX: positionOffsetX }, { translateY: positionOffsetY }] }]}>
               {selectedWords.map((word, index) => (
@@ -961,17 +935,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                         {translations.wordOverlay.layoutTypes.watercolor}
                       </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.layoutButton,
-                        { backgroundColor: layoutStyle === 'boxShadow' ? colors.primary : 'rgba(0, 0, 0, 0.05)' },
-                      ]}
-                      onPress={() => setLayoutStyle('boxShadow')}
-                    >
-                      <Text style={[{ color: layoutStyle === 'boxShadow' ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.8)' }]}>
-                        {translations.wordOverlay.layoutTypes.boxShadow}
-                      </Text>
-                    </TouchableOpacity>
                   </ScrollView>
                 </View>
               </>
@@ -1028,7 +991,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Slider
                   style={styles.customizeSlider}
                   minimumValue={-100}
-                  maximumValue={100}
+                  maximumValue={500}
                   step={10}
                   value={positionOffsetY}
                   onValueChange={handlePositionYChange}
@@ -1083,29 +1046,29 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
-  },
-  previewContainer: {
-    flex: 1,
-  },
-  backgroundImage: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  overlay: {
+    backgroundColor: '#000',
     width: '100%',
     height: '100%',
   },
+  previewContainer: {
+    width: Dimensions.get('screen').width,
+    height: Dimensions.get('screen').height,
+  },
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    flex: 1,
+  },
   contentContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 0,
-    paddingHorizontal: 20,
+    padding: 20,
+    paddingBottom: 100,
   },
   wordContainer: {
-    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
   wordBox: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

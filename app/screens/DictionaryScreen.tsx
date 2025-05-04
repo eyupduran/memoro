@@ -15,7 +15,7 @@ import { RootStackParamList } from '../types/navigation';
 import { NumberSelector } from '../components/NumberSelector';
 import { WordCard } from '../components/WordCard';
 import { dbService } from '../services/database';
-import type { Word, WordList } from '../types/words';
+import type { Word, WordList, Level } from '../types/words';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { DataLoader } from '../components/DataLoader';
@@ -36,8 +36,10 @@ const DictionaryScreen = () => {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [showDataLoader, setShowDataLoader] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   
   const ITEMS_PER_PAGE = 50;
+  const LEVELS: Level[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
   useEffect(() => {
     checkDataAndFetchWords();
@@ -72,9 +74,17 @@ const DictionaryScreen = () => {
     try {
       let results: Word[];
       
-      if (searchQuery.trim()) {
+      if (searchQuery.trim() && selectedLevel) {
+        // Hem arama metni hem de seviye filtresi var
+        results = await dbService.searchWordsByQueryAndLevel(searchQuery, selectedLevel, currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+      } else if (searchQuery.trim()) {
+        // Sadece arama metni var
         results = await dbService.searchWords(searchQuery, currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+      } else if (selectedLevel) {
+        // Sadece seviye filtresi var
+        results = await dbService.searchWordsByLevel(selectedLevel, currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
       } else {
+        // Hiçbir filtre yok, tüm kelimeleri getir
         results = await dbService.getAllWords(currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
       }
 
@@ -102,17 +112,11 @@ const DictionaryScreen = () => {
     
     // Kullanıcı bir şeyler yazarken bekleyelim (debounce)
     const timeoutId = setTimeout(() => {
-      if (searchQuery.trim()) {
-        // Arama terimine göre ara
-        fetchWords();
-      } else {
-        // Arama terimi yoksa ilk sayfayı göster
-        fetchWords();
-      }
+      fetchWords();
     }, 500);
     
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, currentLanguagePair]); // currentLanguagePair ekledik ki dil değiştiğinde tekrar sorgu yapılsın
+  }, [searchQuery, currentLanguagePair, selectedLevel]); // selectedLevel ekledik ki seviye değiştiğinde tekrar sorgu yapılsın
 
   // Daha fazla kelime yükle
   const loadMoreWords = () => {
@@ -266,9 +270,72 @@ const DictionaryScreen = () => {
     );
   };
 
+  const renderLevelSelector = () => {
+    return (
+      <View style={styles.levelSelectorContainer}>
+        <Text style={[styles.label, { color: colors.text.primary }]}>
+          {translations.dictionaryScreen.levelFilter || 'Seviye Filtresi'}
+        </Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.levelButtonsContainer}
+        >
+          <TouchableOpacity
+            style={[
+              styles.levelButton,
+              { 
+                backgroundColor: selectedLevel === null ? colors.primary : colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={() => setSelectedLevel(null)}
+          >
+            <Text 
+              style={[
+                styles.levelButtonText, 
+                { 
+                  color: selectedLevel === null ? colors.text.onPrimary : colors.text.secondary 
+                }
+              ]}
+            >
+              {translations.dictionaryScreen.allLevels || 'Tümü'}
+            </Text>
+          </TouchableOpacity>
+          
+          {LEVELS.map((level) => (
+            <TouchableOpacity
+              key={level}
+              style={[
+                styles.levelButton,
+                { 
+                  backgroundColor: selectedLevel === level ? colors.primary : colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => setSelectedLevel(selectedLevel === level ? null : level)}
+            >
+              <Text 
+                style={[
+                  styles.levelButtonText, 
+                  { 
+                    color: selectedLevel === level ? colors.text.onPrimary : colors.text.secondary 
+                  }
+                ]}
+              >
+                {level}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {renderWordCountSelector()}
+      {renderLevelSelector()}
 
       <View style={[styles.infoContainer, { backgroundColor: colors.surfaceVariant }]}>
         <Text style={[styles.infoText, { color: colors.text.secondary }]}>
@@ -393,6 +460,23 @@ const styles = StyleSheet.create({
   },
   wordCountText: {
     fontSize: 24,
+    fontWeight: '600',
+  },
+  levelSelectorContainer: {
+    marginBottom: 16,
+  },
+  levelButtonsContainer: {
+    paddingRight: 16,
+  },
+  levelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  levelButtonText: {
+    fontSize: 14,
     fontWeight: '600',
   },
   wordList: {

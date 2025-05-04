@@ -25,9 +25,9 @@ export default {
     en: 'İngilizce'
   },
   dataLoader: {
-    loading: 'Kelime verileri indiriliyor...',
-    completed: 'Kelime verileri başarıyla yüklendi!',
-    error: 'Kelime verileri yüklenirken hata oluştu.',
+    loading: 'Kelime ve resim verileri indiriliyor...',
+    completed: 'Kelime ve resim verileri başarıyla yüklendi!',
+    error: 'Veriler yüklenirken hata oluştu.',
     progress: 'İlerleme: {0}%',
     pleaseWait: 'Lütfen bekleyin, bu işlem 1-2 dakika sürebilir.',
     loadingImages: 'Arkaplan resimleri hazırlanıyor...'
@@ -134,7 +134,9 @@ export default {
     searchPlaceholder: 'İngilizce kelime veya Türkçe anlamını ara...',
     examplePrefix: 'Örnek:',
     continueButton: 'Devam Et ({0}/{1})',
-    loadingMore: 'Daha fazla kelime yükleniyor...'
+    loadingMore: 'Daha fazla kelime yükleniyor...',
+    levelFilter: 'Seviye Filtresi',
+    allLevels: 'Tümü'
   },
   settings: {
     title: 'Ayarlar',
@@ -161,7 +163,16 @@ export default {
     lastUpdated: 'Son güncelleme:',
     downloadingData: 'Veriler indiriliyor...',
     downloadAll: 'Tüm Verileri İndir',
-    updateData: 'Verileri Güncelle'
+    updateData: 'Verileri Güncelle',
+    downloadedData: {
+      title: 'İndirilen Veriler',
+      description: 'Uygulamayı çevrimdışı kullanabilmeniz için kelime listeleri ve görsel verileri, ilk kullanımda veya dil değişikliğinde otomatik olarak indirilmektedir. Yeni kelimeler ve görseller eklendikçe veya güncellemeleri kontrol etmek istediğinizde, bu verileri güncelleyerek en güncel içeriğe erişebilirsiniz.',
+      learningLanguage: 'Seçili Dil',
+      update: 'Verileri Güncelle',
+      noData: 'Henüz indirilmiş veri bulunmuyor',
+      updateSuccess: 'Kelime ve resim verileri başarıyla güncellendi',
+      updateError: 'Veriler güncellenirken bir hata oluştu'
+    }
   },
   wordOverlay: {
     preview: 'Önizleme',

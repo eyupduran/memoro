@@ -37,7 +37,6 @@ interface Level {
 export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
   const { colors, theme } = useTheme();
   const { translations } = useLanguage();
-  const [fontsLoaded, setFontsLoaded] = useState(false);
 
   const LEVELS: Level[] = [
     { id: 'A1', name: 'A1', icon: 'school', descriptionKey: 'A1', color: '#4CAF50' },
@@ -49,29 +48,18 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
   ];
 
   useEffect(() => {
+    // Arka planda fontları yükle ama kullanıcıya gösterme
     async function loadFonts() {
       try {
         await Font.loadAsync({
           MaterialIcons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.ttf'),
         });
-        setFontsLoaded(true);
       } catch (error) {
         console.warn('Error loading MaterialIcons font:', error);
-        setFontsLoaded(true); // Continue anyway to prevent white screen
       }
     }
     loadFonts();
   }, []);
-
-  if (!fontsLoaded) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
-          {translations.levelSelection.loading}
-        </Text>
-      </View>
-    );
-  }
 
   const handleLevelSelect = (level: string) => {
     navigation.navigate('WordCount', { level });
@@ -138,7 +126,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => {}}
         >
           <View style={[styles.tabButtonContent, styles.tabButtonActive]}>
-            <MaterialIcons name="home" size={24} color={colors.primary} />
+            <MaterialIcons name="home" size={22} color={colors.primary} />
             <Text style={[styles.tabText, { color: colors.primary }]}>
               {translations.levelSelection.tabs.home}
             </Text>
@@ -150,7 +138,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => navigation.navigate('Dictionary')}
         >
           <View style={styles.tabButtonContent}>
-            <MaterialIcons name="book" size={24} color={colors.text.secondary} />
+            <MaterialIcons name="book" size={22} color={colors.text.secondary} />
             <Text style={[styles.tabText, { color: colors.text.secondary }]}>
               {translations.levelSelection.tabs.dictionary}
             </Text>
@@ -162,7 +150,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => navigation.navigate('Stats')}
         >
           <View style={styles.tabButtonContent}>
-            <MaterialIcons name="analytics" size={24} color={colors.text.secondary} />
+            <MaterialIcons name="analytics" size={22} color={colors.text.secondary} />
             <Text style={[styles.tabText, { color: colors.text.secondary }]}>
               {translations.levelSelection.tabs.stats}
             </Text>
@@ -174,7 +162,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => navigation.navigate('Settings')}
         >
           <View style={styles.tabButtonContent}>
-            <MaterialIcons name="settings" size={24} color={colors.text.secondary} />
+            <MaterialIcons name="settings" size={22} color={colors.text.secondary} />
             <Text style={[styles.tabText, { color: colors.text.secondary }]}>
               {translations.levelSelection.tabs.settings}
             </Text>
@@ -254,7 +242,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderTopWidth: 1,
     position: 'absolute',
     bottom: 0,
@@ -276,13 +264,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
+    paddingHorizontal: 2,
   },
   tabButtonContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    width: '100%',
   },
   tabButtonActive: {
     backgroundColor: 'rgba(74, 144, 226, 0.1)',
@@ -291,5 +281,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     fontWeight: '500',
+    textAlign: 'center',
+    flexWrap: 'nowrap',
+    width: '100%',
   },
 }); 

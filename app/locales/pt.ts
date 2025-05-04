@@ -25,9 +25,9 @@ export default {
     en: 'Inglês'
   },
   dataLoader: {
-    loading: 'Baixando dados de palavras...',
-    completed: 'Dados de palavras carregados com sucesso!',
-    error: 'Erro ao carregar dados de palavras.',
+    loading: 'Baixando dados de palavras e imagens...',
+    completed: 'Dados de palavras e imagens carregados com sucesso!',
+    error: 'Erro ao carregar os dados.',
     progress: 'Progresso: {0}%',
     pleaseWait: 'Por favor, aguarde. Isso pode levar 1-2 minutos.',
     loadingImages: 'Preparando imagens de fundo...'
@@ -107,7 +107,7 @@ export default {
       home: 'Início',
       dictionary: 'Dicionário',
       stats: 'Estatísticas',
-      settings: 'Configurações'
+      settings: 'Config'
     }
   },
   wordCount: {
@@ -134,7 +134,9 @@ export default {
     searchPlaceholder: 'Pesquisar palavra em inglês ou significado em português...',
     examplePrefix: 'Exemplo:',
     continueButton: 'Continuar ({0}/{1})',
-    loadingMore: 'Carregando mais palavras...'
+    loadingMore: 'Carregando mais palavras...',
+    levelFilter: 'Filtro de Nível',
+    allLevels: 'Todos'
   },
   settings: {
     title: 'Configurações',
@@ -161,7 +163,16 @@ export default {
     lastUpdated: 'Última atualização:',
     downloadingData: 'Baixando dados...',
     downloadAll: 'Baixar Todos os Dados',
-    updateData: 'Atualizar Dados'
+    updateData: 'Atualizar Dados',
+    downloadedData: {
+      title: 'Dados Baixados',
+      description: 'As listas de palavras e dados visuais são baixados automaticamente no primeiro uso ou quando você muda o idioma, permitindo o uso offline do aplicativo. Você pode atualizar esses dados para acessar o conteúdo mais recente quando novas palavras e imagens forem adicionadas ou quando quiser verificar as atualizações.',
+      learningLanguage: 'Idioma Selecionado',
+      update: 'Atualizar Dados',
+      noData: 'Nenhum dado baixado ainda',
+      updateSuccess: 'Dados de palavras e imagens atualizados com sucesso',
+      updateError: 'Erro ao atualizar os dados'
+    }
   },
   wordOverlay: {
     preview: 'Visualização',
