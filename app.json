@@ -40,7 +40,9 @@
           },
           "ios": {}
         }
-      ]
+      ],
+      "expo-font",
+      "expo-sqlite"
     ],
     "updates": {
       "fallbackToCacheTimeout": 0
