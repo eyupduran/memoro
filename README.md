@@ -2,6 +2,10 @@
 
 Memoro, İngilizce kelime dağarcığınızı geliştirmek için tasarlanmış mobil bir uygulamadır. Uygulama, seviyenize uygun kelimeleri günlük olarak sunar ve bu kelimelerle özel kilit ekranı görüntüleri oluşturarak telefonunuzu her açtığınızda pasif öğrenme sağlar.
 
+## 📥 İndirme
+
+APK dosyasını [GitHub Releases](https://github.com/eyupduran/memoro/releases/tag/v1.0.0) sayfasından indirebilirsiniz.
+
 ## 📱 Özellikler
 
 - **Seviye Seçimi**: A1'den C2'ye kadar farklı zorluk seviyelerinde kelimeler
