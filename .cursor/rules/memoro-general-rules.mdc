@@ -1,0 +1,37 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Memoro Proje Kuralları
+
+## Genel Kurallar
+- Yeni eklenen özellikler mevcut projenin bütünlüğünü ve işlevselliğini bozmamalıdır.
+- Her değişiklik, projenin mevcut mimarisine ve kod yapısına uygun olmalıdır.
+- Kodlar temiz, okunabilir ve sürdürülebilir olmalıdır.
+
+## Tema Uyumluluğu
+- Tüm yeni bileşenler (componentler) projenin mevcut tema yapısına uyumlu olmalıdır.
+- Renk kodları, yazı tipleri ve stil tanımları için mevcut tema değişkenleri kullanılmalıdır.
+- Özel CSS sınıfları yerine tema tarafından sağlanan sınıflar tercih edilmelidir.
+
+## Çoklu Dil Desteği
+- Tüm statik metinler çoklu dil desteğine uygun şekilde eklenmelidir.
+- Yeni metin içerikleri ilgili dil dosyalarına (tüm desteklenen diller için) eklenmelidir.
+- Doğrudan kod içine yazılan statik metinler yerine dil değişkenleri kullanılmalıdır.
+
+## Performans
+- Eklenen özellikler performans açısından optimize edilmelidir.
+- Gereksiz render işlemlerinden kaçınılmalıdır.
+- Büyük veri yapıları için uygun önbelleğe alma stratejileri kullanılmalıdır.
+
+## Erişilebilirlik
+- Tüm yeni bileşenler WCAG standartlarına uygun olmalıdır.
+- Klavye navigasyonu desteklenmelidir.
+- Ekran okuyucu uyumluluğu sağlanmalıdır.
+
+## Mobil Uyumluluk
+- Tüm yeni arayüz bileşenleri duyarlı (responsive) tasarım prensiplerine uygun olmalıdır.
+- Farklı ekran boyutlarına adapte olabilen tasarımlar tercih edilmelidir.
+
+
