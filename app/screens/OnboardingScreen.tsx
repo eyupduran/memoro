@@ -1,14 +1,11 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, PanResponder } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
-import Carousel, { ICarouselInstance } from 'react-native-reanimated-carousel';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { Extrapolate } from 'react-native-reanimated';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { useLanguage } from '../contexts/LanguageContext';
 import { DataLoader } from '../components/DataLoader';
@@ -21,15 +18,20 @@ export const OnboardingScreen = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
   const [activeIndex, setActiveIndex] = useState(0);
   const { colors } = useTheme();
-  const { translations, currentLanguagePair, checkAndLoadLanguageData } = useLanguage();
-  const carouselRef = useRef<ICarouselInstance>(null);
+  const { translations, currentLanguagePair } = useLanguage();
   const [showDataLoader, setShowDataLoader] = useState(false);
 
   const onboardingData = [
     {
-      title: translations.onboarding.welcome,
-      description: translations.onboarding.welcomeDescription,
+      title: 'Welcome to Memoro',
+      description: 'Are you ready to learn English vocabulary with Memoro?',
       icon: 'school',
+    },
+    {
+      title: translations.onboarding.languageSelection,
+      description: translations.onboarding.nativeLanguage,
+      icon: 'language',
+      component: LanguageSelector,
     },
     {
       title: translations.onboarding.selectLevel,
@@ -51,31 +53,25 @@ export const OnboardingScreen = () => {
       description: translations.onboarding.trackProgressDescription,
       icon: 'trending-up',
     },
-    {
-      title: translations.onboarding.languageSelection,
-      description: translations.onboarding.nativeLanguage,
-      icon: 'language',
-      component: LanguageSelector,
-    },
   ];
 
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onPanResponderMove: (evt, gestureState) => {
-      if (Math.abs(gestureState.dx) > 50) {
-        if (gestureState.dx > 0 && activeIndex > 0) {
-          carouselRef.current?.prev();
-        } else if (gestureState.dx < 0 && activeIndex < onboardingData.length - 1) {
-          carouselRef.current?.next();
-        }
-      }
-    },
-  });
+  const handleBack = () => {
+    if (activeIndex > 0) {
+      setActiveIndex(activeIndex - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (activeIndex === onboardingData.length - 1) {
+      finishOnboarding();
+    } else {
+      setActiveIndex(activeIndex + 1);
+    }
+  };
 
   const finishOnboarding = async () => {
     try {
       setShowDataLoader(true);
-      // Veri indirme işlemi tamamlandıktan sonra ana sayfaya yönlendir
     } catch (error) {
       console.error('Error saving onboarding status:', error);
     }
@@ -91,95 +87,74 @@ export const OnboardingScreen = () => {
     }
   };
 
-  const handleNext = () => {
-    if (activeIndex === onboardingData.length - 1) {
-      finishOnboarding();
-    } else {
-      carouselRef.current?.next();
-    }
-  };
+  const currentItem = onboardingData[activeIndex];
 
-  const renderItem = ({ item, index }: { item: typeof onboardingData[0]; index: number }) => {
-    return (
-      <View style={[styles.slide, { backgroundColor: colors.background }]}>
-        {item.component ? (
-          <item.component />
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {activeIndex > 0 && (
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={handleBack}
+        >
+          <MaterialIcons 
+            name="arrow-back-ios" 
+            size={24} 
+            color={colors.text.primary}
+          />
+          <Text style={[styles.backText, { color: colors.text.primary }]}>
+            {translations.onboarding.back}
+          </Text>
+        </TouchableOpacity>
+      )}
+      <View style={styles.slide}>
+        {currentItem.component ? (
+          <currentItem.component />
         ) : (
           <>
             <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
-              <MaterialIcons name={item.icon as any} size={100} color={colors.primary} />
+              <MaterialIcons name={currentItem.icon as any} size={100} color={colors.primary} />
             </View>
             <View style={styles.textContainer}>
-              <Text style={[styles.title, { color: colors.text.primary }]}>{item.title}</Text>
-              <Text style={[styles.description, { color: colors.text.secondary }]}>{item.description}</Text>
+              <Text style={[styles.title, { color: colors.text.primary }]}>{currentItem.title}</Text>
+              <Text style={[styles.description, { color: colors.text.secondary }]}>{currentItem.description}</Text>
             </View>
           </>
         )}
       </View>
-    );
-  };
 
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={[styles.container]}>
-        <Carousel
-          ref={carouselRef}
-          width={width}
-          height={height * 0.6}
-          data={onboardingData}
-          renderItem={renderItem}
-          onSnapToItem={(index) => {
-            setActiveIndex(index);
-          }}
-          mode="parallax"
-          modeConfig={{
-            parallaxScrollingScale: 0.9,
-            parallaxScrollingOffset: 40,
-          }}
-          loop={false}
-          enabled={true}
-          autoPlay={false}
-          scrollAnimationDuration={300}
-          snapEnabled={true}
-          windowSize={3}
-          defaultIndex={0}
-          pagingEnabled={true}
-          vertical={false}
-        />
-        <View style={styles.footer}>
-          <View style={styles.pagination}>
-            {onboardingData.map((_, index) => (
-              <Animated.View
-                key={index}
-                style={[
-                  styles.paginationDot,
-                  { backgroundColor: colors.text.light },
-                  index === activeIndex && [styles.paginationDotActive, { backgroundColor: colors.primary }],
-                ]}
-              />
-            ))}
-          </View>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.primary }]}
-              onPress={handleNext}
-            >
-              <Text style={[styles.buttonText, { color: colors.background }]}>
-                {activeIndex === onboardingData.length - 1 ? translations.onboarding.start : translations.onboarding.next}
-              </Text>
-            </TouchableOpacity>
-          </View>
+      <View style={styles.footer}>
+        <View style={styles.pagination}>
+          {onboardingData.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.paginationDot,
+                { backgroundColor: colors.text.light },
+                index === activeIndex && [styles.paginationDotActive, { backgroundColor: colors.primary }],
+              ]}
+            />
+          ))}
         </View>
-        
-        {showDataLoader && (
-          <DataLoader 
-            visible={showDataLoader} 
-            onComplete={onDataLoadComplete}
-            languagePair={currentLanguagePair}
-          />
-        )}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.primary }]}
+            onPress={handleNext}
+          >
+            <Text style={[styles.buttonText, { color: colors.background }]}>
+              {activeIndex === onboardingData.length - 1 ? translations.onboarding.start : translations.onboarding.next}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </GestureHandlerRootView>
+      
+      {showDataLoader && (
+        <DataLoader 
+          visible={showDataLoader} 
+          onComplete={onDataLoadComplete}
+          languagePair={currentLanguagePair}
+        />
+      )}
+    </View>
   );
 };
 
@@ -190,16 +165,17 @@ const styles = StyleSheet.create({
   slide: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 20,
+    paddingTop: height * 0.20,
   },
   iconContainer: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   textContainer: {
     alignItems: 'center',
@@ -208,7 +184,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: 'center',
   },
   description: {
@@ -222,7 +198,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: height * 0.05,
   },
   pagination: {
     flexDirection: 'row',
@@ -255,5 +231,19 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
+  },
+  backButton: {
+    position: 'absolute',
+    top: height * 0.08,
+    left: 20,
+    zIndex: 1,
+    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backText: {
+    fontSize: 16,
+    marginLeft: 4,
+    fontWeight: '500',
   },
 }); 

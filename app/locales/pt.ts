@@ -14,7 +14,7 @@ export default {
     dictionaryDescription: 'Selecione as palavras que você quer e crie seu próprio conjunto de aprendizado.',
     trackProgress: 'Acompanhe seu Progresso',
     trackProgressDescription: 'Salve as palavras que você aprendeu e veja seu desenvolvimento.',
-    skip: 'Pular',
+    back: 'Pular',
     next: 'Próximo',
     start: 'Começar'
   },
@@ -130,13 +130,16 @@ export default {
   dictionaryScreen: {
     title: 'Dicionário',
     wordCount: 'Quantas palavras você quer adicionar à sua tela de bloqueio?',
-    infoText: 'Selecione {0} palavras da lista ou pesquise. Com as palavras selecionadas, você pode escolher uma imagem de fundo para colocar as palavras na sua tela de bloqueio e personalizar sua experiência de aprendizado.',
+    infoText: 'Selecione {0} palavras da lista ou pesquise. Com as palavras selecionadas, você pode escolher uma imagem de fundo para personalizar sua experiência de aprendizado na tela de bloqueio.',
     searchPlaceholder: 'Pesquisar palavra em inglês ou significado em português...',
     examplePrefix: 'Exemplo:',
     continueButton: 'Continuar ({0}/{1})',
     loadingMore: 'Carregando mais palavras...',
     levelFilter: 'Filtro de Nível',
-    allLevels: 'Todos'
+    allLevels: 'Todos',
+    selectMinWords: 'Selecione pelo menos 2 palavras',
+    continueWithWords: 'Continuar com {0} palavras',
+    maxWordsLimit: 'Você pode selecionar no máximo {0} palavras'
   },
   settings: {
     title: 'Configurações',

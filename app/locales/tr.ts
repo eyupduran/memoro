@@ -14,7 +14,7 @@ export default {
     dictionaryDescription: 'İstediğiniz kelimeleri seçip kendi öğrenme setinizi oluşturun.',
     trackProgress: 'İlerleyişinizi Takip Edin',
     trackProgressDescription: 'Öğrendiğiniz kelimeleri kaydedin ve gelişiminizi görün.',
-    skip: 'Atla',
+    back: 'Geri',
     next: 'İleri',
     start: 'Başla'
   },
@@ -136,7 +136,10 @@ export default {
     continueButton: 'Devam Et ({0}/{1})',
     loadingMore: 'Daha fazla kelime yükleniyor...',
     levelFilter: 'Seviye Filtresi',
-    allLevels: 'Tümü'
+    allLevels: 'Tümü',
+    selectMinWords: 'En az 2 kelime seçiniz',
+    continueWithWords: '{0} kelime ile devam et',
+    maxWordsLimit: 'Maksimum {0} kelime seçebilirsiniz'
   },
   settings: {
     title: 'Ayarlar',
