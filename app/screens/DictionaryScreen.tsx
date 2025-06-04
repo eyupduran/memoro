@@ -430,7 +430,7 @@ const DictionaryScreen = () => {
               }
             ]}>
               <Text style={styles.maxWordsToastText}>
-                Maksimum {MAX_WORDS} kelime seçebilirsiniz
+                {formatString(translations.dictionaryScreen.maxWordsLimit, MAX_WORDS)}
               </Text>
             </Animated.View>
           )}
@@ -456,8 +456,8 @@ const DictionaryScreen = () => {
               ]}
             >
               {selectedWords.length < MIN_WORDS 
-                ? "En az 2 kelime seçiniz"
-                : `${selectedWords.length} kelime ile devam et`
+                ? translations.dictionaryScreen.selectMinWords
+                : formatString(translations.dictionaryScreen.continueWithWords, selectedWords.length)
               }
             </Text>
           </TouchableOpacity>
@@ -544,18 +544,23 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     width: '100%',
-    marginTop: 16,
+    marginTop: 8,
   },
   continueButton: {
     width: '100%',
+    height: 56,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   continueButtonText: {
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    lineHeight: 20,
   },
   maxWordsToast: {
     position: 'absolute',
