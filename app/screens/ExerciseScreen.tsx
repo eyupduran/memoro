@@ -40,6 +40,12 @@ const ExerciseScreen: React.FC = () => {
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [availableLevels, setAvailableLevels] = useState<string[]>([]);
   const [dictionaryWordCount, setDictionaryWordCount] = useState(0);
+  
+  // Pagination için state'ler
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyHasMore, setHistoryHasMore] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const ITEMS_PER_PAGE = 10;
 
   // Tıklama sesini yükle
   useEffect(() => {
@@ -84,14 +90,8 @@ const ExerciseScreen: React.FC = () => {
       const words = await storageService.getLearnedWords(currentLanguagePair);
       setLearnedWords(words);
 
-      // Egzersiz geçmişini yükle
-      const history = await dbService.getExerciseResults(currentLanguagePair);
-      // Tip dönüşümü yaparak ExerciseResult tipine uygun hale getiriyoruz
-      const typedHistory: ExerciseResult[] = history.map(item => ({
-        ...item,
-        language_pair: currentLanguagePair
-      }));
-      setExerciseHistory(typedHistory);
+      // Egzersiz geçmişini yükle - ilk sayfayı al
+      await loadExerciseHistory(0, true);
       
       // Mevcut seviyeleri al
       const result = await dbService.getFirstAsync<{count: number}>(
@@ -113,6 +113,50 @@ const ExerciseScreen: React.FC = () => {
       setLoading(false);
     }
   }, [currentLanguagePair]);
+
+  // Geçmiş egzersizleri sayfalandırma ile yükle
+  const loadExerciseHistory = async (page: number, reset: boolean = false) => {
+    if (historyLoading) return;
+    
+    setHistoryLoading(true);
+    try {
+      const offset = page * ITEMS_PER_PAGE;
+      const history = await dbService.getAllAsync<any>(
+        'SELECT * FROM exercise_results WHERE language_pair = ? ORDER BY date DESC LIMIT ? OFFSET ?',
+        [currentLanguagePair, ITEMS_PER_PAGE, offset]
+      );
+      
+      // Tip dönüşümü yaparak ExerciseResult tipine uygun hale getiriyoruz
+      const typedHistory: ExerciseResult[] = history.map(item => ({
+        ...item,
+        language_pair: currentLanguagePair
+      }));
+      
+      // Eğer reset parametresi true ise, önceki sayfaları silip sadece bu sayfayı göster
+      if (reset) {
+        setExerciseHistory(typedHistory);
+        setHistoryPage(0);
+      } else {
+        setExerciseHistory(prev => [...prev, ...typedHistory]);
+      }
+      
+      // Daha fazla sayfa var mı kontrol et
+      setHistoryHasMore(typedHistory.length === ITEMS_PER_PAGE);
+    } catch (error) {
+      console.error('Error loading exercise history:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // Daha fazla geçmiş egzersiz yükle
+  const loadMoreExerciseHistory = () => {
+    if (historyHasMore && !historyLoading) {
+      const nextPage = historyPage + 1;
+      setHistoryPage(nextPage);
+      loadExerciseHistory(nextPage);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -326,6 +370,17 @@ const ExerciseScreen: React.FC = () => {
           </View>
         )}
         contentContainerStyle={styles.historyList}
+        onEndReached={loadMoreExerciseHistory}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={() => 
+          historyLoading && historyPage > 0 ? (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.loadingMoreText, { color: colors.text.secondary }]}>
+              </Text>
+            </View>
+          ) : null
+        }
       />
     );
   };
@@ -672,6 +727,16 @@ const styles = StyleSheet.create({
   startButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingMoreContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    marginLeft: 8,
   },
 });
 
