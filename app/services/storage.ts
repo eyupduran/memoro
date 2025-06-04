@@ -17,28 +17,20 @@ const STORAGE_KEYS = {
 const IMAGE_CACHE_DIR = `${FileSystem.cacheDirectory}background_images/`;
 
 class StorageService {
-  async getLearnedWords(): Promise<LearnedWord[]> {
+  async getLearnedWords(languagePair: string): Promise<LearnedWord[]> {
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.LEARNED_WORDS);
-      return data ? JSON.parse(data) : [];
+      // SQLite veritabanından öğrenilen kelimeleri getir
+      return await dbService.getLearnedWords(languagePair);
     } catch (error) {
       console.error('Error getting learned words:', error);
       return [];
     }
   }
 
-  async saveLearnedWords(words: LearnedWord[]): Promise<boolean> {
+  async saveLearnedWords(words: LearnedWord[], languagePair: string): Promise<boolean> {
     try {
-      const existingWords = await this.getLearnedWords();
-      const newWords = [...existingWords, ...words];
-      
-      // Tekrar eden kelimeleri çıkar
-      const uniqueWords = newWords.filter((word, index, self) =>
-        index === self.findIndex((w) => w.word === word.word)
-      );
-      
-      await AsyncStorage.setItem(STORAGE_KEYS.LEARNED_WORDS, JSON.stringify(uniqueWords));
-      return true;
+      // SQLite veritabanına öğrenilen kelimeleri kaydet
+      return await dbService.saveLearnedWords(words, languagePair);
     } catch (error) {
       console.error('Error saving learned words:', error);
       return false;

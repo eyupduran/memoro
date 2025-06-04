@@ -44,7 +44,8 @@ class DatabaseService {
           example TEXT,
           level TEXT NOT NULL,
           learnedAt TEXT NOT NULL,
-          UNIQUE(word)
+          language_pair TEXT NOT NULL,
+          UNIQUE(word, language_pair)
         );
 
         CREATE TABLE IF NOT EXISTS db_info (
@@ -232,7 +233,7 @@ class DatabaseService {
   }
 
   // Öğrenilen kelimeleri SQLite'a kaydet
-  async saveLearnedWords(words: LearnedWord[]): Promise<boolean> {
+  async saveLearnedWords(words: LearnedWord[], languagePair: string): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
       
@@ -249,18 +250,19 @@ class DatabaseService {
           let values = [];
           
           for (const word of batch) {
-            placeholders.push('(?, ?, ?, ?, ?)');
+            placeholders.push('(?, ?, ?, ?, ?, ?)');
             values.push(
               word.word,
               word.meaning,
               word.example || '',
               word.level,
-              word.learnedAt
+              word.learnedAt,
+              languagePair
             );
           }
           
           const query = `
-            INSERT OR REPLACE INTO learned_words (word, meaning, example, level, learnedAt) 
+            INSERT OR REPLACE INTO learned_words (word, meaning, example, level, learnedAt, language_pair) 
             VALUES ${placeholders.join(',')}
           `;
           
@@ -276,12 +278,13 @@ class DatabaseService {
   }
 
   // Öğrenilen kelimeleri getir
-  async getLearnedWords(): Promise<LearnedWord[]> {
+  async getLearnedWords(languagePair: string): Promise<LearnedWord[]> {
     try {
       if (!this.initialized) await this.initDatabase();
       
       const result = await this.db.getAllAsync<LearnedWord>(
-        'SELECT word, meaning, example, level, learnedAt FROM learned_words'
+        'SELECT word, meaning, example, level, learnedAt FROM learned_words WHERE language_pair = ?',
+        [languagePair]
       );
       return result;
     } catch (error) {

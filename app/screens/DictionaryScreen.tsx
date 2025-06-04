@@ -178,7 +178,7 @@ const DictionaryScreen = () => {
       }));
       
       // Kelimeleri öğrenilmiş olarak kaydet
-      storageService.saveLearnedWords(learnedWords);
+      storageService.saveLearnedWords(learnedWords, currentLanguagePair);
       
       // Görüntü seçim ekranına git
       navigation.navigate('ImageSelection', {
@@ -365,7 +365,7 @@ const DictionaryScreen = () => {
           style={styles.wordList}
           contentContainerStyle={[
             styles.contentContainer,
-            { paddingTop: 162 } // Increased padding for header space
+            { paddingTop: 162, paddingBottom: 84 } 
           ]}
           onEndReached={loadMoreWords}
           onEndReachedThreshold={0.5}
@@ -419,7 +419,7 @@ const DictionaryScreen = () => {
         </View>
       </Animated.View>
 
-      <View style={styles.contentContainer}>
+      <View style={[styles.contentContainer, { paddingBottom: 10 }]}>
         <View style={styles.bottomContainer}>
           {showMaxWordsMessage && (
             <Animated.View style={[
@@ -483,7 +483,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingTop: 16,
-    borderBottomWidth: 1,
   },
   wordList: {
     flex: 1,

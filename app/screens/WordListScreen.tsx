@@ -40,7 +40,7 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
       console.log(`Seçilen seviye için kelimeler getiriliyor: ${level}, ${wordCount} kelime`);
       
       // Daha önce öğrenilen kelimeleri al
-      const learnedWords = await storageService.getLearnedWords();
+      const learnedWords = await storageService.getLearnedWords(currentLanguagePair);
       
       // Sadece seçilen seviyedeki kelimeleri yükle
       const levelWords = await dbService.getWords(level, currentLanguagePair);
@@ -63,6 +63,27 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Tek bir kelimeyi yenileme fonksiyonu
+  const refreshSingleWord = (indexToReplace: number) => {
+    // Mevcut kelime listesinde olmayan rastgele bir kelime seç
+    const currentWords = new Set(selectedWords.map(w => w.word));
+    const availableForReplacement = availableWords.filter(w => !currentWords.has(w.word));
+    
+    if (availableForReplacement.length === 0) {
+      console.log('Değiştirilecek yeni kelime bulunamadı');
+      return;
+    }
+    
+    // Rastgele bir kelime seç
+    const randomIndex = Math.floor(Math.random() * availableForReplacement.length);
+    const newWord = availableForReplacement[randomIndex];
+    
+    // Seçili kelimeleri güncelle
+    const updatedWords = [...selectedWords];
+    updatedWords[indexToReplace] = newWord;
+    setSelectedWords(updatedWords);
   };
   
   // Fisher-Yates (Knuth) Shuffle - daha etkili rastgele dizilim için
@@ -117,7 +138,7 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
       </Text>
       
       <ScrollView style={styles.wordList}>
-        {selectedWords.map((word) => (
+        {selectedWords.map((word, index) => (
           <TouchableOpacity
             key={word.word}
             style={[
@@ -137,12 +158,27 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
                 {word.meaning}
               </Text>
             </View>
-            <MaterialIcons
-              name="info-outline"
-              size={24}
-              color={colors.text.secondary}
-              onPress={() => showWordDetail(word)}
-            />
+            <View style={styles.wordActions}>
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={() => refreshSingleWord(index)}
+              >
+                <MaterialIcons
+                  name="refresh"
+                  size={22}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => showWordDetail(word)}
+              >
+                <MaterialIcons
+                  name="info-outline"
+                  size={24}
+                  color={colors.text.secondary}
+                />
+              </TouchableOpacity>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -346,5 +382,13 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  wordActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  refreshButton: {
+    padding: 4,
+    marginRight: 12,
   },
 }); 

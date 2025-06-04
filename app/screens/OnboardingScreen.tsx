@@ -141,7 +141,11 @@ export const OnboardingScreen = () => {
             onPress={handleNext}
           >
             <Text style={[styles.buttonText, { color: colors.background }]}>
-              {activeIndex === onboardingData.length - 1 ? translations.onboarding.start : translations.onboarding.next}
+              {activeIndex === onboardingData.length - 1 
+                ? translations.onboarding.start 
+                : activeIndex === 0 
+                  ? "Next" 
+                  : translations.onboarding.next}
             </Text>
           </TouchableOpacity>
         </View>

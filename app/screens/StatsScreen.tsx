@@ -31,7 +31,7 @@ const LEVELS = [
 
 export const StatsScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
-  const { translations } = useLanguage();
+  const { translations, currentLanguagePair } = useLanguage();
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [words, setWords] = useState<LearnedWord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
   const loadWords = async () => {
     try {
       setLoading(true);
-      const allWords = await storageService.getLearnedWords();
+      const allWords = await storageService.getLearnedWords(currentLanguagePair);
       const filteredWords = selectedLevel === 'all' 
         ? allWords 
         : allWords.filter(word => word.level === selectedLevel);

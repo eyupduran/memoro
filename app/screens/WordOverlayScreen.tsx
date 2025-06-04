@@ -39,7 +39,7 @@ interface LearnedWord extends Word {
 
 export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors } = useTheme();
-  const { translations } = useLanguage();
+  const { translations, currentLanguagePair } = useLanguage();
   const viewShotRef = useRef<ViewShot>(null);
   const [hasPermission, setHasPermission] = useState(false);
   const { selectedImage, selectedWords, level } = route.params;
@@ -243,7 +243,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         learnedAt: new Date().toISOString()
       }));
 
-      const saved = await storageService.saveLearnedWords(wordsToSave);
+      const saved = await storageService.saveLearnedWords(wordsToSave, currentLanguagePair);
       if (!saved) {
         throw new Error('Kelimeler kaydedilemedi');
       }
