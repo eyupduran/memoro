@@ -14,7 +14,7 @@ export default {
     dictionaryDescription: 'İstediğiniz kelimeleri seçip kendi öğrenme setinizi oluşturun.',
     trackProgress: 'İlerleyişinizi Takip Edin',
     trackProgressDescription: 'Öğrendiğiniz kelimeleri kaydedin ve gelişiminizi görün.',
-    skip: 'Atla',
+    back: 'Geri',
     next: 'İleri',
     start: 'Başla'
   },

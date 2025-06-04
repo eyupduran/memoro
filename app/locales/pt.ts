@@ -14,7 +14,7 @@ export default {
     dictionaryDescription: 'Selecione as palavras que você quer e crie seu próprio conjunto de aprendizado.',
     trackProgress: 'Acompanhe seu Progresso',
     trackProgressDescription: 'Salve as palavras que você aprendeu e veja seu desenvolvimento.',
-    skip: 'Pular',
+    back: 'Pular',
     next: 'Próximo',
     start: 'Começar'
   },
