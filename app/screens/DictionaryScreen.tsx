@@ -365,7 +365,7 @@ const DictionaryScreen = () => {
           style={styles.wordList}
           contentContainerStyle={[
             styles.contentContainer,
-            { paddingTop: 180 } // Increased padding for header space
+            { paddingTop: 162 } // Increased padding for header space
           ]}
           onEndReached={loadMoreWords}
           onEndReachedThreshold={0.5}
