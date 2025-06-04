@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -52,6 +52,11 @@ export const OnboardingScreen = () => {
       title: translations.onboarding.trackProgress,
       description: translations.onboarding.trackProgressDescription,
       icon: 'trending-up',
+    },
+    {
+      title: translations.onboarding.exerciseTitle,
+      description: translations.onboarding.exerciseDescription,
+      icon: 'fitness-center',
     },
   ];
 
@@ -144,7 +149,7 @@ export const OnboardingScreen = () => {
               {activeIndex === onboardingData.length - 1 
                 ? translations.onboarding.start 
                 : activeIndex === 0 
-                  ? "Next" 
+                  ? translations.onboarding.next 
                   : translations.onboarding.next}
             </Text>
           </TouchableOpacity>

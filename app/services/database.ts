@@ -15,6 +15,32 @@ class DatabaseService {
     }
   }
 
+  // Tek bir sonuç satırı getiren yardımcı metod
+  async getFirstAsync<T>(query: string, params: any[] = []): Promise<T | null> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const result = await this.db.getAllAsync(query, params);
+      return result.length > 0 ? result[0] as unknown as T : null;
+    } catch (error) {
+      console.error('Error in getFirstAsync:', error);
+      return null;
+    }
+  }
+  
+  // Tüm sonuçları getiren yardımcı metod
+  async getAllAsync<T>(query: string, params: any[] = []): Promise<T[]> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const result = await this.db.getAllAsync(query, params);
+      return result as unknown as T[];
+    } catch (error) {
+      console.error('Error in getAllAsync:', error);
+      return [];
+    }
+  }
+
   private async initDatabase() {
     try {
       // İşlem hızını artırmak için pragma ayarları
@@ -47,6 +73,16 @@ class DatabaseService {
           language_pair TEXT NOT NULL,
           UNIQUE(word, language_pair)
         );
+        
+        CREATE TABLE IF NOT EXISTS exercise_results (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          exercise_type TEXT NOT NULL,
+          score INTEGER NOT NULL,
+          total_questions INTEGER NOT NULL,
+          date TEXT NOT NULL,
+          language_pair TEXT NOT NULL,
+          word_source TEXT
+        );
 
         CREATE TABLE IF NOT EXISTS db_info (
           key TEXT PRIMARY KEY,
@@ -66,6 +102,7 @@ class DatabaseService {
       await this.db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_words_level_lang ON words(level, language_pair);
         CREATE INDEX IF NOT EXISTS idx_words_word ON words(word);
+        CREATE INDEX IF NOT EXISTS idx_exercise_results_lang ON exercise_results(language_pair);
       `);
       
       this.initialized = true;
@@ -147,11 +184,38 @@ class DatabaseService {
     try {
       if (!this.initialized) await this.initDatabase();
       
-      const result = await this.db.getAllAsync<Word>(
-        'SELECT word, meaning, example, level FROM words WHERE language_pair = ? LIMIT ? OFFSET ?',
-        [languagePair, limit, offset]
+      // Önce mevcut seviyeleri al
+      const levels = await this.db.getAllAsync<{level: string}>(
+        'SELECT DISTINCT level FROM words WHERE language_pair = ? ORDER BY level',
+        [languagePair]
       );
-      return result;
+      
+      if (levels.length === 0) {
+        return [];
+      }
+      
+      // Her seviyeden dengeli şekilde kelime almak için
+      const perLevelLimit = Math.ceil(limit / levels.length);
+      let result: Word[] = [];
+      
+      // Her seviyeden kelime al
+      for (const levelObj of levels) {
+        const levelWords = await this.db.getAllAsync<Word>(
+          `SELECT word, meaning, example, level FROM words 
+           WHERE language_pair = ? AND level = ? 
+           ORDER BY RANDOM() 
+           LIMIT ?`,
+          [languagePair, levelObj.level, perLevelLimit]
+        );
+        
+        result = [...result, ...levelWords];
+      }
+      
+      // Sonuçları karıştır
+      result = result.sort(() => Math.random() - 0.5);
+      
+      // Limit kadar kelime döndür
+      return result.slice(0, limit);
     } catch (error) {
       console.error('Error getting all words from SQLite:', error);
       return [];
@@ -459,6 +523,62 @@ class DatabaseService {
     } catch (error) {
       console.error('Arkaplan resimlerinin varlığı kontrol edilirken hata:', error);
       return false;
+    }
+  }
+
+  // Egzersiz sonuçlarını kaydet
+  async saveExerciseResult(
+    exerciseType: string,
+    score: number,
+    totalQuestions: number,
+    languagePair: string,
+    wordSource: string = 'learned'
+  ): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const date = new Date().toISOString();
+      
+      await this.db.runAsync(
+        'INSERT INTO exercise_results (exercise_type, score, total_questions, date, language_pair, word_source) VALUES (?, ?, ?, ?, ?, ?)',
+        [exerciseType, score, totalQuestions, date, languagePair, wordSource]
+      );
+      
+      return true;
+    } catch (error) {
+      console.error('Egzersiz sonuçları kaydedilirken hata:', error);
+      return false;
+    }
+  }
+
+  // Belirli bir dil çifti için egzersiz sonuçlarını getir
+  async getExerciseResults(languagePair: string): Promise<{
+    id: number;
+    exercise_type: string;
+    score: number;
+    total_questions: number;
+    date: string;
+    word_source?: string;
+  }[]> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const results = await this.db.getAllAsync<{
+        id: number;
+        exercise_type: string;
+        score: number;
+        total_questions: number;
+        date: string;
+        word_source?: string;
+      }>(
+        'SELECT id, exercise_type, score, total_questions, date, word_source FROM exercise_results WHERE language_pair = ? ORDER BY date DESC',
+        [languagePair]
+      );
+      
+      return results;
+    } catch (error) {
+      console.error('Egzersiz sonuçları alınırken hata:', error);
+      return [];
     }
   }
 }

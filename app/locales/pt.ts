@@ -14,6 +14,8 @@ export default {
     dictionaryDescription: 'Selecione as palavras que você quer e crie seu próprio conjunto de aprendizado.',
     trackProgress: 'Acompanhe seu Progresso',
     trackProgressDescription: 'Salve as palavras que você aprendeu e veja seu desenvolvimento.',
+    exerciseTitle: 'Pratique com Exercícios',
+    exerciseDescription: 'Teste seu conhecimento com exercícios usando palavras que você aprendeu ou do seu nível.',
     back: 'Pular',
     next: 'Próximo',
     start: 'Começar'
@@ -75,8 +77,9 @@ export default {
     title: '{0} Palavras Selecionadas',
     subtitle: 'Você está pronto para aprender estas palavras?',
     loading: 'Carregando palavras...',
+    wordLabel: 'Palavra',
     wordDetail: {
-      meaning: 'Significado:',
+      meaning: 'Significado',
       example: 'Exemplo:'
     },
     buttons: {
@@ -256,5 +259,65 @@ export default {
     dataSyncError: 'Ocorreu um erro ao atualizar os dados. Por favor, verifique sua conexão com a internet e tente novamente.',
     notificationSchedulingError: 'Ocorreu um erro ao agendar a notificação.',
     notificationCancellationError: 'Ocorreu um erro ao cancelar as notificações.'
+  },
+  exercise: {
+    title: 'Exercícios',
+    subtitle: 'Teste e melhore seu conhecimento de vocabulário',
+    noWords: 'Você precisa aprender pelo menos 2 palavras para fazer exercícios.',
+    start: 'Iniciar Exercícios',
+    history: 'Histórico de Exercícios',
+    score: 'Pontuação: {0}/{1}',
+    learnedWordsExercise: 'Com Palavras Aprendidas',
+    learnedWordsExerciseDesc: 'Pratique com as palavras que você já aprendeu',
+    dictionaryExercise: 'Palavras Aleatórias por Nível',
+    dictionaryExerciseDesc: 'Teste seu conhecimento com palavras do nível selecionado',
+    exerciseOptions: 'Opções de Exercício',
+    selectLevel: 'Selecione o Nível',
+    startExercise: 'Iniciar Exercício',
+    learnedSource: 'Das Aprendidas',
+    dictionarySource: 'Do Dicionário',
+    exercises: {
+      fillInTheBlank: 'Preencher Lacunas',
+      wordMatch: 'Correspondência de Palavras',
+      mixed: 'Misturado',
+      sentenceMatch: 'Correspondência de Frases',
+    },
+    question: {
+      title: 'Questão {0}/{1}',
+      screenTitle: 'Questão',
+      fillInTheBlank: 'Preencha a lacuna:',
+      wordMatch: 'Escolha a correspondência correta:',
+      sentenceMatchQuestionPrompt: 'Escolha a frase em inglês correta para a palavra com o significado dado:',
+      correct: 'Correto!',
+      incorrect: 'Incorreto!',
+      correctAnswer: 'Resposta Correta: {0}',
+      next: 'Próximo',
+      finish: 'Finalizar',
+    },
+    result: {
+      title: 'Resultado do Exercício',
+      score: 'Sua pontuação: {0}/{1}',
+      perfect: 'Perfeito! Você acertou todas as questões!',
+      great: 'Ótimo! Você conseguiu uma pontuação muito boa!',
+      good: 'Bom! Você pode melhorar ainda mais com mais prática.',
+      needsPractice: 'Você precisa praticar mais. Tente novamente!',
+      tryAgain: 'Tentar Novamente',
+      backToExercises: 'Voltar aos Exercícios',
+      date: 'Data: {0}',
+    },
+    egsersizeHistory: {
+      title: 'Histórico de Exercícios',
+      empty: 'Ainda não há exercícios concluídos.',
+    },
+    historyItem: {
+      date: 'Data: {0}',
+      score: 'Pontuação: {0}/{1}',
+      type: 'Tipo: {0}',
+    },
+    tabs: {
+      exercise: 'Exercício',
+      stats: 'Estatísticas',
+      settings: 'Configurações',
+    }
   }
 }; 

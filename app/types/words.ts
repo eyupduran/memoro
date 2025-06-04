@@ -10,8 +10,19 @@ export interface LearnedWord extends Word {
   learnedAt: string;
 }
 
+export interface ExerciseResult {
+  id?: number;
+  exercise_type: string;
+  score: number;
+  total_questions: number;
+  date: string;
+  language_pair: string;
+  word_source?: string;
+}
+
 export interface WordList {
   words: Word[];
+  lastUpdated: string;
 }
 
 export type AsyncWordLists = {

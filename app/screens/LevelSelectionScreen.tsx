@@ -158,6 +158,18 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
 
         <TouchableOpacity 
+          style={styles.tabButton}
+          onPress={() => navigation.navigate('Exercise')}
+        >
+          <View style={styles.tabButtonContent}>
+            <MaterialIcons name="fitness-center" size={22} color={colors.text.secondary} />
+            <Text style={[styles.tabText, { color: colors.text.secondary }]}>
+              {translations.exercise.tabs.exercise}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
           style={styles.tabButton} 
           onPress={() => navigation.navigate('Settings')}
         >

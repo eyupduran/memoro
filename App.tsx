@@ -13,6 +13,9 @@ import { WordOverlayScreen } from './app/screens/WordOverlayScreen';
 import { StatsScreen } from './app/screens/StatsScreen';
 import { SettingsScreen } from './app/screens/SettingsScreen';
 import DictionaryScreen from './app/screens/DictionaryScreen';
+import ExerciseScreen from './app/screens/ExerciseScreen';
+import ExerciseQuestionScreen from './app/screens/ExerciseQuestionScreen';
+import ExerciseResultScreen from './app/screens/ExerciseResultScreen';
 import { RootStackParamList } from './app/types/navigation';
 
 import * as Notifications from 'expo-notifications';
@@ -60,24 +63,6 @@ const AppNavigator = () => {
       text: colors.text.primary,
       border: colors.border,
       notification: colors.accent,
-    },
-    fonts: {
-      regular: {
-        fontFamily: 'System',
-        fontWeight: '400',
-      },
-      medium: {
-        fontFamily: 'System',
-        fontWeight: '500',
-      },
-      bold: {
-        fontFamily: 'System',
-        fontWeight: '700',
-      },
-      heavy: {
-        fontFamily: 'System',
-        fontWeight: '900',
-      },
     }
   });
 
@@ -176,6 +161,21 @@ const AppNavigator = () => {
           name="Dictionary"
           component={DictionaryScreen}
           options={{ title: translations.dictionaryScreen.title || 'Sözlük' }}
+        />
+        <Stack.Screen
+          name="Exercise"
+          component={ExerciseScreen}
+          options={{ title: translations.exercise.title }}
+        />
+        <Stack.Screen
+          name="ExerciseQuestion"
+          component={ExerciseQuestionScreen}
+          options={{ title: translations.exercise.question.title.replace('{0}', '').replace('{1}', '') }}
+        />
+        <Stack.Screen
+          name="ExerciseResult"
+          component={ExerciseResultScreen}
+          options={{ title: translations.exercise.result.title }}
         />
       </Stack.Navigator>
     </NavigationContainer>

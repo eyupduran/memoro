@@ -28,4 +28,23 @@ export type RootStackParamList = {
   Stats: undefined;
   Settings: undefined;
   Dictionary: undefined;
+  Exercise: undefined;
+  ExerciseQuestion: {
+    exerciseType: 'fillInTheBlank' | 'wordMatch' | 'mixed' | 'sentenceMatch';
+    questionIndex: number;
+    totalQuestions: number;
+    score: number;
+    askedWords?: string[];
+    previousType?: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch';
+    wordSource?: 'learned' | 'dictionary';
+    level?: string | null;
+  };
+  ExerciseResult: {
+    score: number;
+    totalQuestions: number;
+    languagePair: string;
+    exerciseType?: 'fillInTheBlank' | 'wordMatch' | 'mixed' | 'sentenceMatch';
+    wordSource?: 'learned' | 'dictionary';
+    level?: string | null;
+  };
 }; 

@@ -14,6 +14,8 @@ export default {
     dictionaryDescription: 'İstediğiniz kelimeleri seçip kendi öğrenme setinizi oluşturun.',
     trackProgress: 'İlerleyişinizi Takip Edin',
     trackProgressDescription: 'Öğrendiğiniz kelimeleri kaydedin ve gelişiminizi görün.',
+    exerciseTitle: 'Egzersizlerle Pekiştirin',
+    exerciseDescription: 'Öğrendiğiniz veya seviyenize uygun kelimelerle pratik yaparak bilginizi test edin.',
     back: 'Geri',
     next: 'İleri',
     start: 'Başla'
@@ -75,8 +77,9 @@ export default {
     title: 'Seçilen {0} Kelime',
     subtitle: 'Bu kelimeleri öğrenmeye hazır mısınız?',
     loading: 'Kelimeler yükleniyor...',
+    wordLabel: 'Kelime',
     wordDetail: {
-      meaning: 'Anlam:',
+      meaning: 'Anlam',
       example: 'Örnek Cümle:'
     },
     buttons: {
@@ -256,5 +259,65 @@ export default {
     dataSyncError: 'Veriler güncellenirken bir hata oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
     notificationSchedulingError: 'Bildirim zamanlanırken bir sorun oluştu.',
     notificationCancellationError: 'Bildirimler iptal edilirken bir sorun oluştu.'
+  },
+  exercise: {
+    title: 'Egzersizler',
+    subtitle: 'Kelime bilginizi test edin ve geliştirin',
+    noWords: 'Egzersiz yapabilmek için en az 2 kelime öğrenmeniz gerekiyor.',
+    start: 'Egzersizlere Başla',
+    history: 'Egzersiz Geçmişi',
+    score: 'Puan: {0}/{1}',
+    learnedWordsExercise: 'Öğrendiğiniz Kelimelerle',
+    learnedWordsExerciseDesc: 'Öğrendiğiniz kelimeler ile pratik yapın',
+    dictionaryExercise: 'Seviyenize Göre Rastgele Kelimeler',
+    dictionaryExerciseDesc: 'Seçtiğiniz seviyedeki kelimelerle bilginizi test edin',
+    exerciseOptions: 'Egzersiz Seçenekleri',
+    selectLevel: 'Seviye Seçin',
+    startExercise: 'Egzersizi Başlat',
+    learnedSource: 'Öğrendiklerimden',
+    dictionarySource: 'Sözlükten',
+    exercises: {
+      fillInTheBlank: 'Boşluk Doldurma',
+      wordMatch: 'Kelime Eşleştirme',
+      mixed: 'Karışık',
+      sentenceMatch: 'Cümle Eşleştirme',
+    },
+    question: {
+      title: 'Soru {0}/{1}',
+      screenTitle: 'Soru',
+      fillInTheBlank: 'Boşluğu doldurun:',
+      wordMatch: 'Doğru eşleştirmeyi seçin:',
+      sentenceMatchQuestionPrompt: 'Anlamı verilen kelime için doğru İngilizce cümleyi seçin:',
+      correct: 'Doğru!',
+      incorrect: 'Yanlış!',
+      correctAnswer: 'Doğru Cevap: {0}',
+      next: 'Sonraki',
+      finish: 'Bitir',
+    },
+    result: {
+      title: 'Egzersiz Sonucu',
+      score: 'Puanınız: {0}/{1}',
+      perfect: 'Mükemmel! Tüm soruları doğru yanıtladınız!',
+      great: 'Harika! Çok iyi bir skor elde ettiniz!',
+      good: 'İyi! Biraz daha pratik yaparak daha da gelişebilirsiniz.',
+      needsPractice: 'Daha fazla pratik yapmanız gerekiyor. Tekrar deneyin!',
+      tryAgain: 'Tekrar Dene',
+      backToExercises: 'Egzersizlere Dön',
+      date: 'Tarih: {0}',
+    },
+    egsersizeHistory: {
+      title: 'Egzersiz Geçmişi',
+      empty: 'Henüz tamamlanmış egzersiz bulunmuyor.',
+    },
+    historyItem: {
+      date: 'Tarih: {0}',
+      score: 'Puan: {0}/{1}',
+      type: 'Tür: {0}',
+    },
+    tabs: {
+      exercise: 'Egzersiz',
+      stats: 'İstatistik',
+      settings: 'Ayarlar',
+    }
   }
-}; 
+};
