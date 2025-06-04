@@ -71,23 +71,11 @@ APK dosyasını [GitHub Releases](https://github.com/eyupduran/memoro/releases/t
 | <img src="readme-images/4.jpg" width="200"> | <img src="readme-images/5.jpg" width="200"> | <img src="readme-images/6.jpg" width="200"> |
 | <img src="readme-images/7.jpg" width="200"> | <img src="readme-images/8.jpg" width="200"> | <img src="readme-images/9.jpg" width="200"> |
 | <img src="readme-images/10.jpg" width="200"> | <img src="readme-images/11.jpg" width="200"> | <img src="readme-images/12.jpg" width="200"> |
-
-## 🆕 New Features & Improvements
-
-### ✨ Exercise Module
-- Added interactive exercise screens for language learning
-- Implemented multiple question formats (word matching, fill-in-the-blank, sentence matching)
-- Improved Dictionary Screen
-
-<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between;">
-  <img src="readme-images/13.jpg" width="24%" alt="Exercise Screen" />
-  <img src="readme-images/14.jpg" width="24%" alt="Question Screen" />
-  <img src="readme-images/15.jpg" width="24%" alt="Results Screen" />
-  <img src="readme-images/16.jpg" width="24%" alt="Dictionary Screen" />
-</div>
+| <img src="readme-images/13.jpg" width="200"> | <img src="readme-images/14.jpg" width="200"> | <img src="readme-images/15.jpg" width="200"> |
+| <img src="readme-images/16.jpg" width="200"> | | |
 
 ## 🔜 Gelecek Özellikler
 
 - Farklı dil seçenekleri (Portekizce, İspanyolca vb.)
-- Kelime öğrenme oyunları
+
 
