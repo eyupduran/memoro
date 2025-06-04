@@ -71,8 +71,6 @@ APK dosyasını [GitHub Releases](https://github.com/eyupduran/memoro/releases/t
 | <img src="readme-images/4.jpg" width="200"> | <img src="readme-images/5.jpg" width="200"> | <img src="readme-images/6.jpg" width="200"> |
 | <img src="readme-images/7.jpg" width="200"> | <img src="readme-images/8.jpg" width="200"> | <img src="readme-images/9.jpg" width="200"> |
 | <img src="readme-images/10.jpg" width="200"> | <img src="readme-images/11.jpg" width="200"> | <img src="readme-images/12.jpg" width="200"> |
-| <img src="readme-images/13.jpg" width="200"> | <img src="readme-images/14.jpg" width="200"> | <img src="readme-images/15.jpg" width="200"> |
-| <img src="readme-images/16.jpg" width="200"> | | |
 
 ## 🆕 New Features & Improvements
 
