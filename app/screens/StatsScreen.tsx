@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -49,6 +51,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [allWords, setAllWords] = useState<LearnedWord[]>([]);
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   useEffect(() => {
     loadAllWords();
@@ -295,14 +298,6 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
-          {translations.stats.title}
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-          {formatString(translations.stats.totalWords, totalWords)}
-        </Text>
-      </View>
       
       <ScrollView 
         horizontal 
@@ -379,7 +374,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.content}>
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+          <Text style={[styles.sectionTitle, { paddingHorizontal: 20 }, { color: colors.text.primary }]}>
             {translations.stats.wordLists || 'Kelime Listeleri'}
           </Text>
           {loadingLists ? (
@@ -401,9 +396,60 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={[styles.section, { flex: 1 }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-            {translations.stats.learnedWords || 'Öğrenilen Kelimeler'}
-          </Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+              {translations.stats.learnedWords} ({totalWords})
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowInfoModal(true)}
+              style={styles.infoButton}
+            >
+              <MaterialIcons 
+                name="error-outline" 
+                size={24} 
+                color={colors.text.secondary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={showInfoModal}
+            onRequestClose={() => setShowInfoModal(false)}
+          >
+            <Pressable 
+              style={styles.modalOverlay}
+              onPress={() => setShowInfoModal(false)}
+            >
+              <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                <View style={styles.modalHeader}>
+                  <MaterialIcons 
+                    name="error-outline" 
+                    size={24} 
+                    color={colors.primary}
+                  />
+                  <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
+                    Bilgilendirme
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowInfoModal(false)}
+                    style={styles.closeButton}
+                  >
+                    <MaterialIcons 
+                      name="close" 
+                      size={24} 
+                      color={colors.text.secondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <Text style={[styles.modalText, { color: colors.text.secondary }]}>
+                  {translations.stats.reinforcement?.info || 'Pekiştirmek istediğiniz 2-5 kelime seçin'}
+                </Text>
+              </View>
+            </Pressable>
+          </Modal>
+
           {loading ? (
             <ActivityIndicator size="large" color={colors.primary} />
           ) : words.length === 0 ? (
@@ -425,18 +471,6 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           ) : (
             <View style={{ flex: 1 }}>
-              <View style={styles.infoContainer}>
-                <MaterialIcons 
-                  name="info-outline" 
-                  size={20} 
-                  color={colors.text.secondary}
-                  style={styles.infoIcon}
-                />
-                <Text style={[styles.infoText, { color: colors.text.secondary }]}>
-                  {translations.stats.reinforcement?.info || 'Pekiştirmek istediğiniz 2-5 kelime seçin'}
-                </Text>
-              </View>
-
               <FlatList
                 data={words}
                 renderItem={renderWordItem}
@@ -493,7 +527,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 16,
-    paddingHorizontal: 20,
   },
   levelScroll: {
     maxHeight: 80,
@@ -665,5 +698,52 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  infoButton: {
+    padding: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    marginLeft: 12,
+  },
+  modalText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  closeButton: {
+    padding: 4,
   },
 });
