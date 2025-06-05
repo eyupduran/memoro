@@ -8,6 +8,7 @@ import {
   Animated,
   ScrollView,
   Easing,
+  Modal,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';
@@ -70,6 +71,10 @@ const ExerciseQuestionScreen: React.FC = () => {
 
   const fadeAnim = new Animated.Value(1);
   const slideAnim = new Animated.Value(0);
+
+  const [wordLists, setWordLists] = useState<{ id: number; name: string }[]>([]);
+  const [selectedWordList, setSelectedWordList] = useState<number | null>(null);
+  const [wordListModalVisible, setWordListModalVisible] = useState(false);
 
   // Sesleri yükle
   useEffect(() => {
@@ -693,6 +698,153 @@ const ExerciseQuestionScreen: React.FC = () => {
     );
   };
 
+  useEffect(() => {
+    const loadWordLists = async () => {
+      try {
+        const lists = await dbService.getWordLists(currentLanguagePair);
+        setWordLists(lists);
+      } catch (error) {
+        console.error('Error loading word lists:', error);
+      }
+    };
+
+    loadWordLists();
+  }, [currentLanguagePair]);
+
+  const addToWordList = async () => {
+    if (!currentQuestion || !selectedWordList) return;
+
+    try {
+      await dbService.addWordToList(selectedWordList, {
+        id: currentQuestion.word,
+        word: currentQuestion.word,
+        meaning: currentQuestion.meaning,
+        example: currentQuestion.example || '',
+        level: currentQuestion.level || 'A1'
+      });
+      
+      // Başarılı mesajı göster
+      alert(translations.wordListModal?.addSuccess || 'Kelime listeye eklendi');
+    } catch (error) {
+      console.error('Error adding word to list:', error);
+      alert(translations.wordListModal?.addError || 'Kelime eklenirken bir hata oluştu');
+    } finally {
+      setWordListModalVisible(false);
+      setSelectedWordList(null);
+    }
+  };
+
+  const renderWordListModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={wordListModalVisible}
+      onRequestClose={() => setWordListModalVisible(false)}
+    >
+      <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+        <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
+              {translations.wordListModal?.title || 'Kelime Listesi Seç'}
+            </Text>
+            <TouchableOpacity onPress={() => setWordListModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.listSelector}>
+            {wordLists.length === 0 ? (
+              <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+                {translations.wordListModal?.noLists || 'Henüz liste oluşturulmamış'}
+              </Text>
+            ) : (
+              wordLists.map((list) => (
+                <TouchableOpacity
+                  key={list.id}
+                  style={[
+                    styles.listOption,
+                    selectedWordList === list.id && { backgroundColor: colors.primary + '30' },
+                    { borderColor: colors.border }
+                  ]}
+                  onPress={() => setSelectedWordList(list.id)}
+                >
+                  <Text style={[styles.listText, { color: colors.text.primary }]}>
+                    {list.name}
+                  </Text>
+                  {selectedWordList === list.id && (
+                    <MaterialIcons name="check" size={20} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+
+          {wordLists.length > 0 && (
+            <TouchableOpacity
+              style={[
+                styles.addButton,
+                { 
+                  backgroundColor: selectedWordList ? colors.primary : colors.border,
+                  opacity: selectedWordList ? 1 : 0.5
+                }
+              ]}
+              onPress={addToWordList}
+              disabled={!selectedWordList}
+            >
+              <Text style={[styles.addButtonText, { color: colors.text.onPrimary }]}>
+                {translations.wordListModal?.add || 'Listeye Ekle'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderAnswerModal = () => {
+    if (isCorrect === null || !answerShown) return null;
+
+    return (
+      <View style={[styles.answerModal, { backgroundColor: isCorrect ? colors.success + '20' : colors.error + '20' }]}>
+        <View style={styles.answerContent}>
+          <MaterialIcons
+            name={isCorrect ? 'check-circle' : 'cancel'}
+            size={32}
+            color={isCorrect ? colors.success : colors.error}
+          />
+          <Text style={[styles.answerText, { color: colors.text.primary }]}>
+            {isCorrect ? translations.exercise.question.correct : translations.exercise.question.wrong}
+          </Text>
+          {!isCorrect && currentQuestion && (
+            <Text style={[styles.correctAnswer, { color: colors.text.primary }]}>
+              {translations.exercise.question.correctAnswer}: {currentQuestion.word}
+            </Text>
+          )}
+        </View>
+        <View style={styles.answerButtons}>
+          <TouchableOpacity
+            style={[styles.addToListButton, { backgroundColor: colors.primary + '20' }]}
+            onPress={() => setWordListModalVisible(true)}
+          >
+            <MaterialIcons name="playlist-add" size={24} color={colors.primary} />
+            <Text style={[styles.buttonText, { color: colors.primary }]}>
+              {translations.wordListModal?.addToList || 'Listeye Ekle'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.nextButton, { backgroundColor: colors.primary }]}
+            onPress={goToNextQuestion}
+          >
+            <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
+              {translations.exercise.question.next}
+            </Text>
+            <MaterialIcons name="chevron-right" size={24} color={colors.text.onPrimary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -771,78 +923,8 @@ const ExerciseQuestionScreen: React.FC = () => {
         </Animated.View>
       </ScrollView>
 
-      {answerShown && (
-        <View style={[
-          styles.feedbackContainer, 
-          { 
-            backgroundColor: isCorrect ? 'rgba(0, 128, 0, 0.9)' : 'rgba(255, 0, 0, 0.9)',
-            borderTopColor: colors.border,
-            borderTopWidth: 1,
-          }
-        ]}>
-          <MaterialIcons 
-            name={isCorrect ? 'check-circle' : 'cancel'} 
-            size={32} 
-            color={'white'} 
-          />
-          <Text style={[
-            styles.feedbackText, 
-            { color: 'white' }
-          ]}>
-            {isCorrect 
-              ? translations.exercise.question.correct 
-              : translations.exercise.question.incorrect}
-          </Text>
-          {!isCorrect && currentQuestion && (
-            <View style={{alignItems: 'center', marginTop: 8, width: '100%'}}>
-              {currentQuestionType === 'fillInTheBlank' && (
-                <>
-                  <Text style={[styles.correctAnswerText, { color: 'white', fontWeight: 'bold' }]}>
-                      {`${translations.exercise.question.correctAnswer.split(':')[0]}: ${currentQuestion.word}`}
-                  </Text>
-                  <Text style={[styles.correctAnswerText, { color: 'white', marginTop: 4 }]}>
-                      {translations.wordList.wordDetail.meaning}: {currentQuestion.meaning}
-                  </Text>
-                </>
-              )}
-              {currentQuestionType === 'wordMatch' && (
-                <>
-                  <Text style={[styles.correctAnswerText, { color: 'white', fontWeight: 'bold' }]}>
-                      {`${translations.exercise.question.correctAnswer.split(':')[0]}: ${currentQuestion.meaning}`}
-                  </Text>
-                  <Text style={[styles.correctAnswerText, { color: 'white', marginTop: 4 }]}>
-                      {translations.wordList.wordLabel}: {currentQuestion.word}
-                  </Text>
-                </>
-              )}
-              {currentQuestionType === 'sentenceMatch' && currentQuestion.example && (
-                <>
-                    <Text style={[styles.correctAnswerText, { color: 'white', fontWeight: 'bold', textAlign: 'center'}]}>
-                        {translations.exercise.question.correctAnswer.split(':')[0]}:
-                    </Text>
-                    <Text style={[styles.correctAnswerText, { fontStyle: 'italic', color: 'white', marginTop: 4, textAlign: 'center' }]}>
-                        {currentQuestion.example}
-                    </Text>
-                    <Text style={[styles.correctAnswerText, { color: 'white', marginTop: 8, textAlign: 'center' }]}>
-                        ({translations.wordList.wordLabel}: {currentQuestion.word} - {translations.wordList.wordDetail.meaning}: {currentQuestion.meaning})
-                    </Text>
-                </>
-              )}
-            </View>
-          )}
-          
-          <TouchableOpacity
-            style={[styles.nextButton, { backgroundColor: 'white' }]}
-            onPress={goToNextQuestion}
-          >
-            <Text style={[styles.nextButtonText, { color: isCorrect ? 'green' : 'red' }]}>
-              {questionIndex + 1 < totalQuestions 
-                ? translations.exercise.question.next 
-                : translations.exercise.question.finish}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {renderAnswerModal()}
+      {renderWordListModal()}
     </View>
   );
 };
@@ -960,36 +1042,128 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   feedbackContainer: {
-    padding: 16,
-    alignItems: 'center',
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: 30, // Extra padding at the bottom for better appearance
+    padding: 16,
+    alignItems: 'center',
+    borderTopWidth: 1,
   },
   feedbackText: {
     fontSize: 18,
     fontWeight: '600',
-    marginTop: 8,
+    marginVertical: 8,
   },
   correctAnswerText: {
     fontSize: 14,
     marginTop: 4,
-    maxWidth: '90%', // Prevent text from going off screen
+    maxWidth: '90%',
+    textAlign: 'center',
   },
   nextButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginTop: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
-    maxWidth: 200,
+    padding: 12,
+    borderRadius: 8,
+    flex: 1,
+    justifyContent: 'center',
   },
-  nextButtonText: {
+  buttonText: {
     fontSize: 16,
     fontWeight: '600',
+    marginHorizontal: 8,
+  },
+  answerModal: {
+    padding: 16,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 30,
+  },
+  answerContent: {
+    alignItems: 'center',
+  },
+  answerText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  correctAnswer: {
+    fontSize: 14,
+    marginTop: 4,
+    maxWidth: '90%',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '90%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  listSelector: {
+    maxHeight: 300,
+    marginBottom: 20,
+  },
+  listOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  listText: {
+    fontSize: 16,
+  },
+  addButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  addButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  answerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  addToListButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 16,
   },
 });
 
