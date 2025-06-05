@@ -34,9 +34,15 @@ export type RootStackParamList = {
     listName: string;
   };
   ExerciseQuestion: {
-    exerciseType: 'fillInTheBlank' | 'wordMatch' | 'mixed' | 'sentenceMatch';
-    source: 'learned' | 'dictionary';
-    level?: string;
+    exerciseType: 'mixed';
+    questionIndex: number;
+    totalQuestions: number;
+    score: number;
+    askedWords: string[];
+    previousType?: string;
+    wordSource: 'learned' | 'dictionary' | 'wordlist';
+    level?: string | null;
+    wordListId?: number;
   };
   ExerciseResult: {
     score: number;
