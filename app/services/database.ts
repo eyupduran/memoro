@@ -96,13 +96,70 @@ class DatabaseService {
           created_at TEXT NOT NULL,
           UNIQUE(url)
         );
+
+        CREATE TABLE IF NOT EXISTS custom_word_lists (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          language_pair TEXT NOT NULL,
+          UNIQUE(name, language_pair)
+        );
+
+        CREATE TABLE IF NOT EXISTS custom_word_list_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          list_id INTEGER NOT NULL,
+          word TEXT NOT NULL,
+          meaning TEXT NOT NULL,
+          example TEXT,
+          level TEXT NOT NULL,
+          added_at TEXT NOT NULL,
+          FOREIGN KEY(list_id) REFERENCES custom_word_lists(id) ON DELETE CASCADE,
+          UNIQUE(list_id, word)
+        );
       `);
+
+      // Mevcut learned_words tablosunu kontrol et ve güncelle
+      const tableInfo = await this.db.getAllAsync<{ name: string }>(
+        "PRAGMA table_info(learned_words)"
+      );
+      
+      const hasLanguagePair = tableInfo.some(column => column.name === 'language_pair');
+      
+      if (!hasLanguagePair) {
+        // Geçici tablo oluştur ve verileri kopyala
+        await this.db.execAsync(`
+          BEGIN TRANSACTION;
+          
+          CREATE TABLE learned_words_temp (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            word TEXT NOT NULL,
+            meaning TEXT NOT NULL,
+            example TEXT,
+            level TEXT NOT NULL,
+            learnedAt TEXT NOT NULL,
+            language_pair TEXT NOT NULL DEFAULT 'en-tr',
+            UNIQUE(word, language_pair)
+          );
+          
+          INSERT INTO learned_words_temp (word, meaning, example, level, learnedAt)
+          SELECT word, meaning, example, level, learnedAt FROM learned_words;
+          
+          DROP TABLE learned_words;
+          
+          ALTER TABLE learned_words_temp RENAME TO learned_words;
+          
+          COMMIT;
+        `);
+      }
       
       // İndeks oluştur
       await this.db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_words_level_lang ON words(level, language_pair);
         CREATE INDEX IF NOT EXISTS idx_words_word ON words(word);
+        CREATE INDEX IF NOT EXISTS idx_learned_words_lang ON learned_words(language_pair);
         CREATE INDEX IF NOT EXISTS idx_exercise_results_lang ON exercise_results(language_pair);
+        CREATE INDEX IF NOT EXISTS idx_custom_word_lists_lang ON custom_word_lists(language_pair);
+        CREATE INDEX IF NOT EXISTS idx_custom_word_list_items_list ON custom_word_list_items(list_id);
       `);
       
       this.initialized = true;
@@ -347,10 +404,17 @@ class DatabaseService {
       if (!this.initialized) await this.initDatabase();
       
       const result = await this.db.getAllAsync<LearnedWord>(
-        'SELECT word, meaning, example, level, learnedAt FROM learned_words WHERE language_pair = ?',
+        'SELECT word, meaning, example, level, learnedAt, language_pair FROM learned_words WHERE language_pair = ?',
         [languagePair]
       );
-      return result;
+      return result.map(row => ({
+        id: row.word, // word'ü id olarak kullan
+        word: row.word,
+        meaning: row.meaning,
+        example: row.example,
+        level: row.level,
+        learnedAt: row.learnedAt
+      }));
     } catch (error) {
       console.error('Error getting learned words from SQLite:', error);
       return [];
@@ -578,6 +642,145 @@ class DatabaseService {
       return results;
     } catch (error) {
       console.error('Egzersiz sonuçları alınırken hata:', error);
+      return [];
+    }
+  }
+
+  // Özel kelime listesi oluştur
+  async createWordList(name: string, languagePair: string): Promise<number | null> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const createdAt = new Date().toISOString();
+      const result = await this.db.runAsync(
+        'INSERT INTO custom_word_lists (name, created_at, language_pair) VALUES (?, ?, ?)',
+        [name, createdAt, languagePair]
+      );
+      
+      return result.lastInsertRowId || null;
+    } catch (error) {
+      console.error('Error creating word list:', error);
+      return null;
+    }
+  }
+
+  // Özel kelime listesine kelime ekle
+  async addWordToList(listId: number, word: Word): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const addedAt = new Date().toISOString();
+      await this.db.runAsync(
+        'INSERT OR IGNORE INTO custom_word_list_items (list_id, word, meaning, example, level, added_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [listId, word.word, word.meaning, word.example || '', word.level || 'custom', addedAt]
+      );
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding word to list:', error);
+      return false;
+    }
+  }
+
+  // Özel kelime listelerini getir
+  async getWordLists(languagePair: string): Promise<{ id: number; name: string; created_at: string }[]> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const lists = await this.db.getAllAsync<{ id: number; name: string; created_at: string }>(
+        'SELECT id, name, created_at FROM custom_word_lists WHERE language_pair = ? ORDER BY created_at DESC',
+        [languagePair]
+      );
+      
+      return lists;
+    } catch (error) {
+      console.error('Error getting word lists:', error);
+      return [];
+    }
+  }
+
+  // Özel kelime listesindeki kelimeleri getir
+  async getWordsFromList(listId: number): Promise<Word[]> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const words = await this.db.getAllAsync<Word>(
+        'SELECT word, meaning, example, level FROM custom_word_list_items WHERE list_id = ? ORDER BY added_at DESC',
+        [listId]
+      );
+      
+      return words.map(word => ({
+        id: word.word, // word'ü id olarak kullan
+        word: word.word,
+        meaning: word.meaning,
+        example: word.example,
+        level: word.level
+      }));
+    } catch (error) {
+      console.error('Error getting words from list:', error);
+      return [];
+    }
+  }
+
+  // Özel kelime listesini sil
+  async deleteWordList(listId: number): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      await this.db.runAsync('DELETE FROM custom_word_lists WHERE id = ?', [listId]);
+      return true;
+    } catch (error) {
+      console.error('Error deleting word list:', error);
+      return false;
+    }
+  }
+
+  // Özel kelime listesinden kelime sil
+  async removeWordFromList(listId: number | string, word: string): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      await this.db.runAsync(
+        'DELETE FROM custom_word_list_items WHERE list_id = ? AND word = ?',
+        [listId, word]
+      );
+      return true;
+    } catch (error) {
+      console.error('Error removing word from list:', error);
+      return false;
+    }
+  }
+
+  // Kelime listesindeki kelimeleri getir
+  async getWordListItems(listId: string): Promise<Word[]> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const result = await this.db.getAllAsync<{
+        id: number;
+        word: string;
+        meaning: string;
+        example: string | null;
+        level: string | null;
+        added_at: string;
+      }>(
+        `SELECT w.*, cwli.added_at 
+         FROM custom_word_list_items cwli
+         JOIN words w ON w.id = cwli.word_id
+         WHERE cwli.list_id = ?
+         ORDER BY cwli.added_at DESC`,
+        [listId]
+      );
+      
+      return result.map(row => ({
+        id: row.id.toString(),
+        word: row.word,
+        meaning: row.meaning,
+        example: row.example || undefined,
+        level: row.level || undefined
+      }));
+    } catch (error) {
+      console.error('Error getting word list items:', error);
       return [];
     }
   }

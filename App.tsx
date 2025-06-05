@@ -16,6 +16,7 @@ import DictionaryScreen from './app/screens/DictionaryScreen';
 import ExerciseScreen from './app/screens/ExerciseScreen';
 import ExerciseQuestionScreen from './app/screens/ExerciseQuestionScreen';
 import ExerciseResultScreen from './app/screens/ExerciseResultScreen';
+import { WordListDetailScreen } from './app/screens/WordListDetailScreen';
 import { RootStackParamList } from './app/types/navigation';
 
 import * as Notifications from 'expo-notifications';
@@ -176,6 +177,10 @@ const AppNavigator = () => {
           name="ExerciseResult"
           component={ExerciseResultScreen}
           options={{ title: translations.exercise.result.title }}
+        />
+        <Stack.Screen
+          name="WordListDetail"
+          component={WordListDetailScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

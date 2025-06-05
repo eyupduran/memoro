@@ -1,4 +1,5 @@
 export interface Word {
+  id: string;
   word: string;
   meaning: string;
   example?: string;
@@ -6,8 +7,13 @@ export interface Word {
 }
 
 export interface LearnedWord extends Word {
-  level: string;
   learnedAt: string;
+  level: string;
+}
+
+export interface WordListItem extends Word {
+  listId: string;
+  addedAt: string;
 }
 
 export interface ExerciseResult {

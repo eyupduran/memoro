@@ -43,6 +43,8 @@ export default {
   stats: {
     title: 'İstatistikler',
     totalWords: 'Toplam {0} kelime öğrenildi',
+    wordLists: 'Kelime Listeleri',
+    learnedWords: 'Öğrenilen Kelimeler',
     levels: {
       all: 'Tümü',
       allDescription: 'Tüm Kelimeler',
@@ -143,6 +145,18 @@ export default {
     selectMinWords: 'En az 2 kelime seçiniz',
     continueWithWords: '{0} kelime ile devam et',
     maxWordsLimit: 'Maksimum {0} kelime seçebilirsiniz'
+  },
+  wordListModal: {
+    title: 'Kelime Listesi Seç',
+    newListPlaceholder: 'Yeni liste adı',
+    create: 'Oluştur',
+    error: 'Hata',
+    success: 'Başarılı',
+    emptyListName: 'Liste adı boş olamaz',
+    createError: 'Liste oluşturulurken bir hata oluştu',
+    addSuccess: 'Kelime listeye eklendi',
+    addError: 'Kelime eklenirken bir hata oluştu',
+    noLists: 'Henüz liste oluşturulmamış'
   },
   settings: {
     title: 'Ayarlar',

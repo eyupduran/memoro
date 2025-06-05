@@ -15,6 +15,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
 import { storageService } from '../services/storage';
+import { dbService } from '../services/database';
 import type { LearnedWord } from '../types/words';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Stats'>;
@@ -40,6 +41,8 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [totalWords, setTotalWords] = useState(0);
   const [selectedWords, setSelectedWords] = useState<LearnedWord[]>([]);
+  const [wordLists, setWordLists] = useState<{ id: number; name: string; created_at: string }[]>([]);
+  const [loadingLists, setLoadingLists] = useState(true);
   
   // Pagination için state'ler
   const [page, setPage] = useState(0);
@@ -49,22 +52,41 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     loadAllWords();
+    loadWordLists();
   }, [currentLanguagePair]);
   
   useEffect(() => {
     // Seviye değiştiğinde sayfa numarasını sıfırla ve kelimeleri filtrele
     setPage(0);
-    applyLevelFilter();
+    if (allWords.length > 0) {
+      applyLevelFilter();
+    }
   }, [selectedLevel, allWords]);
 
   // Tüm kelimeleri yükle
   const loadAllWords = async () => {
     try {
       setLoading(true);
-      const loadedWords = await storageService.getLearnedWords(currentLanguagePair);
-      setAllWords(loadedWords);
-      setTotalWords(loadedWords.length);
-      applyLevelFilter();
+      console.log('Loading words for language pair:', currentLanguagePair);
+      const loadedWords = await dbService.getLearnedWords(currentLanguagePair);
+      console.log('Loaded words:', loadedWords);
+      
+      // Gelen verilerin yapısını kontrol et ve düzelt
+      const formattedWords = loadedWords.map(word => ({
+        id: word.word,
+        word: word.word,
+        meaning: word.meaning,
+        example: word.example || '',
+        level: word.level || 'A1',
+        learnedAt: word.learnedAt || new Date().toISOString()
+      }));
+      
+      console.log('Formatted words:', formattedWords);
+      setAllWords(formattedWords);
+      setTotalWords(formattedWords.length);
+      setWords(formattedWords.slice(0, ITEMS_PER_PAGE));
+      setHasMore(formattedWords.length > ITEMS_PER_PAGE);
+      
     } catch (error) {
       console.error('Error loading learned words:', error);
       setAllWords([]);
@@ -73,15 +95,39 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
       setLoading(false);
     }
   };
+
+  // Kelime listelerini yükle
+  const loadWordLists = async () => {
+    try {
+      setLoadingLists(true);
+      const lists = await dbService.getWordLists(currentLanguagePair);
+      setWordLists(lists);
+    } catch (error) {
+      console.error('Error loading word lists:', error);
+      setWordLists([]);
+    } finally {
+      setLoadingLists(false);
+    }
+  };
   
   // Seçilen seviyeye göre kelimeleri filtrele
   const applyLevelFilter = () => {
+    console.log('Applying level filter:', selectedLevel, 'allWords length:', allWords.length);
+    if (!allWords.length) {
+      setWords([]);
+      setHasMore(false);
+      return;
+    }
+
     const filteredWords = selectedLevel === 'all' 
       ? allWords
       : allWords.filter(word => word.level === selectedLevel);
     
+    console.log('Filtered words:', filteredWords.length, 'for level:', selectedLevel);
+    
     // İlk sayfayı ayarla
     const firstPageWords = filteredWords.slice(0, ITEMS_PER_PAGE);
+    console.log('Setting words:', firstPageWords.length);
     setWords(firstPageWords);
     setHasMore(filteredWords.length > ITEMS_PER_PAGE);
   };
@@ -142,9 +188,11 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
         level: 'custom',
         wordCount: selectedWords.length,
         selectedWords: selectedWords.map(w => ({
+          id: w.word,
           word: w.word,
           meaning: w.meaning,
-          example: w.example || ''
+          example: w.example || '',
+          level: w.level
         })),
         isReinforcement: true
       });
@@ -201,6 +249,36 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
       </TouchableOpacity>
     );
   };
+
+  // Kelime listesi kartını render et
+  const renderWordListItem = ({ item }: { item: { id: number; name: string; created_at: string } }) => (
+    <TouchableOpacity
+      style={[
+        styles.wordListCard,
+        { 
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+      onPress={() => navigation.navigate('WordListDetail', { listId: item.id.toString(), listName: item.name })}
+    >
+      <View style={styles.wordListHeader}>
+        <View style={styles.wordListInfo}>
+          <Text style={[styles.wordListName, { color: colors.text.primary }]}>
+            {item.name}
+          </Text>
+          <Text style={[styles.wordListDate, { color: colors.text.secondary }]}>
+            {formatDate(item.created_at)}
+          </Text>
+        </View>
+        <MaterialIcons 
+          name="chevron-right" 
+          size={24} 
+          color={colors.text.secondary}
+        />
+      </View>
+    </TouchableOpacity>
+  );
   
   // Liste altındaki yükleniyor göstergesini render et
   const renderFooter = () => {
@@ -299,65 +377,92 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
         ))}
       </ScrollView>
 
-      {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
-      ) : words.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <MaterialIcons 
-            name="school" 
-            size={64} 
-            color={colors.text.secondary}
-            style={styles.emptyIcon}
-          />
-          <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-            {selectedLevel === 'all' 
-              ? translations.stats.noWords.allLevels
-              : translations.stats.noWords.specificLevel}
+      <View style={styles.content}>
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            {translations.stats.wordLists || 'Kelime Listeleri'}
           </Text>
-          <Text style={[styles.emptySubtext, { color: colors.text.secondary }]}>
-            {translations.stats.noWords.subtext}
-          </Text>
-        </View>
-      ) : (
-        <>
-          <View style={styles.infoContainer}>
-            <MaterialIcons 
-              name="info-outline" 
-              size={20} 
-              color={colors.text.secondary}
-              style={styles.infoIcon}
-            />
-            <Text style={[styles.infoText, { color: colors.text.secondary }]}>
-              {translations.stats.reinforcement.info}
+          {loadingLists ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : wordLists.length === 0 ? (
+            <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+              {translations.wordListModal?.noLists || 'Henüz liste oluşturulmamış'}
             </Text>
-          </View>
-
-          <FlatList
-            data={words}
-            renderItem={renderWordItem}
-            keyExtractor={(item, index) => `${item.word}-${index}`}
-            style={[
-              styles.wordList, 
-              selectedWords.length >= 2 && selectedWords.length <= 5 && styles.wordListWithButton
-            ]}
-            showsVerticalScrollIndicator={false}
-            onEndReached={loadMoreWords}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={renderFooter}
-          />
-
-          {selectedWords.length >= 2 && selectedWords.length <= 5 && (
-            <TouchableOpacity
-              style={[styles.reinforceButton, { backgroundColor: colors.primary }]}
-              onPress={handleReinforce}
-            >
-              <Text style={[styles.reinforceButtonText, { color: colors.text.onPrimary }]}>
-                {formatString(translations.stats.reinforcement.button, selectedWords.length)}
-              </Text>
-            </TouchableOpacity>
+          ) : (
+            <FlatList
+              data={wordLists}
+              renderItem={renderWordListItem}
+              keyExtractor={(item) => item.id.toString()}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.wordListsContainer}
+            />
           )}
-        </>
-      )}
+        </View>
+
+        <View style={[styles.section, { flex: 1 }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            {translations.stats.learnedWords || 'Öğrenilen Kelimeler'}
+          </Text>
+          {loading ? (
+            <ActivityIndicator size="large" color={colors.primary} />
+          ) : words.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <MaterialIcons 
+                name="school" 
+                size={64} 
+                color={colors.text.secondary}
+                style={styles.emptyIcon}
+              />
+              <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+                {selectedLevel === 'all' 
+                  ? translations.stats.noWords?.allLevels || 'Henüz öğrenilen kelime yok'
+                  : translations.stats.noWords?.specificLevel || 'Bu seviyede öğrenilen kelime yok'}
+              </Text>
+              <Text style={[styles.emptySubtext, { color: colors.text.secondary }]}>
+                {translations.stats.noWords?.subtext || 'Kelime öğrenmeye başlamak için egzersizleri tamamlayın'}
+              </Text>
+            </View>
+          ) : (
+            <View style={{ flex: 1 }}>
+              <View style={styles.infoContainer}>
+                <MaterialIcons 
+                  name="info-outline" 
+                  size={20} 
+                  color={colors.text.secondary}
+                  style={styles.infoIcon}
+                />
+                <Text style={[styles.infoText, { color: colors.text.secondary }]}>
+                  {translations.stats.reinforcement?.info || 'Pekiştirmek istediğiniz 2-5 kelime seçin'}
+                </Text>
+              </View>
+
+              <FlatList
+                data={words}
+                renderItem={renderWordItem}
+                keyExtractor={(item) => item.word}
+                style={[styles.wordList, selectedWords.length >= 2 && styles.wordListWithButton]}
+                contentContainerStyle={{ paddingBottom: selectedWords.length >= 2 ? 80 : 0 }}
+                showsVerticalScrollIndicator={false}
+                onEndReached={loadMoreWords}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={renderFooter}
+              />
+
+              {selectedWords.length >= 2 && selectedWords.length <= 5 && (
+                <TouchableOpacity
+                  style={[styles.reinforceButton, { backgroundColor: colors.primary }]}
+                  onPress={handleReinforce}
+                >
+                  <Text style={[styles.reinforceButtonText, { color: colors.text.onPrimary }]}>
+                    {formatString(translations.stats.reinforcement?.button || '{0} kelimeyi pekiştir', selectedWords.length)}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+      </View>
     </View>
   );
 };
@@ -365,10 +470,10 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
   },
   header: {
     marginBottom: 16,
+    paddingHorizontal: 20,
   },
   title: {
     fontSize: 32,
@@ -378,12 +483,24 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
   },
+  content: {
+    flex: 1,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
   levelScroll: {
     maxHeight: 80,
     marginBottom: 16,
   },
   levelScrollContent: {
-    paddingRight: 20,
+    paddingHorizontal: 20,
   },
   levelButton: {
     paddingHorizontal: 16,
@@ -401,30 +518,36 @@ const styles = StyleSheet.create({
   levelDescription: {
     fontSize: 12,
   },
-  loader: {
-    flex: 1,
+  wordListsContainer: {
+    paddingHorizontal: 20,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  wordListCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginRight: 12,
+    borderWidth: 1,
+    width: 200,
+  },
+  wordListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 32,
   },
-  emptyIcon: {
-    marginBottom: 16,
+  wordListInfo: {
+    flex: 1,
+    marginRight: 8,
   },
-  emptyText: {
-    fontSize: 18,
+  wordListName: {
+    fontSize: 16,
     fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: 'center',
+  wordListDate: {
+    fontSize: 12,
   },
   wordList: {
     flex: 1,
+    paddingHorizontal: 20,
   },
   wordListWithButton: {
     marginBottom: 80,
@@ -504,6 +627,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
+    marginHorizontal: 20,
   },
   infoIcon: {
     marginRight: 8,
@@ -522,5 +646,24 @@ const styles = StyleSheet.create({
   loadingMoreText: {
     fontSize: 14,
     marginLeft: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyIcon: {
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
