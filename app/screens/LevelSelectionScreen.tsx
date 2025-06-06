@@ -187,6 +187,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 60,
     flex: 1,
   },
   header: {

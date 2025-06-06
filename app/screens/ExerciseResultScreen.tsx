@@ -157,11 +157,6 @@ const ExerciseResultScreen: React.FC = () => {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.contentContainer}
     >
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
-          {translations.exercise.result.title}
-        </Text>
-      </View>
       
       <Animated.View 
         style={[

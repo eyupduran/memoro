@@ -13,6 +13,8 @@ APK dosyasını [GitHub Releases](https://github.com/eyupduran/memoro/releases/t
 - **Kişiselleştirme**: Günlük 2-5 arası kelime seçimi
 - **Çevrimdışı Kullanım**: İnternete ihtiyaç duymadan tamamen çevrimdışı çalışabilme
 - **Sözlük Fonksiyonu**: Seviyeye göre kelime arama ve öğrenme imkanı
+- **Kelime Listeleri**: Öğrenilecek veya öğrenilen kelimeleri özel listeler halinde organize etme
+- **Kelime Listesi Egzersizleri**: Oluşturulan kelime listeleriyle özel egzersizler yapabilme
 - **Görsel Oluşturma**: Seçilen kelimelerle kilit ekranı görselleri oluşturma
 - **Galeri Entegrasyonu**: Oluşturulan görselleri doğrudan galeriye kaydetme
 - **İlerleme Takibi**: Öğrenilen kelimelerin seviyeye göre istatistiklerini görüntüleme

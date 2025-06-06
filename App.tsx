@@ -126,7 +126,7 @@ const AppNavigator = () => {
         <Stack.Screen
           name="LevelSelection"
           component={LevelSelectionScreen}
-          options={{ title: translations.levelSelection.title }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="WordCount"
