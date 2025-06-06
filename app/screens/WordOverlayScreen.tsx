@@ -152,7 +152,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
       marginHorizontal: 8,
       marginBottom: 0,
       padding: 12,
-      height: 300,
+      height: 235,
       paddingTop: 40,
       borderBottomLeftRadius: 0,
       borderBottomRightRadius: 0,
