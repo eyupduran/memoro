@@ -156,7 +156,8 @@ export default {
     createError: 'Liste oluşturulurken bir hata oluştu',
     addSuccess: 'Kelime listeye eklendi',
     addError: 'Kelime eklenirken bir hata oluştu',
-    noLists: 'Henüz liste oluşturulmamış'
+    noLists: 'Henüz liste oluşturulmamış',
+    addToList: 'Listeye Ekle'
   },
   settings: {
     title: 'Ayarlar',
@@ -321,7 +322,7 @@ export default {
       sentenceMatchQuestionPrompt: 'Anlamı verilen kelime için doğru İngilizce cümleyi seçin:',
       correct: 'Doğru!',
       incorrect: 'Yanlış!',
-      correctAnswer: 'Doğru Cevap: {0}',
+      correctAnswer: 'Doğru Cevap',
       next: 'Sonraki',
       finish: 'Bitir',
     },

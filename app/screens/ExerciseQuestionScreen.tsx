@@ -767,7 +767,7 @@ const ExerciseQuestionScreen: React.FC = () => {
           <ScrollView style={styles.listSelector}>
             {wordLists.length === 0 ? (
               <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-                {translations.wordListModal?.noLists || 'Henüz liste oluşturulmamış'}
+                {translations.wordListModal?.noLists}
               </Text>
             ) : (
               wordLists.map((list) => (
@@ -804,7 +804,7 @@ const ExerciseQuestionScreen: React.FC = () => {
               disabled={!selectedWordList}
             >
               <Text style={[styles.addButtonText, { color: colors.text.onPrimary }]}>
-                {translations.wordListModal?.add || 'Listeye Ekle'}
+                {translations.wordListModal?.addToList}
               </Text>
             </TouchableOpacity>
           )}
