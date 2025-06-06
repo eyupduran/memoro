@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -45,6 +45,324 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const viewShotRef = useRef<ViewShot>(null);
   const [hasPermission, setHasPermission] = useState(false);
   const { selectedImage, selectedWords, level } = route.params;
+  const windowWidth = Dimensions.get('window').width;
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#000',
+      width: '100%',
+      height: '100%',
+    },
+    previewContainer: {
+      width: Dimensions.get('screen').width,
+      height: Dimensions.get('screen').height,
+    },
+    backgroundImage: {
+      ...StyleSheet.absoluteFillObject,
+      width: '100%',
+      height: '100%',
+    },
+    overlay: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: 20,
+      paddingBottom: 100,
+    },
+    wordContainer: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    wordBox: {
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 16,
+    },
+    wordText: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 8,
+      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+      textShadowOffset: { width: 1, height: 1 },
+      textShadowRadius: 3,
+    },
+    meaningText: {
+      fontSize: 18,
+      textAlign: 'center',
+      marginBottom: 8,
+      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+      textShadowOffset: { width: 1, height: 1 },
+      textShadowRadius: 3,
+    },
+    exampleText: {
+      fontSize: 14,
+      fontStyle: 'italic',
+      textAlign: 'center',
+      textShadowColor: 'rgba(0, 0, 0, 0.75)',
+      textShadowOffset: { width: 1, height: 1 },
+      textShadowRadius: 3,
+    },
+    buttonContainer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1,
+      alignItems: 'center',
+      paddingVertical: 16,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      minHeight: 80,
+      borderTopLeftRadius: 0,
+      borderTopRightRadius: 0,
+      opacity: 1,
+    },
+    buttonGroup: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      width: '100%',
+      paddingHorizontal: 16,
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      marginHorizontal: 6,
+      flex: 1,
+      justifyContent: 'center',
+      maxWidth: 120,
+    },
+    buttonText: {
+      marginLeft: 8,
+      fontSize: 14,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    customizeContainer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderRadius: 12,
+      marginHorizontal: 8,
+      marginBottom: 0,
+      padding: 12,
+      height: 300,
+      paddingTop: 16,
+      borderBottomLeftRadius: 0,
+      borderBottomRightRadius: 0,
+    },
+    tabContainer: {
+      height: 60,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+      marginBottom: 8,
+    },
+    tabScrollContent: {
+      paddingHorizontal: 8,
+    },
+    tabButton: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      marginHorizontal: 4,
+      borderRadius: 8,
+      backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    },
+    activeTabButton: {
+      backgroundColor: colors.primary,
+    },
+    tabText: {
+      fontSize: 12,
+      color: 'rgba(0, 0, 0, 0.5)',
+      marginTop: 4,
+    },
+    activeTabText: {
+      color: colors.text.onPrimary,
+      fontWeight: '600',
+    },
+    closeButton: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      zIndex: 1,
+      padding: 4,
+    },
+    customizeScroll: {
+      flexGrow: 0,
+    },
+    customizeContent: {
+      alignItems: 'center',
+      paddingVertical: 8,
+    },
+    customizeSection: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 8,
+      width: windowWidth - 32,
+    },
+    customizeLabel: {
+      fontSize: 15,
+      marginBottom: 12,
+      fontWeight: '600',
+      textAlign: 'center',
+      color: 'rgba(0, 0, 0, 0.8)',
+    },
+    separator: {
+      width: 1,
+      height: '80%',
+      alignSelf: 'center',
+      marginHorizontal: 10,
+    },
+    customizeSlider: {
+      width: '80%',
+      height: 40,
+    },
+    colorPalette: {
+      flexDirection: 'row',
+      justifyContent: 'flex-start',
+      width: '100%',
+      paddingHorizontal: 8,
+      gap: 8,
+    },
+    colorButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(0,0,0,0.2)',
+      marginHorizontal: 2,
+    },
+    layoutSelector: {
+      flexDirection: 'row',
+      justifyContent: 'flex-start',
+      width: '100%',
+      paddingHorizontal: 8,
+    },
+    layoutButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      minWidth: 80,
+      alignItems: 'center',
+      marginHorizontal: 4,
+    },
+    fontSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    fontButton: {
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 6,
+      marginRight: 6,
+      borderWidth: 1,
+      borderColor: 'rgba(0, 0, 0, 0.2)',
+    },
+    fontButtonText: {
+      fontSize: 12,
+    },
+    wordBoxPlain: {
+      paddingVertical: 8,
+      marginBottom: 16,
+      alignItems: 'center',
+    },
+    formatSelector: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      width: '100%',
+      paddingHorizontal: 8,
+    },
+    formatButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      minWidth: 80,
+      alignItems: 'center',
+      marginHorizontal: 4,
+    },
+    flashcardContainer: {
+      padding: 16,
+      alignItems: 'center',
+      gap: 12,
+    },
+    flashcardDivider: {
+      width: '80%',
+      height: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+      marginVertical: 8,
+    },
+    dictionaryContainer: {
+      padding: 16,
+    },
+    quizContainer: {
+      padding: 16,
+    },
+    bubbleContainer: {
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      padding: 16,
+      borderRadius: 50,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 120,
+      height: 120,
+    },
+    bubbleArrow: {
+      width: 0,
+      height: 0,
+      backgroundColor: 'transparent',
+      borderStyle: 'solid',
+      borderLeftWidth: 10,
+      borderRightWidth: 10,
+      borderBottomWidth: 20,
+      borderLeftColor: 'transparent',
+      borderRightColor: 'transparent',
+      borderBottomColor: 'rgba(0, 0, 0, 0.5)',
+      transform: [{ rotate: '180deg' }],
+      marginVertical: 8,
+    },
+    memoContainer: {
+      backgroundColor: 'rgba(255, 255, 204, 0.3)',
+      padding: 16,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 0, 0.3)',
+    },
+    memoHeader: {
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(255, 255, 0, 0.3)',
+      paddingBottom: 8,
+      marginBottom: 12,
+    },
+    memoTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+    memoContent: {
+      alignItems: 'center',
+    },
+    modernContainer: {
+      padding: 16,
+    },
+    modernWord: {
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    modernDivider: {
+      width: '30%',
+      height: 3,
+      backgroundColor: 'rgba(255, 255, 255, 0.7)',
+      marginVertical: 12,
+      alignSelf: 'center',
+    },
+  }), [colors, windowWidth]);
 
   // Kelime sayısına göre başlangıç dikey konumunu belirle
   const getInitialVerticalPosition = () => {
@@ -113,7 +431,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const [activeSection, setActiveSection] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const dotWidths = useRef(Array(7).fill(0).map(() => new Animated.Value(6))).current;
-  const windowWidth = Dimensions.get('window').width;
 
   const scrollToSection = (index: number) => {
     setActiveSection(index);
@@ -422,6 +739,16 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [isCustomizeVisible]);
 
+  const customizeSections = [
+    { id: 0, title: translations.wordOverlay.formatTitle, icon: 'text-fields' as const },
+    { id: 1, title: translations.wordOverlay.colorTitle, icon: 'palette' as const },
+    { id: 2, title: translations.wordOverlay.fontTitle, icon: 'text-format' as const },
+    { id: 3, title: translations.wordOverlay.layoutTitle, icon: 'view-quilt' as const },
+    { id: 4, title: translations.wordOverlay.fontSizeTitle, icon: 'format-size' as const },
+    { id: 5, title: translations.wordOverlay.horizontalTitle, icon: 'swap-horiz' as const },
+    { id: 6, title: translations.wordOverlay.verticalTitle, icon: 'swap-vert' as const },
+  ];
+
   const renderSection = (index: number, content: React.ReactNode) => (
     <View style={[styles.customizeSection, { width: windowWidth - 32 }]}>
       {content}
@@ -643,6 +970,42 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         </ImageBackground>
       </ViewShot>
 
+      {!isCustomizeVisible && (
+        <View style={styles.buttonContainer}>
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: colors.primary }]}
+              onPress={handleSave}
+            >
+              <MaterialIcons name="save" size={24} color={colors.text.onPrimary} />
+              <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
+                {translations.wordOverlay.saveButton}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: colors.primary }]}
+              onPress={() => setIsCustomizeVisible(true)}
+            >
+              <MaterialIcons name="tune" size={24} color={colors.text.onPrimary} />
+              <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
+                {translations.wordOverlay.customizeButton}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: colors.primary }]}
+              onPress={() => navigation.navigate('LevelSelection')}
+            >
+              <MaterialIcons name="home" size={24} color={colors.text.onPrimary} />
+              <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
+                {translations.wordOverlay.homeButton}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {isCustomizeVisible && (
         <View style={styles.customizeContainer}>
           <TouchableOpacity
@@ -652,25 +1015,41 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             <MaterialIcons name="close" size={24} color="rgba(0, 0, 0, 0.7)" />
           </TouchableOpacity>
 
-          {/* Kaydırma Göstergesi */}
-          <View style={styles.scrollIndicatorContainer}>
-            {[0, 1, 2, 3, 4, 5, 6].map((index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => scrollToSection(index)}
-                style={styles.dotButton}
-              >
-                <Animated.View
+          <View style={styles.tabContainer}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabScrollContent}
+            >
+              {customizeSections.map((section) => (
+                <TouchableOpacity
+                  key={section.id}
+                  onPress={() => {
+                    setActiveSection(section.id);
+                    scrollViewRef.current?.scrollTo({
+                      x: section.id * (windowWidth - 32),
+                      animated: true
+                    });
+                  }}
                   style={[
-                    styles.dot,
-                    {
-                      backgroundColor: activeSection === index ? colors.primary : colors.border,
-                      width: dotWidths[index],
-                    }
+                    styles.tabButton,
+                    activeSection === section.id && styles.activeTabButton
                   ]}
-                />
-              </TouchableOpacity>
-            ))}
+                >
+                  <MaterialIcons 
+                    name={section.icon} 
+                    size={20} 
+                    color={activeSection === section.id ? colors.primary : 'rgba(0, 0, 0, 0.5)'} 
+                  />
+                  <Text style={[
+                    styles.tabText,
+                    activeSection === section.id && styles.activeTabText
+                  ]}>
+                    {section.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
           <ScrollView 
@@ -683,6 +1062,10 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             snapToInterval={windowWidth - 32}
             decelerationRate="fast"
             snapToAlignment="center"
+            onMomentumScrollEnd={(event) => {
+              const newSection = Math.round(event.nativeEvent.contentOffset.x / (windowWidth - 32));
+              setActiveSection(newSection);
+            }}
           >
             {/* Format Seçimi */}
             {renderSection(0, (
@@ -1051,348 +1434,8 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           </ScrollView>
         </View>
       )}
-
-      <View style={styles.buttonContainer}>
-        <View style={styles.buttonGroup}>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.primary }]}
-            onPress={handleSave}
-          >
-            <MaterialIcons name="save" size={24} color={colors.text.onPrimary} />
-            <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
-              {translations.wordOverlay.saveButton}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.primary }]}
-            onPress={() => setIsCustomizeVisible(true)}
-          >
-            <MaterialIcons name="tune" size={24} color={colors.text.onPrimary} />
-            <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
-              {translations.wordOverlay.customizeButton}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('LevelSelection')}
-          >
-            <MaterialIcons name="home" size={24} color={colors.text.onPrimary} />
-            <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
-              {translations.wordOverlay.homeButton}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-    width: '100%',
-    height: '100%',
-  },
-  previewContainer: {
-    width: Dimensions.get('screen').width,
-    height: Dimensions.get('screen').height,
-  },
-  backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  wordContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  wordBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  wordText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  meaningText: {
-    fontSize: 18,
-    textAlign: 'center',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  exampleText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  buttonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1,
-    alignItems: 'center',
-    paddingVertical: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    minHeight: 80,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    width: '100%',
-    paddingHorizontal: 16,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginHorizontal: 6,
-    flex: 1,
-    justifyContent: 'center',
-    maxWidth: 120,
-  },
-  buttonText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  customizeContainer: {
-    position: 'absolute',
-    bottom: 80,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    marginHorizontal: 8,
-    marginBottom: 0,
-    padding: 12,
-    height: 140,
-    paddingTop: 16,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  scrollIndicatorContainer: {
-    position: 'absolute',
-    top: 6,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 16,
-    gap: 8,
-  },
-  dotButton: {
-    padding: 8,
-    marginHorizontal: -4,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-    opacity: 0.9,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 1,
-    padding: 4,
-  },
-  customizeScroll: {
-    flexGrow: 0,
-    marginTop: 4,
-  },
-  customizeContent: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  customizeSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  customizeLabel: {
-    fontSize: 15,
-    marginBottom: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: 'rgba(0, 0, 0, 0.8)',
-  },
-  separator: {
-    width: 1,
-    height: '80%',
-    alignSelf: 'center',
-    marginHorizontal: 10,
-  },
-  customizeSlider: {
-    width: '80%',
-    height: 40,
-  },
-  colorPalette: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    width: '100%',
-    paddingHorizontal: 8,
-    gap: 8,
-  },
-  colorButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.2)',
-    marginHorizontal: 2,
-  },
-  layoutSelector: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    width: '100%',
-    paddingHorizontal: 8,
-  },
-  layoutButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    minWidth: 80,
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  fontSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  fontButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    marginRight: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  fontButtonText: {
-    fontSize: 12,
-  },
-  wordBoxPlain: {
-    paddingVertical: 8,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  formatSelector: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    width: '100%',
-    paddingHorizontal: 8,
-  },
-  formatButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    minWidth: 80,
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  flashcardContainer: {
-    padding: 16,
-    alignItems: 'center',
-    gap: 12,
-  },
-  flashcardDivider: {
-    width: '80%',
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginVertical: 8,
-  },
-  dictionaryContainer: {
-    padding: 16,
-  },
-  quizContainer: {
-    padding: 16,
-  },
-  bubbleContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', 
-    padding: 16, 
-    borderRadius: 50, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    width: 120, 
-    height: 120,
-  },
-  bubbleArrow: {
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 10,
-    borderRightWidth: 10,
-    borderBottomWidth: 20,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: 'rgba(0, 0, 0, 0.5)',
-    transform: [{ rotate: '180deg' }],
-    marginVertical: 8,
-  },
-  memoContainer: {
-    backgroundColor: 'rgba(255, 255, 204, 0.3)',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 0, 0.3)',
-  },
-  memoHeader: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 0, 0.3)',
-    paddingBottom: 8,
-    marginBottom: 12,
-  },
-  memoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  memoContent: {
-    alignItems: 'center',
-  },
-  modernContainer: {
-    padding: 16,
-  },
-  modernWord: {
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modernDivider: {
-    width: '30%',
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    marginVertical: 12,
-    alignSelf: 'center',
-  },
-});
 
 export default WordOverlayScreen; 
