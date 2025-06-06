@@ -153,7 +153,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
       marginBottom: 0,
       padding: 12,
       height: 300,
-      paddingTop: 16,
+      paddingTop: 40,
       borderBottomLeftRadius: 0,
       borderBottomRightRadius: 0,
     },
@@ -162,6 +162,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
       borderBottomWidth: 1,
       borderBottomColor: 'rgba(0, 0, 0, 0.1)',
       marginBottom: 8,
+      marginTop: 8,
     },
     tabScrollContent: {
       paddingHorizontal: 8,
@@ -191,7 +192,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
       position: 'absolute',
       top: 8,
       right: 8,
-      zIndex: 1,
+      zIndex: 2,
       padding: 4,
     },
     customizeScroll: {
@@ -1039,11 +1040,11 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                   <MaterialIcons 
                     name={section.icon} 
                     size={20} 
-                    color={activeSection === section.id ? colors.primary : 'rgba(0, 0, 0, 0.5)'} 
+                    color={activeSection === section.id ? colors.text.onPrimary : 'rgba(0, 0, 0, 0.5)'} 
                   />
                   <Text style={[
                     styles.tabText,
-                    activeSection === section.id && styles.activeTabText
+                    activeSection === section.id && { color: colors.text.onPrimary }
                   ]}>
                     {section.title}
                   </Text>
