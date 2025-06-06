@@ -331,5 +331,14 @@ export default {
       stats: 'Estatísticas',
       settings: 'Configurações',
     }
-  }
+  },
+  more: {
+    title: 'Mais',
+  },
+  grammar: {
+    title: 'Gramática',
+    subtitle: 'Aprenda regras gramaticais',
+    comingSoon: 'Em breve...',
+    selectLevel: 'Selecione o Nível',
+  },
 }; 

@@ -29,6 +29,7 @@ export type RootStackParamList = {
   Settings: undefined;
   Dictionary: undefined;
   Exercise: undefined;
+  Grammar: undefined;
   WordListDetail: {
     listId: string;
     listName: string;

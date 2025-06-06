@@ -17,6 +17,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Font from 'expo-font';
+import { MoreModal } from '../components/MoreModal';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 56) / 2; // 56 = padding (20 * 2) + margin between cards (16)
@@ -37,6 +38,7 @@ interface Level {
 export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
   const { colors, theme } = useTheme();
   const { translations } = useLanguage();
+  const [isMoreModalVisible, setIsMoreModalVisible] = useState(false);
 
   const LEVELS: Level[] = [
     { id: 'A1', name: 'A1', icon: 'school', descriptionKey: 'A1', color: '#4CAF50' },
@@ -171,16 +173,22 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity 
           style={styles.tabButton} 
-          onPress={() => navigation.navigate('Settings')}
+          onPress={() => setIsMoreModalVisible(true)}
         >
           <View style={styles.tabButtonContent}>
-            <MaterialIcons name="settings" size={22} color={colors.text.secondary} />
+            <MaterialIcons name="more-horiz" size={22} color={colors.text.secondary} />
             <Text style={[styles.tabText, { color: colors.text.secondary }]}>
-              {translations.levelSelection.tabs.settings}
+              {translations.more?.title || 'Daha Fazla'}
             </Text>
           </View>
         </TouchableOpacity>
       </View>
+
+      <MoreModal
+        visible={isMoreModalVisible}
+        onClose={() => setIsMoreModalVisible(false)}
+        navigation={navigation}
+      />
     </SafeAreaView>
   );
 };

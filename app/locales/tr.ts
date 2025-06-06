@@ -358,5 +358,14 @@ export default {
       stats: 'İstatistik',
       settings: 'Ayarlar',
     }
-  }
+  },
+  more: {
+    title: 'Daha Fazla',
+  },
+  grammar: {
+    title: 'Gramer',
+    subtitle: 'Dil bilgisi kurallarını öğrenin',
+    comingSoon: 'Yakında...',
+    selectLevel: 'Seviye Seçin',
+  },
 };

@@ -12,6 +12,7 @@ import { ImageSelectionScreen } from './app/screens/ImageSelectionScreen';
 import { WordOverlayScreen } from './app/screens/WordOverlayScreen';
 import { StatsScreen } from './app/screens/StatsScreen';
 import { SettingsScreen } from './app/screens/SettingsScreen';
+import { GrammarScreen } from './app/screens/GrammarScreen';
 import DictionaryScreen from './app/screens/DictionaryScreen';
 import ExerciseScreen from './app/screens/ExerciseScreen';
 import ExerciseQuestionScreen from './app/screens/ExerciseQuestionScreen';
@@ -157,6 +158,11 @@ const AppNavigator = () => {
           name="Settings"
           component={SettingsScreen}
           options={{ title: translations.settings.title || 'Ayarlar' }}
+        />
+        <Stack.Screen
+          name="Grammar"
+          component={GrammarScreen}
+          options={{ title: translations.grammar?.title || 'Gramer' }}
         />
         <Stack.Screen
           name="Dictionary"

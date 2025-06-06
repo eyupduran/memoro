@@ -8,16 +8,9 @@ export interface Translations {
     welcomeDescription: string;
     selectLevel: string;
     selectLevelDescription: string;
-    visualize: string;
-    visualizeDescription: string;
-    dictionary: string;
-    dictionaryDescription: string;
-    trackProgress: string;
-    trackProgressDescription: string;
-    exerciseTitle: string;
-    exerciseDescription: string;
+    selectLevelButton: string;
+    selectLevelButtonDescription: string;
     back: string;
-    next: string;
     start: string;
   };
   languages: {
@@ -77,17 +70,11 @@ export interface Translations {
   };
   wordList: {
     title: string;
-    subtitle: string;
-    loading: string;
-    wordLabel: string;
-    wordDetail: {
-      meaning: string;
-      example: string;
-    };
-    buttons: {
-      regenerate: string;
-      continue: string;
-    };
+    description: string;
+    searchPlaceholder: string;
+    selectedWords: string;
+    continueButton: string;
+    clearButton: string;
   };
   home: {
     title: string;
@@ -99,15 +86,6 @@ export interface Translations {
   levelSelection: {
     title: string;
     subtitle: string;
-    loading: string;
-    levels: {
-      A1: string;
-      A2: string;
-      B1: string;
-      B2: string;
-      C1: string;
-      C2: string;
-    };
     tabs: {
       home: string;
       dictionary: string;
@@ -117,34 +95,18 @@ export interface Translations {
   };
   wordCount: {
     title: string;
-    subtitle: string;
-    wordText: string;
-    levelText: string;
-    levels: {
-      2: string;
-      3: string;
-      4: string;
-      5: string;
-    };
+    description: string;
+    wordCountLabel: string;
+    continueButton: string;
   };
   imageSelection: {
     title: string;
-    subtitle: string;
-    loading: string;
+    description: string;
+    searchPlaceholder: string;
+    continueButton: string;
   };
   dictionaryScreen: {
     title: string;
-    wordCount: string;
-    infoText: string;
-    searchPlaceholder: string;
-    examplePrefix: string;
-    continueButton: string;
-    loadingMore: string;
-    levelFilter: string;
-    allLevels: string;
-    selectMinWords: string;
-    continueWithWords: string;
-    maxWordsLimit: string;
   };
   wordListModal: {
     title: string;
@@ -187,75 +149,15 @@ export interface Translations {
     downloadedData: {
       title: string;
       description: string;
-      learningLanguage: string;
-      update: string;
-      noData: string;
-      updateSuccess: string;
-      updateError: string;
+      updateButton: string;
+      lastUpdate: string;
     };
   };
   wordOverlay: {
     preview: string;
-    styleSection: string;
-    positionSection: string;
-    fontSize: string;
-    xPosition: string;
-    yPosition: string;
-    wordFormat: string;
-    layoutPosition: string;
-    layoutPositions: {
-      top: string;
-      middle: string;
-      bottom: string;
-    };
-    formatTypes: {
-      standard: string;
-      inline: string;
-      compact: string;
-      flashcard: string;
-      dictionary: string;
-      quiz: string;
-      poetic: string;
-      bubble: string;
-      memo: string;
-      modern: string;
-    };
     saveButton: string;
     customizeButton: string;
     homeButton: string;
-    color: string;
-    font: string;
-    defaultFont: string;
-    layout: string;
-    layoutTypes: {
-      plain: string;
-      box: string;
-      gradient: string;
-      shadow: string;
-      outline: string;
-      minimal: string;
-      card3d: string;
-      neon: string;
-      vintage: string;
-      watercolor: string;
-      boxShadow: string;
-    };
-    horizontal: string;
-    vertical: string;
-    pronunciation: string;
-    wordTitle: string;
-    saveSuccess: string;
-    saveError: string;
-    savePermissionError: string;
-    saveWarning: string;
-    saveConfirm: string;
-    saveCancel: string;
-    wordsSaved: string;
-    congratulations: string;
-    complete: string;
-    continueButton: string;
-    closeButton: string;
-    restartButton: string;
   };
   alerts: {
     permissionRequired: string;
@@ -321,17 +223,21 @@ export interface Translations {
     };
     egsersizeHistory: {
       title: string;
-      empty: string;
     };
     historyItem: {
-      date: string;
       score: string;
-      type: string;
     };
     tabs: {
       exercise: string;
-      stats: string;
-      settings: string;
     };
+  };
+  more: {
+    title: string;
+  };
+  grammar: {
+    title: string;
+    subtitle: string;
+    comingSoon: string;
+    selectLevel: string;
   };
 } 
