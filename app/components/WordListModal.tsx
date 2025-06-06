@@ -60,8 +60,8 @@ export const WordListModal: React.FC<WordListModalProps> = ({ visible, onClose, 
       loadLists();
     } else {
       Alert.alert(
-        translations.wordListModal?.error || 'Hata',
-        translations.wordListModal?.createError || 'Liste oluşturulurken bir hata oluştu'
+        translations.wordListModal?.error,
+        translations.wordListModal?.createError
       );
     }
   };
@@ -73,14 +73,14 @@ export const WordListModal: React.FC<WordListModalProps> = ({ visible, onClose, 
 
     if (success) {
       Alert.alert(
-        translations.wordListModal?.success || 'Başarılı',
-        translations.wordListModal?.addSuccess || 'Kelime listeye eklendi'
+        translations.wordListModal?.success,
+        translations.wordListModal?.addSuccess
       );
       onClose();
     } else {
       Alert.alert(
-        translations.wordListModal?.error || 'Hata',
-        translations.wordListModal?.addError || 'Kelime eklenirken bir hata oluştu'
+        translations.wordListModal?.error,
+        translations.wordListModal?.addError
       );
     }
   };

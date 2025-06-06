@@ -268,6 +268,7 @@ export default {
     imageSavedWithTip: 'Resim galeriye kaydedildi!\n\nGaleriye giderek resmi kilit ekranı olarak ayarlayabilirsiniz:\n1. Galeriden resmi açın\n2. Paylaş veya menü butonuna tıklayın\n3. "Duvar kağıdı olarak ayarla" seçeneğini seçin\n4. "Kilit ekranı" seçeneğini seçin',
     imageAndWordsSaved: 'Resim galeriye kaydedildi ve kelimeler öğrenildi olarak işaretlendi!\n\nGaleriye giderek resmi kilit ekranı olarak ayarlayabilirsiniz:\n1. Galeriden resmi açın\n2. Paylaş veya menü butonuna tıklayın\n3. "Duvar kağıdı olarak ayarla" seçeneğini seçin\n4. "Kilit ekranı" seçeneğini seçin',
     okay: 'Tamam',
+    viewInGallery: 'Galeride Görüntüle',
     dataDownloadSuccess: 'Tüm kelime listeleri ve resimler indirildi. Artık uygulamayı çevrimdışı kullanabilirsiniz.',
     dataDownloadError: 'Veriler indirilirken bir hata oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
     dataSyncSuccess: 'Veriler ve resimler başarıyla güncellendi.',

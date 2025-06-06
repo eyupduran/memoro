@@ -15,6 +15,7 @@ import {
   Platform,
   PanResponder,
   Animated,
+  Linking,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -27,6 +28,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import type { Word } from '../types/words';
 import { storageService } from '../services/storage';
 import Slider from '@react-native-community/slider';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WordOverlay'>;
 
@@ -236,6 +238,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const saveLearnedWords = async () => {
     try {
       const wordsToSave: LearnedWord[] = selectedWords.map(word => ({
+        id: `${word.word}_${Date.now()}`, // Benzersiz bir id oluştur
         word: word.word,
         meaning: word.meaning,
         example: word.example || '',
@@ -259,6 +262,41 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     return status === 'granted';
   };
 
+  const openGallery = async (assetId?: string) => {
+    try {
+      if (Platform.OS === 'ios') {
+        await Linking.openURL('photos-redirect://');
+      } else if (assetId) {
+        // Spesifik resmi aç
+        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+          data: `content://media/external/images/media/${assetId}`,
+          type: 'image/*',
+          flags: 268435456 // Intent.FLAG_ACTIVITY_NEW_TASK
+        });
+      } else {
+        // Galeriyi aç
+        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+          type: 'image/*',
+          flags: 268435456
+        });
+      }
+    } catch (error) {
+      console.error('Error opening gallery:', error);
+      // Hata durumunda genel galeriyi açmayı dene
+      if (Platform.OS === 'android') {
+        try {
+          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            type: 'image/*',
+            flags: 268435456
+          });
+        } catch (secondError) {
+          console.error('Error opening gallery with second method:', secondError);
+          await Linking.openSettings();
+        }
+      }
+    }
+  };
+
   const handleSave = async () => {
     try {
       const hasPerms = await requestPermission();
@@ -270,7 +308,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
       const window = Dimensions.get('window');
       const screen = Dimensions.get('screen');
   
-
       await ScreenCapture.preventScreenCaptureAsync();
       
       const captureRef = viewShotRef.current;
@@ -286,7 +323,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           console.error(`Couldn't get size for image ${uri}: ${error}`);
         });
 
-        await MediaLibrary.saveToLibraryAsync(uri);
+        const asset = await MediaLibrary.createAssetAsync(uri);
         
         if (!route.params.isReinforcement) {
           await saveLearnedWords();
@@ -298,6 +335,11 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             ? translations.alerts.imageSavedWithTip
             : translations.alerts.imageAndWordsSaved,
           [
+            {
+              text: translations.alerts.viewInGallery,
+              onPress: () => openGallery(asset.id),
+              style: 'default'
+            },
             {
               text: translations.alerts.okay,
               onPress: () => navigation.navigate('Stats'),
