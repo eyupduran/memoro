@@ -48,5 +48,9 @@ export type RootStackParamList = {
     score: number;
     totalQuestions: number;
     exerciseType: string;
+    wordSource: 'learned' | 'dictionary' | 'wordlist';
+    level?: string | null;
+    wordListId?: number;
+    languagePair: string;
   };
 }; 

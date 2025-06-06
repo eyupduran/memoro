@@ -272,7 +272,7 @@ export default {
     dataSyncSuccess: 'Veriler ve resimler başarıyla güncellendi.',
     dataSyncError: 'Veriler güncellenirken bir hata oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
     notificationSchedulingError: 'Bildirim zamanlanırken bir sorun oluştu.',
-    notificationCancellationError: 'Bildirimler iptal edilirken bir sorun oluştu.'
+    notificationCancellationError: 'Bildirimler iptal edilirken bir sorun oluştu.',
   },
   exercise: {
     title: 'Egzersizler',
@@ -290,6 +290,23 @@ export default {
     startExercise: 'Egzersizi Başlat',
     learnedSource: 'Öğrendiklerimden',
     dictionarySource: 'Sözlükten',
+    wordListExercise: 'Kelime Listesi Egzersizi',
+    wordListExerciseDesc: 'Seçtiğiniz kelime listesindeki kelimelerle egzersiz yapın',
+    selectWordList: 'Kelime Listesi Seç',
+    noWordLists: 'Henüz kelime listesi oluşturulmamış',
+    question: {
+      title: 'Soru',
+      screenTitle: 'Egzersiz',
+      fillInTheBlank: 'Boşluğu Doldur',
+      wordMatch: 'Kelime Eşleştirme',
+      sentenceMatchQuestionPrompt: 'Bu cümle hangi kelimeye ait?',
+      correct: 'Doğru!',
+      incorrect: 'Yanlış!',
+      wrong: 'Yanlış!',
+      correctAnswer: 'Doğru Cevap',
+      next: 'Sonraki',
+      finish: 'Bitir',
+    },
     exercises: {
       fillInTheBlank: 'Boşluk Doldurma',
       wordMatch: 'Kelime Eşleştirme',

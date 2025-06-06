@@ -47,7 +47,8 @@ const ExerciseQuestionScreen: React.FC = () => {
     previousType: previousTypeOfQuestion,
     // Yeni parametreler
     wordSource = 'learned', // Varsayılan olarak öğrenilen kelimeler
-    level = null // Varsayılan olarak tüm seviyeler
+    level = null, // Varsayılan olarak tüm seviyeler
+    wordListId = 0
   } = route.params;
   
   const [words, setWords] = useState<(LearnedWord | Word)[]>([]);
@@ -167,11 +168,18 @@ const ExerciseQuestionScreen: React.FC = () => {
     setLoading(true);
     try {
       let loadedWords: (LearnedWord | Word)[] = [];
-
+      console.log('bura çalıştı')
       // Kelime kaynağına göre yükleme yap
       if (wordSource === 'learned') {
         // Öğrenilen kelimeleri yükle
         loadedWords = await storageService.getLearnedWords(currentLanguagePair);
+      } else if (wordSource === 'wordlist' && wordListId) {
+        // Kelime listesinden kelimeleri yükle
+
+        
+        loadedWords = await dbService.getWordsFromList(wordListId);
+
+        console.log('word liste girdi', loadedWords)
       } else {
         // Sözlükteki kelimeleri yükle
         if (level) {
@@ -206,7 +214,10 @@ const ExerciseQuestionScreen: React.FC = () => {
     previousQuestionType?: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch'
   ) => {
     let newSessionAskedWords = [...sessionAskedWords];
-    let selectableWords = allWords.filter(w => !newSessionAskedWords.includes(w.word));
+    // Kelime listesi modunda sadece liste kelimelerini kullan
+    let selectableWords = wordSource === 'wordlist' 
+      ? allWords.filter(w => !newSessionAskedWords.includes(w.word))
+      : allWords.filter(w => !newSessionAskedWords.includes(w.word));
 
     if (selectableWords.length === 0 && allWords.length > 0) {
       // All unique words have been asked in this cycle, reset for repetition
@@ -234,9 +245,8 @@ const ExerciseQuestionScreen: React.FC = () => {
     setCurrentQuestion(question);
     
     // Add the current question to the list for the *next* screen's context
-    // This must be done *before* setAskedWordsForNextQuestion if that state is used in goToNextQuestion directly
     const updatedAskedWordsForSession = [...newSessionAskedWords, question.word];
-    setAskedWordsForNextQuestion(updatedAskedWordsForSession); // This state will be used by goToNextQuestion
+    setAskedWordsForNextQuestion(updatedAskedWordsForSession);
 
     // Determine question type
     let finalQuestionType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch';
@@ -279,11 +289,11 @@ const ExerciseQuestionScreen: React.FC = () => {
 
     // Prepare question based on the determined type
     if (finalQuestionType === 'fillInTheBlank') {
-      prepareFillInTheBlankQuestion(question, allWords);
+      prepareFillInTheBlankQuestion(question, wordSource === 'wordlist' ? allWords : allWords);
     } else if (finalQuestionType === 'sentenceMatch') {
-      prepareSentenceMatchQuestion(question, allWords);
+      prepareSentenceMatchQuestion(question, wordSource === 'wordlist' ? allWords : allWords);
     } else { // wordMatch
-      prepareWordMatchQuestion(question, allWords);
+      prepareWordMatchQuestion(question, wordSource === 'wordlist' ? allWords : allWords);
     }
     
     Animated.parallel([
@@ -450,19 +460,21 @@ const ExerciseQuestionScreen: React.FC = () => {
         questionIndex: nextQuestionIndex,
         totalQuestions,
         score: currentScore,
-        askedWords: askedWordsForNextQuestion, // Pass the updated list
-        previousType: currentQuestionType,   // Pass the current type as previous for the next
-        wordSource, // Kelime kaynağını ilet
-        level, // Seviyeyi ilet
+        askedWords: askedWordsForNextQuestion,
+        previousType: currentQuestionType,
+        wordSource,
+        level,
+        wordListId,
       });
     } else {
       navigation.replace('ExerciseResult', {
         score: currentScore,
         totalQuestions,
+        exerciseType,
+        wordSource,
+        level,
+        wordListId,
         languagePair: currentLanguagePair,
-        exerciseType, // Ensure exerciseType is passed to results
-        wordSource, // Kelime kaynağını ilet
-        level, // Seviyeyi ilet
       });
     }
   };
@@ -813,7 +825,7 @@ const ExerciseQuestionScreen: React.FC = () => {
             color={isCorrect ? colors.success : colors.error}
           />
           <Text style={[styles.answerText, { color: colors.text.primary }]}>
-            {isCorrect ? translations.exercise.question.correct : translations.exercise.question.wrong}
+            {isCorrect ? translations.exercise.question.correct : translations.exercise.question.incorrect}
           </Text>
           {!isCorrect && currentQuestion && (
             <Text style={[styles.correctAnswer, { color: colors.text.primary }]}>

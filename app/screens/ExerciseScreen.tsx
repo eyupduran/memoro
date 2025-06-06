@@ -310,10 +310,10 @@ const ExerciseScreen: React.FC = () => {
           </View>
           <View style={styles.exerciseContent}>
             <Text style={[styles.exerciseTitle, { color: colors.text.primary }]}>
-              {translations.exercise.wordListExercise || 'Kelime Listesi Egzersizi'}
+              {translations.exercise.wordListExercise}
             </Text>
             <Text style={[styles.exerciseDescription, { color: colors.text.secondary }]}>
-              {translations.exercise.wordListExerciseDesc || 'Seçtiğiniz kelime listesindeki kelimelerle egzersiz yapın'}
+              {translations.exercise.wordListExerciseDesc}
             </Text>
           </View>
           <MaterialIcons name="chevron-right" size={22} color={colors.text.secondary} />
