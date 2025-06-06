@@ -48,12 +48,16 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Kelime sayısına göre başlangıç dikey konumunu belirle
   const getInitialVerticalPosition = () => {
+    const screenHeight = Dimensions.get('window').height;
     const wordCount = selectedWords.length;
-    if (wordCount >= 4) {
-      return 370; // 4 veya 5 kelime için
-    } else {
-      return 430; // 2 veya 3 kelime için
-    }
+    const estimatedWordHeight = 100; // Ortalama bir kelime yüksekliği
+    const totalContentHeight = wordCount * estimatedWordHeight;
+    
+    // Ekranın ortasından içeriğin yarısını çıkararak ortalama pozisyonu bul
+    const centerPosition = (screenHeight / 2) - (totalContentHeight / 2);
+    
+    // Minimum 50px, maksimum ekran yüksekliğinin 3/4'ü kadar olsun
+    return Math.min(Math.max(centerPosition, 50), screenHeight * 0.75);
   };
 
   // Özelleştirme State'leri
