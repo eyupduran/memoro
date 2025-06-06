@@ -29,22 +29,28 @@ export type RootStackParamList = {
   Settings: undefined;
   Dictionary: undefined;
   Exercise: undefined;
+  WordListDetail: {
+    listId: string;
+    listName: string;
+  };
   ExerciseQuestion: {
-    exerciseType: 'fillInTheBlank' | 'wordMatch' | 'mixed' | 'sentenceMatch';
+    exerciseType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'mixed';
     questionIndex: number;
     totalQuestions: number;
     score: number;
-    askedWords?: string[];
+    askedWords: string[];
     previousType?: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch';
-    wordSource?: 'learned' | 'dictionary';
+    wordSource: 'learned' | 'dictionary' | 'wordlist';
     level?: string | null;
+    wordListId?: number;
   };
   ExerciseResult: {
     score: number;
     totalQuestions: number;
-    languagePair: string;
-    exerciseType?: 'fillInTheBlank' | 'wordMatch' | 'mixed' | 'sentenceMatch';
-    wordSource?: 'learned' | 'dictionary';
+    exerciseType: string;
+    wordSource: 'learned' | 'dictionary' | 'wordlist';
     level?: string | null;
+    wordListId?: number;
+    languagePair: string;
   };
 }; 

@@ -47,6 +47,10 @@ const ExerciseScreen: React.FC = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const ITEMS_PER_PAGE = 10;
 
+  const [wordLists, setWordLists] = useState<{ id: number; name: string }[]>([]);
+  const [selectedWordList, setSelectedWordList] = useState<number | null>(null);
+  const [wordListModalVisible, setWordListModalVisible] = useState(false);
+
   // Tıklama sesini yükle
   useEffect(() => {
     async function loadClickSound() {
@@ -106,6 +110,10 @@ const ExerciseScreen: React.FC = () => {
         [currentLanguagePair]
       );
       setAvailableLevels(levels.map(level => level.level));
+      
+      // Kelime listelerini yükle
+      const lists = await dbService.getWordLists(currentLanguagePair);
+      setWordLists(lists);
       
     } catch (error) {
       console.error('Error loading exercise data:', error);
@@ -250,6 +258,35 @@ const ExerciseScreen: React.FC = () => {
     });
   };
 
+  const startExerciseWithWordList = async () => {
+    // Tıklama sesini çal
+    playClickSound();
+    
+    if (!selectedWordList) return;
+    
+    try {
+      const words = await dbService.getWordsFromList(selectedWordList);
+      if (words.length < 2) {
+        alert(translations.exercise.noWords);
+        return;
+      }
+      
+      setWordListModalVisible(false);
+      navigation.navigate('ExerciseQuestion', {
+        exerciseType: 'mixed',
+        questionIndex: 0,
+        totalQuestions: Math.min(words.length, 10),
+        score: 0,
+        askedWords: [],
+        previousType: undefined,
+        wordSource: 'wordlist',
+        wordListId: selectedWordList,
+      });
+    } catch (error) {
+      console.error('Error starting word list exercise:', error);
+    }
+  };
+
   const renderExerciseTab = () => {
     return (
       <View style={styles.exercisesContainer}>
@@ -260,6 +297,28 @@ const ExerciseScreen: React.FC = () => {
           {translations.exercise.subtitle}
         </Text>
 
+        {/* Kelime listeleriyle egzersiz kartı */}
+        <TouchableOpacity
+          style={[
+            styles.exerciseCard,
+            { backgroundColor: colors.surface, borderColor: colors.border }
+          ]}
+          onPress={() => setWordListModalVisible(true)}
+        >
+          <View style={[styles.exerciseIconContainer, { backgroundColor: `${colors.primary}15` }]}>
+            <MaterialIcons name="format-list-bulleted" size={26} color={colors.primary} />
+          </View>
+          <View style={styles.exerciseContent}>
+            <Text style={[styles.exerciseTitle, { color: colors.text.primary }]}>
+              {translations.exercise.wordListExercise}
+            </Text>
+            <Text style={[styles.exerciseDescription, { color: colors.text.secondary }]}>
+              {translations.exercise.wordListExerciseDesc}
+            </Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={22} color={colors.text.secondary} />
+        </TouchableOpacity>
+        
         {/* Öğrenilen kelimelerle egzersiz kartı */}
         <TouchableOpacity
           style={[
@@ -459,6 +518,75 @@ const ExerciseScreen: React.FC = () => {
     );
   };
 
+  const renderWordListModal = () => {
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={wordListModalVisible}
+        onRequestClose={() => setWordListModalVisible(false)}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
+                {translations.exercise.selectWordList || 'Kelime Listesi Seç'}
+              </Text>
+              <TouchableOpacity onPress={() => setWordListModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.levelSelector}>
+              {wordLists.length === 0 ? (
+                <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+                  {translations.exercise.noWordLists || 'Henüz kelime listesi oluşturulmamış'}
+                </Text>
+              ) : (
+                wordLists.map((list) => (
+                  <TouchableOpacity
+                    key={list.id}
+                    style={[
+                      styles.levelOption,
+                      selectedWordList === list.id && { backgroundColor: colors.primary + '30' },
+                      { borderColor: colors.border }
+                    ]}
+                    onPress={() => setSelectedWordList(list.id)}
+                  >
+                    <Text style={[styles.levelText, { color: colors.text.primary }]}>
+                      {list.name}
+                    </Text>
+                    {selectedWordList === list.id && (
+                      <MaterialIcons name="check" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+
+            {wordLists.length > 0 && (
+              <TouchableOpacity
+                style={[
+                  styles.startButton,
+                  { 
+                    backgroundColor: selectedWordList ? colors.primary : colors.border,
+                    opacity: selectedWordList ? 1 : 0.5
+                  }
+                ]}
+                onPress={startExerciseWithWordList}
+                disabled={!selectedWordList}
+              >
+                <Text style={[styles.startButtonText, { color: colors.text.onPrimary }]}>
+                  {translations.exercise.startExercise || 'Egzersizi Başlat'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -520,6 +648,7 @@ const ExerciseScreen: React.FC = () => {
       </View>
       
       {renderExerciseOptionsModal()}
+      {renderWordListModal()}
     </View>
   );
 };

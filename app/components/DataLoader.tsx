@@ -46,7 +46,6 @@ export const DataLoader: React.FC<DataLoaderProps> = ({
 
   const loadData = async () => {
     try {
-      console.log(`Yükleniyor: ${languagePair} dil çifti için veri indiriliyor`);
       setStatus('loading');
       setStatusText(translations.dataLoader.loading);
 

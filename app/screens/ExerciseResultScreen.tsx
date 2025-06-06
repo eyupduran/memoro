@@ -31,7 +31,8 @@ const ExerciseResultScreen: React.FC = () => {
     languagePair, 
     exerciseType = 'mixed',
     wordSource = 'learned', // Varsayılan olarak öğrenilen kelimeler
-    level = null // Varsayılan olarak tüm seviyeler
+    level = null, // Varsayılan olarak tüm seviyeler
+    wordListId,
   } = route.params;
   
   // Animasyon değerleri
@@ -205,14 +206,15 @@ const ExerciseResultScreen: React.FC = () => {
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.primary }]}
           onPress={() => navigation.navigate('ExerciseQuestion', {
-            exerciseType: exerciseType, // Aynı egzersiz tipini kullan
+            exerciseType: 'mixed',
             questionIndex: 0,
             totalQuestions,
             score: 0,
-            askedWords: [], // Yeni kelimelerle başla
+            askedWords: [],
             previousType: undefined,
-            wordSource, // Aynı kelime kaynağını kullan
-            level, // Aynı seviyeyi kullan
+            wordSource,
+            level,
+            wordListId: route.params.wordListId,
           })}
         >
           <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>

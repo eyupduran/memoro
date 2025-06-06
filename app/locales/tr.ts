@@ -43,6 +43,8 @@ export default {
   stats: {
     title: 'İstatistikler',
     totalWords: 'Toplam {0} kelime öğrenildi',
+    wordLists: 'Kelime Listeleri',
+    learnedWords: 'Öğrenilen Kelimeler',
     levels: {
       all: 'Tümü',
       allDescription: 'Tüm Kelimeler',
@@ -143,6 +145,19 @@ export default {
     selectMinWords: 'En az 2 kelime seçiniz',
     continueWithWords: '{0} kelime ile devam et',
     maxWordsLimit: 'Maksimum {0} kelime seçebilirsiniz'
+  },
+  wordListModal: {
+    title: 'Kelime Listesi Seç',
+    newListPlaceholder: 'Yeni liste adı',
+    create: 'Oluştur',
+    error: 'Hata',
+    success: 'Başarılı',
+    emptyListName: 'Liste adı boş olamaz',
+    createError: 'Liste oluşturulurken bir hata oluştu',
+    addSuccess: 'Kelime listeye eklendi',
+    addError: 'Kelime eklenirken bir hata oluştu',
+    noLists: 'Henüz liste oluşturulmamış',
+    addToList: 'Listeye Ekle'
   },
   settings: {
     title: 'Ayarlar',
@@ -258,7 +273,7 @@ export default {
     dataSyncSuccess: 'Veriler ve resimler başarıyla güncellendi.',
     dataSyncError: 'Veriler güncellenirken bir hata oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
     notificationSchedulingError: 'Bildirim zamanlanırken bir sorun oluştu.',
-    notificationCancellationError: 'Bildirimler iptal edilirken bir sorun oluştu.'
+    notificationCancellationError: 'Bildirimler iptal edilirken bir sorun oluştu.',
   },
   exercise: {
     title: 'Egzersizler',
@@ -276,6 +291,23 @@ export default {
     startExercise: 'Egzersizi Başlat',
     learnedSource: 'Öğrendiklerimden',
     dictionarySource: 'Sözlükten',
+    wordListExercise: 'Kelime Listesi Egzersizi',
+    wordListExerciseDesc: 'Seçtiğiniz kelime listesindeki kelimelerle egzersiz yapın',
+    selectWordList: 'Kelime Listesi Seç',
+    noWordLists: 'Henüz kelime listesi oluşturulmamış',
+    question: {
+      title: 'Soru',
+      screenTitle: 'Egzersiz',
+      fillInTheBlank: 'Boşluğu Doldur',
+      wordMatch: 'Kelime Eşleştirme',
+      sentenceMatchQuestionPrompt: 'Bu cümle hangi kelimeye ait?',
+      correct: 'Doğru!',
+      incorrect: 'Yanlış!',
+      wrong: 'Yanlış!',
+      correctAnswer: 'Doğru Cevap',
+      next: 'Sonraki',
+      finish: 'Bitir',
+    },
     exercises: {
       fillInTheBlank: 'Boşluk Doldurma',
       wordMatch: 'Kelime Eşleştirme',
@@ -290,7 +322,7 @@ export default {
       sentenceMatchQuestionPrompt: 'Anlamı verilen kelime için doğru İngilizce cümleyi seçin:',
       correct: 'Doğru!',
       incorrect: 'Yanlış!',
-      correctAnswer: 'Doğru Cevap: {0}',
+      correctAnswer: 'Doğru Cevap',
       next: 'Sonraki',
       finish: 'Bitir',
     },

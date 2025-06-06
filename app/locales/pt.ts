@@ -144,6 +144,18 @@ export default {
     continueWithWords: 'Continuar com {0} palavras',
     maxWordsLimit: 'Você pode selecionar no máximo {0} palavras'
   },
+  wordListModal: {
+    title: 'Selecionar Lista de Palavras',
+    newListPlaceholder: 'Nome da nova lista',
+    create: 'Criar',
+    error: 'Erro',
+    success: 'Sucesso',
+    emptyListName: 'O nome da lista não pode estar vazio',
+    createError: 'Erro ao criar lista',
+    addSuccess: 'Palavra adicionada à lista',
+    addError: 'Erro ao adicionar palavra',
+    noLists: 'Nenhuma lista criada ainda'
+  },
   settings: {
     title: 'Configurações',
     themeSelection: 'Seleção de Tema',

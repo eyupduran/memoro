@@ -21,6 +21,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { DataLoader } from '../components/DataLoader';
 import { storageService } from '../services/storage';
+import { WordListModal } from '../components/WordListModal';
 
 type DictionaryScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -43,6 +44,7 @@ const DictionaryScreen = () => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const headerHeight = React.useRef(new Animated.Value(0)).current;
   const lastScrollY = React.useRef(0);
+  const [selectedWordForList, setSelectedWordForList] = useState<Word | null>(null);
   
   const ITEMS_PER_PAGE = 50;
   const LEVELS: Level[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -228,6 +230,12 @@ const DictionaryScreen = () => {
               )}
             </View>
             <View style={styles.wordMeta}>
+              <TouchableOpacity
+                style={[styles.addToListButton, { backgroundColor: colors.primary + '20' }]}
+                onPress={() => setSelectedWordForList(item)}
+              >
+                <Text style={[styles.addToListButtonText, { color: colors.primary }]}>+</Text>
+              </TouchableOpacity>
               <Text style={[styles.levelTag, { 
                 backgroundColor: colors.primary + '20',
                 color: colors.primary,
@@ -469,6 +477,12 @@ const DictionaryScreen = () => {
         onComplete={onDataLoadComplete}
         languagePair={currentLanguagePair}
       />
+
+      <WordListModal
+        visible={!!selectedWordForList}
+        onClose={() => setSelectedWordForList(null)}
+        word={selectedWordForList!}
+      />
     </View>
   );
 };
@@ -608,6 +622,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 12,
     fontWeight: '600',
+  },
+  addToListButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  addToListButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    lineHeight: 20,
   },
 });
 
