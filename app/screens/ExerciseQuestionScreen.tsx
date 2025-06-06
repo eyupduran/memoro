@@ -168,18 +168,13 @@ const ExerciseQuestionScreen: React.FC = () => {
     setLoading(true);
     try {
       let loadedWords: (LearnedWord | Word)[] = [];
-      console.log('bura çalıştı')
       // Kelime kaynağına göre yükleme yap
       if (wordSource === 'learned') {
         // Öğrenilen kelimeleri yükle
         loadedWords = await storageService.getLearnedWords(currentLanguagePair);
       } else if (wordSource === 'wordlist' && wordListId) {
         // Kelime listesinden kelimeleri yükle
-
-        
         loadedWords = await dbService.getWordsFromList(wordListId);
-
-        console.log('word liste girdi', loadedWords)
       } else {
         // Sözlükteki kelimeleri yükle
         if (level) {
