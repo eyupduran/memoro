@@ -78,7 +78,6 @@ const ExerciseQuestionScreen: React.FC = () => {
   const [missingWordIndex, setMissingWordIndex] = useState(-1);
   const [sentence, setSentence] = useState<string[]>([]);
   const [currentQuestionType, setCurrentQuestionType] = useState<'fillInTheBlank' | 'wordMatch' | 'sentenceMatch'>('fillInTheBlank');
-
   // İlerleme çubuğu animasyonu için ref
   const progressAnimValue = useRef(new Animated.Value(0)).current;
   const progressBlinkAnim = useRef(new Animated.Value(1)).current;
@@ -594,6 +593,17 @@ const ExerciseQuestionScreen: React.FC = () => {
     } else {
       playWrongSound();
     }
+
+    // Soru tipine göre cevaptan sonra okuma yap
+    setTimeout(() => {
+      if (currentQuestionType === 'fillInTheBlank' && currentQuestion?.example) {
+        // Boşluk doldurma sorularında tüm cümleyi oku
+        speakText(currentQuestion.example);
+      } else if (currentQuestionType === 'sentenceMatch' && currentQuestion?.example) {
+        // Cümle eşleştirme sorularında doğru cevabı oku
+        speakText(currentQuestion.example);
+      }
+    }, 150); // 0.15 saniye bekle
     
     // Soru detaylarını kaydet
     if (currentQuestion) {
@@ -628,6 +638,9 @@ const ExerciseQuestionScreen: React.FC = () => {
   };
 
   const goToNextQuestion = () => {
+    // Devam eden konuşmayı durdur
+    Speech.stop();
+
     const nextQuestionIndex = questionIndex + 1;
     const currentScore = isCorrect ? score + 1 : score;
 
