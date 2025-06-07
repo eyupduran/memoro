@@ -15,7 +15,7 @@ const CARD_WIDTH = (width - 40 - CARD_MARGIN * 2) / 2;
 
 export const WordCountScreen: React.FC<Props> = ({ route, navigation }) => {
   const { level } = route.params;
-  const [selectedCount, setSelectedCount] = useState<number>(3);
+  const [selectedCount, setSelectedCount] = useState<number | null>(null);
   const { colors } = useTheme();
   const { translations } = useLanguage();
 

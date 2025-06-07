@@ -299,22 +299,33 @@ export default {
     startExercise: 'Egzersizi Başlat',
     learnedSource: 'Öğrendiklerimden',
     dictionarySource: 'Sözlükten',
+    dictionaryLevelSource: '{0} Seviye Karışık',
+    dictionaryAllSource: 'Tüm Kelimeler Karışık',
+    wordListSource: 'Listemden ({0})',
     wordListExercise: 'Kelime Listesi Egzersizi',
     wordListExerciseDesc: 'Seçtiğiniz kelime listesindeki kelimelerle egzersiz yapın',
     selectWordList: 'Kelime Listesi Seç',
     noWordLists: 'Henüz kelime listesi oluşturulmamış',
+    exitWarning: {
+      title: 'Egzersizden Çıkış',
+      message: 'Egzersizi tamamlamadınız. Çıkmak istediğinizden emin misiniz?',
+      cancel: 'İptal',
+      confirm: 'Çıkış'
+    },
     question: {
-      title: 'Soru',
+      title: 'Soru {0}',
       screenTitle: 'Egzersiz',
       fillInTheBlank: 'Boşluğu Doldur',
       wordMatch: 'Kelime Eşleştirme',
-      sentenceMatchQuestionPrompt: 'Bu cümle hangi kelimeye ait?',
+      sentenceMatchQuestionPrompt: 'Bu kelime hangi cümleye ait?',
       correct: 'Doğru!',
       incorrect: 'Yanlış!',
       wrong: 'Yanlış!',
       correctAnswer: 'Doğru Cevap',
       next: 'Sonraki',
       finish: 'Bitir',
+      listenSentence: 'Cümleyi Dinle',
+      listenWord: 'Kelimeyi Dinle',
     },
     exercises: {
       fillInTheBlank: 'Boşluk Doldurma',
@@ -329,18 +340,37 @@ export default {
       great: 'Harika! Çok iyi bir skor elde ettiniz!',
       good: 'İyi! Biraz daha pratik yaparak daha da gelişebilirsiniz.',
       needsPractice: 'Daha fazla pratik yapmanız gerekiyor. Tekrar deneyin!',
-      tryAgain: 'Tekrar Dene',
+      tryAgain: 'Yeni Egzersiz Yap',
       backToExercises: 'Egzersizlere Dön',
       date: 'Tarih: {0}',
+      viewDetails: 'Detayları Görüntüle'
     },
     egsersizeHistory: {
       title: 'Egzersiz Geçmişi',
-      empty: 'Henüz tamamlanmış egzersiz bulunmuyor.',
+      empty: 'Henüz tamamlanmış egzersiz bulunmuyor.'
     },
     historyItem: {
       date: 'Tarih: {0}',
       score: 'Puan: {0}/{1}',
+      type: 'Tür: {0}'
+    },
+    detail: {
+      title: 'Egzersiz Detayı',
+      date: 'Tarih: {0}',
+      score: 'Puan: {0}/{1}',
       type: 'Tür: {0}',
+      source: 'Kaynak: {0}',
+      questionTitle: 'Soru {0}',
+      yourAnswer: 'Cevabınız: {0}',
+      correctAnswer: 'Doğru Cevap: {0}',
+      backToResults: 'Sonuçlara Dön',
+      backToExercises: 'Egzersizlere Dön',
+      questionsTitle: 'Sorular',
+      questionType: {
+        fillInTheBlank: 'Boşluk Doldurma',
+        wordMatch: 'Kelime Eşleştirme',
+        sentenceMatch: 'Cümle Eşleştirme'
+      }
     },
     tabs: {
       exercise: 'Egzersiz',

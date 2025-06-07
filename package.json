@@ -22,6 +22,7 @@
     "expo-dev-client": "~5.0.19",
     "expo-device": "~7.0.3",
     "expo-file-system": "~18.0.12",
+    "expo-speech": "~12.0.2",
     "expo-font": "~13.0.4",
     "expo-intent-launcher": "~12.0.2",
     "expo-media-library": "~17.0.6",

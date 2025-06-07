@@ -302,7 +302,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
 
   // Kelime Listeleri tab içeriği
   const renderWordListsTab = () => {
-    return (
+  return (
       <View style={styles.tabContent}>
         {loadingLists ? (
           <View style={styles.loadingContainer}>
@@ -341,78 +341,78 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <View style={styles.tabContent}>
         <View style={styles.levelScrollWrapper}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.levelScroll}
-            contentContainerStyle={styles.levelScrollContent}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.levelScroll}
+        contentContainerStyle={styles.levelScrollContent}
+      >
+        <TouchableOpacity
+          style={[
+            styles.levelButton,
+            { 
+              backgroundColor: selectedLevel === 'all' ? colors.primary : colors.surface,
+              borderColor: selectedLevel === 'all' ? colors.primary : colors.border,
+            },
+          ]}
+          onPress={() => setSelectedLevel('all')}
+        >
+          <Text
+            style={[
+              styles.levelName,
+              { 
+                color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.primary,
+              },
+            ]}
           >
-            <TouchableOpacity
+            {translations.stats.levels.all}
+          </Text>
+          <Text
+            style={[
+              styles.levelDescription,
+              { 
+                color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.secondary,
+              },
+            ]}
+          >
+            {translations.stats.levels.allDescription}
+          </Text>
+        </TouchableOpacity>
+        {LEVELS.map((level) => (
+          <TouchableOpacity
+            key={level.id}
+            style={[
+              styles.levelButton,
+              { 
+                backgroundColor: selectedLevel === level.id ? colors.primary : colors.surface,
+                borderColor: selectedLevel === level.id ? colors.primary : colors.border,
+              },
+            ]}
+            onPress={() => setSelectedLevel(level.id)}
+          >
+            <Text
               style={[
-                styles.levelButton,
+                styles.levelName,
                 { 
-                  backgroundColor: selectedLevel === 'all' ? colors.primary : colors.surface,
-                  borderColor: selectedLevel === 'all' ? colors.primary : colors.border,
+                  color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.primary,
                 },
               ]}
-              onPress={() => setSelectedLevel('all')}
             >
-              <Text
-                style={[
-                  styles.levelName,
-                  { 
-                    color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.primary,
-                  },
-                ]}
-              >
-                {translations.stats.levels.all}
-              </Text>
-              <Text
-                style={[
-                  styles.levelDescription,
-                  { 
-                    color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.secondary,
-                  },
-                ]}
-              >
-                {translations.stats.levels.allDescription}
-              </Text>
-            </TouchableOpacity>
-            {LEVELS.map((level) => (
-              <TouchableOpacity
-                key={level.id}
-                style={[
-                  styles.levelButton,
-                  { 
-                    backgroundColor: selectedLevel === level.id ? colors.primary : colors.surface,
-                    borderColor: selectedLevel === level.id ? colors.primary : colors.border,
-                  },
-                ]}
-                onPress={() => setSelectedLevel(level.id)}
-              >
-                <Text
-                  style={[
-                    styles.levelName,
-                    { 
-                      color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.primary,
-                    },
-                  ]}
-                >
-                  {level.name}
-                </Text>
-                <Text
-                  style={[
-                    styles.levelDescription,
-                    { 
-                      color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.secondary,
-                    },
-                  ]}
-                >
-                  {translations.stats.levels[level.translationKey]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+              {level.name}
+            </Text>
+            <Text
+              style={[
+                styles.levelDescription,
+                { 
+                  color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.secondary,
+                },
+              ]}
+            >
+              {translations.stats.levels[level.translationKey]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
         </View>
 
         <View style={[styles.levelSeparator, { backgroundColor: colors.border }]} />
@@ -436,7 +436,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
+            <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : words.length === 0 ? (
             <View style={styles.emptyContainer}>

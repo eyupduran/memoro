@@ -16,6 +16,7 @@ import { RootStackParamList } from '../types/navigation';
 import { dbService } from '../services/database';
 import { storageService } from '../services/storage';
 import type { Word, LearnedWord } from '../types/words';
+import * as Speech from 'expo-speech';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WordList'>;
 
@@ -117,6 +118,19 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
     });
   };
 
+  // Metni sesli okuma fonksiyonu
+  const speakText = (text: string) => {
+    // Mevcut konuşma varsa durdur
+    Speech.stop();
+    
+    // Metni seslendir
+    Speech.speak(text, {
+      language: currentLanguagePair.split('-')[0], // İlk dil kodu (örn: "en-tr" -> "en")
+      pitch: 1.0,
+      rate: 0.9,
+    });
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -159,6 +173,16 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
               </Text>
             </View>
             <View style={styles.wordActions}>
+              <TouchableOpacity
+                style={styles.speakButton}
+                onPress={() => speakText(word.word)}
+              >
+                <MaterialIcons
+                  name="volume-up"
+                  size={20}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.refreshButton}
                 onPress={() => refreshSingleWord(index)}
@@ -390,5 +414,13 @@ const styles = StyleSheet.create({
   refreshButton: {
     padding: 4,
     marginRight: 12,
+    marginLeft: 10,
+  },
+  speakButton: {
+    padding: 4,
+  },
+  wordWithSpeech: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 }); 

@@ -9,12 +9,15 @@ import {
   ScrollView,
   Easing,
   Modal,
+  Alert,
+  BackHandler,
 } from 'react-native';
 import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { storageService } from '../services/storage';
@@ -23,6 +26,16 @@ import type { LearnedWord, Word } from '../types/words';
 
 type ExerciseQuestionScreenProps = NativeStackScreenProps<RootStackParamList, 'ExerciseQuestion'>;
 type ExerciseQuestionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+// Soru detayları için tip tanımı
+export type QuestionDetail = {
+  questionType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch';
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  userAnswer: string | null;
+  isCorrect: boolean | null;
+};
 
 // Ses nesnelerini tanımla
 const sounds = {
@@ -48,7 +61,9 @@ const ExerciseQuestionScreen: React.FC = () => {
     // Yeni parametreler
     wordSource = 'learned', // Varsayılan olarak öğrenilen kelimeler
     level = null, // Varsayılan olarak tüm seviyeler
-    wordListId = 0
+    wordListId = 0,
+    wordListName = '', // Liste adı
+    questionDetails: previousQuestionDetails = [] // Önceki sorular
   } = route.params;
   
   const [words, setWords] = useState<(LearnedWord | Word)[]>([]);
@@ -76,6 +91,17 @@ const ExerciseQuestionScreen: React.FC = () => {
   const [wordLists, setWordLists] = useState<{ id: number; name: string }[]>([]);
   const [selectedWordList, setSelectedWordList] = useState<number | null>(null);
   const [wordListModalVisible, setWordListModalVisible] = useState(false);
+
+  // Tüm soruları ve cevapları kaydetmek için state
+  const [questionDetails, setQuestionDetails] = useState<QuestionDetail[]>([]);
+
+  // Önceki sayfadan gelen soru detaylarını yükle
+  useEffect(() => {
+    // Eğer route.params.questionDetails varsa, bu değeri state'e yükle
+    if (previousQuestionDetails.length > 0) {
+      setQuestionDetails(previousQuestionDetails);
+    }
+  }, []);
 
   // Sesleri yükle
   useEffect(() => {
@@ -126,7 +152,7 @@ const ExerciseQuestionScreen: React.FC = () => {
         await sounds.click.playAsync();
       }
     } catch (error) {
-      console.error('Tıklama sesi çalınırken hata:', error);
+      // console.error('Tıklama sesi çalınırken hata:', error);
     }
   };
   
@@ -154,9 +180,63 @@ const ExerciseQuestionScreen: React.FC = () => {
     }
   };
 
+  // Geri tuşu için uyarı
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Eğer cevap gösterilmişse veya yükleme durumundaysa, normal geri tuşu davranışını engelleme
+        if (answerShown || loading) return false;
+        
+        // Kullanıcıya egzersizi tamamlamadığı için uyarı göster
+        Alert.alert(
+          translations.exercise.exitWarning?.title || 'Egzersizden Çıkış',
+          translations.exercise.exitWarning?.message || 'Egzersizi tamamlamadınız. Çıkmak istediğinizden emin misiniz?',
+          [
+            {
+              text: translations.exercise.exitWarning?.cancel || 'İptal',
+              onPress: () => {},
+              style: 'cancel',
+            },
+            {
+              text: translations.exercise.exitWarning?.confirm || 'Çıkış',
+              onPress: () => navigation.goBack(),
+              style: 'destructive',
+            },
+          ],
+          { cancelable: true }
+        );
+        
+        // Geri tuşunun varsayılan davranışını engelle
+        return true;
+      };
+
+      // Android geri tuşu için event listener ekle
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      
+      // Navigation header'ındaki geri tuşunu özelleştir
+      navigation.setOptions({
+        headerLeft: () => (
+          <TouchableOpacity 
+            onPress={() => onBackPress()}
+            style={{ marginLeft: 10 }}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+        ),
+      });
+
+      return () => {
+        // Component unmount olduğunda event listener'ı kaldır
+        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+      };
+    }, [navigation, answerShown, loading, translations])
+  );
+
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      title: translations.exercise.question.screenTitle
+      title: translations.exercise.question.screenTitle,
+      // Geri tuşuna basıldığında özel fonksiyon çalıştır
+      headerBackVisible: false, // Varsayılan geri tuşunu gizle
     });
   }, [navigation, translations]);
 
@@ -307,23 +387,56 @@ const ExerciseQuestionScreen: React.FC = () => {
 
   const prepareFillInTheBlankQuestion = (question: LearnedWord | Word, allWords: (LearnedWord | Word)[]) => {
     if (question.example && question.example.toLowerCase().includes(question.word.toLowerCase())) {
-      const regex = new RegExp(`\\b${question.word}\\b`, 'i');
-      const parts = question.example.split(regex);
-      setSentence(parts);
-      setMissingWordIndex(parts.length - 1);
+      // Kelimenin tüm formlarını (geçmiş zamanlı dahil) bulmak için daha esnek bir regex kullan
+      // Kelimenin kökünü al ve sonuna opsiyonel karakterler ekle
+      const wordBase = question.word.replace(/ed$|ing$|s$/, ''); // Sonundaki -ed, -ing veya -s eklerini kaldır
+      const regex = new RegExp(`\\b${wordBase}\\w*\\b`, 'i'); // \w* ile herhangi bir karakter eklenebilir
+      const match = question.example.match(regex);
+      
+      if (match) {
+        const actualWordInSentence = match[0]; // Cümlede geçen gerçek kelime formu
+        const parts = question.example.split(regex);
+        setSentence(parts);
+        setMissingWordIndex(parts.length - 1);
+        
+        // Şıklarda doğru cevap olarak cümlede geçen kelime formunu kullan
+        const otherWords = allWords
+          .filter(w => w.word !== question.word)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3)
+          .map(w => w.word);
+        
+        const allOptions = [actualWordInSentence, ...otherWords].sort(() => Math.random() - 0.5);
+        setOptions(allOptions);
+      } else {
+        // Eğer kelime bulunamazsa, normal işleme devam et
+        const regex = new RegExp(`\\b${question.word}\\b`, 'i');
+        const parts = question.example.split(regex);
+        setSentence(parts);
+        setMissingWordIndex(parts.length - 1);
+        
+        const otherWords = allWords
+          .filter(w => w.word !== question.word)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3)
+          .map(w => w.word);
+        
+        const allOptions = [question.word, ...otherWords].sort(() => Math.random() - 0.5);
+        setOptions(allOptions);
+      }
     } else {
       setSentence(['Fill in the blank: ', '']);
       setMissingWordIndex(1);
+      
+      const otherWords = allWords
+        .filter(w => w.word !== question.word)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3)
+        .map(w => w.word);
+      
+      const allOptions = [question.word, ...otherWords].sort(() => Math.random() - 0.5);
+      setOptions(allOptions);
     }
-    
-    const otherWords = allWords
-      .filter(w => w.word !== question.word)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3)
-      .map(w => w.word);
-    
-    const allOptions = [question.word, ...otherWords].sort(() => Math.random() - 0.5);
-    setOptions(allOptions);
   };
 
   const prepareWordMatchQuestion = (question: LearnedWord | Word, allWords: (LearnedWord | Word)[]) => {
@@ -427,7 +540,13 @@ const ExerciseQuestionScreen: React.FC = () => {
     let correct = false;
     // No need to check exerciseType here as currentQuestionType determines the logic
     if (currentQuestionType === 'fillInTheBlank') {
-        correct = option === currentQuestion?.word;
+        // Kelimenin cümlede geçen formu ile karşılaştır
+        const wordBase = currentQuestion?.word.replace(/ed$|ing$|s$/, '');
+        const regex = new RegExp(`\\b${wordBase}\\w*\\b`, 'i');
+        const match = currentQuestion?.example?.match(regex);
+        const actualWordInSentence = match ? match[0] : currentQuestion?.word;
+        
+        correct = option === actualWordInSentence;
     } else if (currentQuestionType === 'wordMatch') {
         correct = option === currentQuestion?.meaning;
     } else if (currentQuestionType === 'sentenceMatch') {
@@ -442,6 +561,37 @@ const ExerciseQuestionScreen: React.FC = () => {
       playCorrectSound();
     } else {
       playWrongSound();
+    }
+    
+    // Soru detaylarını kaydet
+    if (currentQuestion) {
+      // Doğru cevabı belirle
+      let correctAnswer = '';
+      if (currentQuestionType === 'fillInTheBlank') {
+        const wordBase = currentQuestion.word.replace(/ed$|ing$|s$/, '');
+        const regex = new RegExp(`\\b${wordBase}\\w*\\b`, 'i');
+        const match = currentQuestion.example?.match(regex);
+        correctAnswer = match ? match[0] : currentQuestion.word;
+      } else if (currentQuestionType === 'wordMatch') {
+        correctAnswer = currentQuestion.meaning;
+      } else if (currentQuestionType === 'sentenceMatch') {
+        correctAnswer = currentQuestion.example || '';
+      }
+      
+      const questionDetail: QuestionDetail = {
+        questionType: currentQuestionType,
+        question: currentQuestionType === 'wordMatch' ? currentQuestion.word : 
+                 currentQuestionType === 'sentenceMatch' ? currentQuestion.meaning :
+                 currentQuestion.example || '',
+        options: options,
+        correctAnswer: correctAnswer,
+        userAnswer: option,
+        isCorrect: correct
+      };
+      
+      // Mevcut soru detaylarına ekle
+      const updatedQuestionDetails = [...questionDetails, questionDetail];
+      setQuestionDetails(updatedQuestionDetails);
     }
   };
 
@@ -460,6 +610,8 @@ const ExerciseQuestionScreen: React.FC = () => {
         wordSource,
         level,
         wordListId,
+        wordListName,
+        questionDetails: questionDetails // Soru detaylarını bir sonraki soruya aktar
       });
     } else {
       navigation.replace('ExerciseResult', {
@@ -469,7 +621,9 @@ const ExerciseQuestionScreen: React.FC = () => {
         wordSource,
         level,
         wordListId,
+        wordListName,
         languagePair: currentLanguagePair,
+        questionDetails: questionDetails // Soru detaylarını sonuç ekranına aktar
       });
     }
   };
@@ -523,6 +677,10 @@ const ExerciseQuestionScreen: React.FC = () => {
             // Yanlış cevap verildiğinde doğru cevabı göster
             const shouldHighlightCorrect = answerShown && !isCorrect && isCorrectOption;
             
+            // Daha koyu renkler kullan
+            const successColor = '#006E00'; // Daha koyu yeşil
+            const errorColor = '#B30000'; // Daha koyu kırmızı
+            
             return (
               <TouchableOpacity
                 key={option}
@@ -531,11 +689,11 @@ const ExerciseQuestionScreen: React.FC = () => {
                   { 
                     backgroundColor: colors.surface,
                     borderColor: shouldHighlightCorrect 
-                      ? 'green'
+                      ? successColor
                       : selectedOption === option
                         ? isCorrect
-                          ? 'green'
-                          : 'red'
+                          ? successColor
+                          : errorColor
                         : colors.border,
                     borderWidth: (shouldHighlightCorrect || selectedOption === option) ? 2 : 1,
                   },
@@ -543,14 +701,26 @@ const ExerciseQuestionScreen: React.FC = () => {
                 onPress={() => handleOptionSelect(option)}
                 disabled={answerShown}
               >
-                <Text style={[
-                  styles.optionText, 
-                  { 
-                    color: shouldHighlightCorrect ? 'green' : colors.text.primary
-                  }
-                ]}>
-                  {option}
-                </Text>
+                <View style={styles.optionWithSpeech}>
+                  <Text style={[
+                    styles.optionText, 
+                    { 
+                      color: shouldHighlightCorrect ? successColor : 
+                            selectedOption === option ? 
+                              isCorrect ? successColor : errorColor 
+                              : colors.text.primary,
+                      flex: 1,
+                    }
+                  ]}>
+                    {option}
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.speakOptionButton}
+                    onPress={() => speakText(option)}
+                  >
+                    <MaterialIcons name="volume-up" size={18} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -576,6 +746,10 @@ const ExerciseQuestionScreen: React.FC = () => {
     // Doğru cevabı belirle
     const correctAnswer = currentQuestion.meaning;
     
+    // Daha koyu renkler kullan
+    const successColor = '#006E00'; // Daha koyu yeşil
+    const errorColor = '#B30000'; // Daha koyu kırmızı
+    
     return (
       <View style={styles.questionContainer}>
         <Text style={[styles.questionLabel, { color: colors.text.secondary }]}>
@@ -583,9 +757,17 @@ const ExerciseQuestionScreen: React.FC = () => {
         </Text>
         
         <View style={styles.wordContainer}>
-          <Text style={[styles.wordText, { color: colors.text.primary }]}>
-            {currentQuestion.word}
-          </Text>
+          <View style={styles.wordWithSpeech}>
+            <Text style={[styles.wordText, { color: colors.text.primary }]}>
+              {currentQuestion.word}
+            </Text>
+            <TouchableOpacity 
+              style={styles.speakButton}
+              onPress={() => speakText(currentQuestion.word)}
+            >
+              <MaterialIcons name="volume-up" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
         
         <View style={styles.optionsContainer}>
@@ -603,11 +785,11 @@ const ExerciseQuestionScreen: React.FC = () => {
                   { 
                     backgroundColor: colors.surface,
                     borderColor: shouldHighlightCorrect 
-                      ? 'green'
+                      ? successColor
                       : selectedOption === option
                         ? isCorrect
-                          ? 'green'
-                          : 'red'
+                          ? successColor
+                          : errorColor
                         : colors.border,
                     borderWidth: (shouldHighlightCorrect || selectedOption === option) ? 2 : 1,
                   },
@@ -618,7 +800,10 @@ const ExerciseQuestionScreen: React.FC = () => {
                 <Text style={[
                   styles.optionText, 
                   { 
-                    color: shouldHighlightCorrect ? 'green' : colors.text.primary
+                    color: shouldHighlightCorrect ? successColor : 
+                          selectedOption === option ? 
+                            isCorrect ? successColor : errorColor 
+                            : colors.text.primary
                   }
                 ]}>
                   {option}
@@ -648,6 +833,10 @@ const ExerciseQuestionScreen: React.FC = () => {
     // Doğru cevabı belirle
     const correctAnswer = currentQuestion.example;
     
+    // Daha koyu renkler kullan
+    const successColor = '#006E00'; // Daha koyu yeşil
+    const errorColor = '#B30000'; // Daha koyu kırmızı
+    
     return (
       <View style={styles.questionContainer}>
         <Text style={[styles.questionLabel, { color: colors.text.secondary, textAlign: 'center', marginBottom: 8 }]}>
@@ -676,11 +865,11 @@ const ExerciseQuestionScreen: React.FC = () => {
                   { 
                     backgroundColor: colors.surface,
                     borderColor: shouldHighlightCorrect 
-                      ? 'green'
+                      ? successColor
                       : selectedOption === option
                         ? isCorrect
-                          ? 'green'
-                          : 'red'
+                          ? successColor
+                          : errorColor
                         : colors.border,
                     borderWidth: (shouldHighlightCorrect || selectedOption === option) ? 2 : 1,
                   },
@@ -688,15 +877,27 @@ const ExerciseQuestionScreen: React.FC = () => {
                 onPress={() => handleOptionSelect(option)}
                 disabled={answerShown}
               >
-                <Text style={[
-                  styles.optionText, 
-                  styles.sentenceOptionText,
-                  { 
-                    color: shouldHighlightCorrect ? 'green' : colors.text.primary
-                  }
-                ]}>
-                  {option}
-                </Text>
+                <View style={styles.optionWithSpeech}>
+                  <Text style={[
+                    styles.optionText, 
+                    styles.sentenceOptionText,
+                    { 
+                      color: shouldHighlightCorrect ? successColor : 
+                            selectedOption === option ? 
+                              isCorrect ? successColor : errorColor 
+                              : colors.text.primary,
+                      flex: 1,
+                    }
+                  ]}>
+                    {option}
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.speakOptionButton}
+                    onPress={() => speakText(option)}
+                  >
+                    <MaterialIcons name="volume-up" size={18} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -811,35 +1012,59 @@ const ExerciseQuestionScreen: React.FC = () => {
   const renderAnswerModal = () => {
     if (isCorrect === null || !answerShown) return null;
 
+    // Doğru cevabı belirle
+    let correctAnswer = '';
+    if (currentQuestion) {
+      if (currentQuestionType === 'fillInTheBlank') {
+        // Cümlede geçen gerçek kelime formunu bul
+        const wordBase = currentQuestion.word.replace(/ed$|ing$|s$/, '');
+        const regex = new RegExp(`\\b${wordBase}\\w*\\b`, 'i');
+        const match = currentQuestion.example?.match(regex);
+        correctAnswer = match ? match[0] : currentQuestion.word;
+      } else if (currentQuestionType === 'wordMatch') {
+        correctAnswer = currentQuestion.meaning; // Çevirisi
+      } else if (currentQuestionType === 'sentenceMatch') {
+        correctAnswer = currentQuestion.example || '';
+      }
+    }
+
+    // Daha koyu renkler kullan
+    const successColor = '#006E00'; // Daha koyu yeşil
+    const errorColor = '#B30000'; // Daha koyu kırmızı
+
     return (
-      <View style={[styles.answerModal, { backgroundColor: isCorrect ? colors.success + '20' : colors.error + '20' }]}>
+      <View style={[
+        styles.answerModal, 
+        { 
+          backgroundColor: isCorrect 
+            ? successColor + '30' // Daha koyu yeşil arka plan
+            : errorColor + '30' // Daha koyu kırmızı arka plan
+        }
+      ]}>
         <View style={styles.answerContent}>
           <MaterialIcons
             name={isCorrect ? 'check-circle' : 'cancel'}
             size={32}
-            color={isCorrect ? colors.success : colors.error}
+            color={isCorrect ? successColor : errorColor}
           />
-          <Text style={[styles.answerText, { color: colors.text.primary }]}>
+          <Text style={[
+            styles.answerText, 
+            { 
+              color: isCorrect ? successColor : errorColor,
+              fontWeight: '600'
+            }
+          ]}>
             {isCorrect ? translations.exercise.question.correct : translations.exercise.question.incorrect}
           </Text>
           {!isCorrect && currentQuestion && (
             <Text style={[styles.correctAnswer, { color: colors.text.primary }]}>
-              {translations.exercise.question.correctAnswer}: {currentQuestion.word}
+              {translations.exercise.question.correctAnswer}: {correctAnswer}
             </Text>
           )}
         </View>
         <View style={styles.answerButtons}>
           <TouchableOpacity
-            style={[styles.addToListButton, { backgroundColor: colors.primary + '20' }]}
-            onPress={() => setWordListModalVisible(true)}
-          >
-            <MaterialIcons name="playlist-add" size={24} color={colors.primary} />
-            <Text style={[styles.buttonText, { color: colors.primary }]}>
-              {translations.wordListModal?.addToList || 'Listeye Ekle'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.nextButton, { backgroundColor: colors.primary }]}
+            style={[styles.nextButton, { backgroundColor: colors.primary, width: '50%' }]}
             onPress={goToNextQuestion}
           >
             <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
@@ -850,6 +1075,19 @@ const ExerciseQuestionScreen: React.FC = () => {
         </View>
       </View>
     );
+  };
+
+  // Metni sesli okuma fonksiyonu
+  const speakText = (text: string) => {
+    // Mevcut konuşma varsa durdur
+    Speech.stop();
+    
+    // Metni seslendir
+    Speech.speak(text, {
+      language: currentLanguagePair.split('-')[0], // İlk dil kodu (örn: "en-tr" -> "en")
+      pitch: 1.0,
+      rate: 0.9,
+    });
   };
 
   if (loading) {
@@ -873,7 +1111,7 @@ const ExerciseQuestionScreen: React.FC = () => {
           <View style={styles.progressContainer}>
             <View style={styles.progressInfo}>
               <Text style={[styles.questionCounter, { color: colors.text.secondary }]}>
-                {formatString(translations.exercise.question.title, questionIndex + 1, totalQuestions)}
+                {formatString(translations.exercise.question.title, questionIndex + 1)}
               </Text>
               <Text style={[styles.scoreText, { color: colors.text.primary }]}>
                 {formatString(translations.exercise.score, score, questionIndex)}
@@ -964,6 +1202,7 @@ const styles = StyleSheet.create({
   },
   questionCounter: {
     fontSize: 16,
+    fontWeight: '500',
   },
   scoreText: {
     fontSize: 16,
@@ -996,6 +1235,7 @@ const styles = StyleSheet.create({
   questionLabel: {
     fontSize: 16,
     marginBottom: 16,
+    fontWeight: '500',
   },
   sentenceContainer: {
     flexDirection: 'row',
@@ -1073,7 +1313,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: 8,
-    flex: 1,
     justifyContent: 'center',
   },
   buttonText: {
@@ -1155,10 +1394,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   answerButtons: {
+    width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 16,
+  },
+  wordWithSpeech: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  speakButton: {
+    padding: 6,
+    marginLeft: 4,
+  },
+  speakSentenceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+    padding: 4,
+  },
+  speakText: {
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  optionWithSpeech: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingRight: 8,
+  },
+  speakOptionButton: {
+    padding: 8,
+    marginLeft: 4,
   },
   addToListButton: {
     flexDirection: 'row',

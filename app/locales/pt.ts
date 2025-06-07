@@ -41,7 +41,7 @@ export default {
     dailyWordReminderBody: 'Que tal aprender suas palavras de hoje?'
   },
   stats: {
-    title: 'Estatísticas',
+    title: 'Estats',
     totalWords: 'Total de {0} palavras aprendidas',
     wordLists: 'Listas de Palavras',
     learnedWords: 'Palavras Aprendidas',
@@ -94,7 +94,7 @@ export default {
     title: 'Memoro',
     subtitle: 'Assistente de Aprendizado de Vocabulário em Inglês',
     learnWords: 'Aprender Palavras',
-    statistics: 'Estatísticas',
+    statistics: 'Estats',
     settings: 'Configurações'
   },
   levelSelection: {
@@ -112,7 +112,7 @@ export default {
     tabs: {
       home: 'Início',
       dictionary: 'Dicionário',
-      stats: 'Estatísticas',
+      stats: 'Estats',
       settings: 'Configurações'
     }
   },
@@ -299,22 +299,33 @@ export default {
     startExercise: 'Iniciar Exercício',
     learnedSource: 'Do Aprendizado',
     dictionarySource: 'Do Dicionário',
+    dictionaryLevelSource: 'Nível {0} Misto',
+    dictionaryAllSource: 'Todas as Palavras Misto',
+    wordListSource: 'Da Minha Lista ({0})',
     wordListExercise: 'Exercício com Lista de Palavras',
     wordListExerciseDesc: 'Pratique com as palavras de uma lista selecionada',
     selectWordList: 'Selecionar Lista de Palavras',
     noWordLists: 'Nenhuma lista de palavras criada ainda',
+    exitWarning: {
+      title: 'Sair do Exercício',
+      message: 'Você não completou o exercício. Tem certeza que deseja sair?',
+      cancel: 'Cancelar',
+      confirm: 'Sair'
+    },
     question: {
-      title: 'Pergunta',
+      title: 'Pergunta {0}',
       screenTitle: 'Exercício',
       fillInTheBlank: 'Preencha a Lacuna',
       wordMatch: 'Associação de Palavras',
-      sentenceMatchQuestionPrompt: 'A qual palavra esta frase pertence?',
+      sentenceMatchQuestionPrompt: 'A que frase pertence esta palavra?',
       correct: 'Correto!',
       incorrect: 'Incorreto!',
       wrong: 'Errado!',
       correctAnswer: 'Resposta Correta',
       next: 'Próximo',
-      finish: 'Finalizar'
+      finish: 'Finalizar',
+      listenSentence: 'Ouvir a Frase',
+      listenWord: 'Ouvir a Palavra',
     },
     exercises: {
       fillInTheBlank: 'Preencher Lacunas',
@@ -325,13 +336,14 @@ export default {
     result: {
       title: 'Resultado do Exercício',
       score: 'Sua pontuação: {0}/{1}',
-      perfect: 'Perfeito! Você acertou todas as perguntas!',
-      great: 'Ótimo! Você obteve uma pontuação excelente!',
-      good: 'Bom! Com um pouco mais de prática, você pode melhorar ainda mais.',
+      perfect: 'Perfeito! Você respondeu todas as perguntas corretamente!',
+      great: 'Ótimo! Você obteve uma pontuação muito boa!',
+      good: 'Bom! Você pode melhorar com mais prática.',
       needsPractice: 'Você precisa praticar mais. Tente novamente!',
-      tryAgain: 'Tentar Novamente',
+      tryAgain: 'Fazer novo exercício',
       backToExercises: 'Voltar aos Exercícios',
-      date: 'Data: {0}'
+      date: 'Data: {0}',
+      viewDetails: 'Ver Detalhes'
     },
     egsersizeHistory: {
       title: 'Histórico de Exercícios',
@@ -342,9 +354,27 @@ export default {
       score: 'Pontuação: {0}/{1}',
       type: 'Tipo: {0}'
     },
+    detail: {
+      title: 'Detalhes do Exercício',
+      date: 'Data: {0}',
+      score: 'Pontuação: {0}/{1}',
+      type: 'Tipo: {0}',
+      source: 'Fonte: {0}',
+      questionTitle: 'Pergunta {0}',
+      yourAnswer: 'Sua resposta: {0}',
+      correctAnswer: 'Resposta correta: {0}',
+      backToResults: 'Voltar aos Resultados',
+      backToExercises: 'Voltar aos Exercícios',
+      questionsTitle: 'Perguntas',
+      questionType: {
+        fillInTheBlank: 'Preencher Lacuna',
+        wordMatch: 'Combinar Palavras',
+        sentenceMatch: 'Combinar Frases'
+      }
+    },
     tabs: {
       exercise: 'Exercício',
-      stats: 'Estatísticas',
+      stats: 'Estats',
       settings: 'Configurações'
     }
   },

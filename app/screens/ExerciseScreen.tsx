@@ -83,7 +83,7 @@ const ExerciseScreen: React.FC = () => {
         await clickSound.playAsync();
       }
     } catch (error) {
-      console.error('Tıklama sesi çalınırken hata:', error);
+      // console.error('Tıklama sesi çalınırken hata:', error);
     }
   };
 
@@ -129,27 +129,23 @@ const ExerciseScreen: React.FC = () => {
     setHistoryLoading(true);
     try {
       const offset = page * ITEMS_PER_PAGE;
-      const history = await dbService.getAllAsync<any>(
-        'SELECT * FROM exercise_results WHERE language_pair = ? ORDER BY date DESC LIMIT ? OFFSET ?',
-        [currentLanguagePair, ITEMS_PER_PAGE, offset]
+      // Detaylarla birlikte egzersiz sonuçlarını al
+      const history = await dbService.getExerciseResultsWithDetails(
+        currentLanguagePair, 
+        ITEMS_PER_PAGE, 
+        offset
       );
-      
-      // Tip dönüşümü yaparak ExerciseResult tipine uygun hale getiriyoruz
-      const typedHistory: ExerciseResult[] = history.map(item => ({
-        ...item,
-        language_pair: currentLanguagePair
-      }));
       
       // Eğer reset parametresi true ise, önceki sayfaları silip sadece bu sayfayı göster
       if (reset) {
-        setExerciseHistory(typedHistory);
+        setExerciseHistory(history);
         setHistoryPage(0);
       } else {
-        setExerciseHistory(prev => [...prev, ...typedHistory]);
+        setExerciseHistory(prev => [...prev, ...history]);
       }
       
       // Daha fazla sayfa var mı kontrol et
-      setHistoryHasMore(typedHistory.length === ITEMS_PER_PAGE);
+      setHistoryHasMore(history.length === ITEMS_PER_PAGE);
     } catch (error) {
       console.error('Error loading exercise history:', error);
     } finally {
@@ -183,9 +179,9 @@ const ExerciseScreen: React.FC = () => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString(currentLanguagePair.startsWith('en-pt') ? 'pt-BR' : 'tr-TR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -197,15 +193,28 @@ const ExerciseScreen: React.FC = () => {
     });
   };
 
-  const getExerciseTypeName = (type: string, wordSource?: string) => {
-    // Kelime kaynağına göre uygun ismi döndür
-    if (wordSource === 'dictionary') {
-      return translations.exercise.exercises[type as keyof typeof translations.exercise.exercises] || type;
-    } else if (wordSource === 'learned') {
-      return translations.exercise.learnedSource;
+  const getExerciseTypeName = (type: string, wordSource?: string, wordListName?: string, level?: string | null) => {
+    // Kelime listesi kaynağı
+    if (wordSource === 'wordlist' && wordListName) {
+      return formatString(translations.exercise.wordListSource || 'Listemden ({0})', wordListName);
     }
     
-    // Kelime kaynağı bilgisi yoksa sadece tip adını döndür
+    // Öğrenilen kelimeler kaynağı
+    if (wordSource === 'learned') {
+      return translations.exercise.learnedSource || 'Öğrendiklerimden';
+    }
+    
+    // Sözlük kaynağı
+    if (wordSource === 'dictionary') {
+      // Seviye belirtildiyse
+      if (level) {
+        return formatString(translations.exercise.dictionaryLevelSource || '{0} Seviye Karışık', level);
+      }
+      // Tüm seviyeler
+      return translations.exercise.dictionaryAllSource || 'Tüm Kelimeler Karışık';
+    }
+    
+    // Varsayılan olarak sadece egzersiz tipini döndür
     return translations.exercise.exercises[type as keyof typeof translations.exercise.exercises] || type;
   };
 
@@ -265,6 +274,10 @@ const ExerciseScreen: React.FC = () => {
     if (!selectedWordList) return;
     
     try {
+      // Seçilen listenin adını al
+      const selectedList = wordLists.find(list => list.id === selectedWordList);
+      const wordListName = selectedList ? selectedList.name : '';
+      
       const words = await dbService.getWordsFromList(selectedWordList);
       if (words.length < 2) {
         alert(translations.exercise.noWords);
@@ -281,6 +294,7 @@ const ExerciseScreen: React.FC = () => {
         previousType: undefined,
         wordSource: 'wordlist',
         wordListId: selectedWordList,
+        wordListName: wordListName // Liste adını da gönder
       });
     } catch (error) {
       console.error('Error starting word list exercise:', error);
@@ -374,6 +388,101 @@ const ExerciseScreen: React.FC = () => {
     );
   };
 
+  const renderWordListItem = ({ item }: { item: any }) => {
+    const hasDetails = item.details && item.details.length > 0;
+    
+    // Kelime listesi adını al (eğer varsa)
+    let wordListName = '';
+    if (item.word_source === 'wordlist' && item.word_list_id) {
+      const list = wordLists.find(list => list.id === item.word_list_id);
+      if (list) {
+        wordListName = list.name;
+      }
+    }
+    
+    // Daha koyu renkler için özel bir renk fonksiyonu
+    const getScoreColor = (score: number, total: number) => {
+      const percentage = (score / total) * 100;
+      
+      if (percentage === 100) {
+        return '#006E00'; // Daha koyu yeşil
+      } else if (percentage >= 80) {
+        return '#006E00'; // Daha koyu yeşil
+      } else if (percentage >= 60) {
+        return '#0057B3'; // Daha koyu mavi
+      } else {
+        return '#CC7000'; // Daha koyu turuncu
+      }
+    };
+    
+    return (
+      <TouchableOpacity
+        style={[
+          styles.historyCard,
+          { backgroundColor: colors.surface, borderColor: colors.border }
+        ]}
+        onPress={() => {
+          if (hasDetails) {
+            navigation.navigate('ExerciseDetail', {
+              exerciseId: item.id,
+              score: item.score,
+              totalQuestions: item.total_questions,
+              exerciseType: item.exercise_type,
+              wordSource: item.word_source || 'learned',
+              wordListName: wordListName,
+              level: item.level,
+              date: item.date,
+              languagePair: item.language_pair,
+              details: item.details
+            });
+          }
+        }}
+        disabled={!hasDetails}
+      >
+        <View style={styles.historyHeader}>
+          <Text style={[styles.historyTitle, { color: colors.text.primary }]}>
+            {getExerciseTypeName(item.exercise_type, item.word_source, wordListName, item.level)}
+          </Text>
+        </View>
+        <View style={styles.historyDetails}>
+          <View style={styles.scoreAndDateContainer}>
+            <Text style={[styles.historyScore, { color: colors.text.primary }]}>
+              {formatString(translations.exercise.historyItem.score, item.score, item.total_questions)}
+            </Text>
+            <Text style={[styles.historyDate, { color: colors.text.secondary }]}>
+              {formatDate(item.date)}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.scoreBar,
+              { backgroundColor: colors.border }
+            ]}
+          >
+            <View
+              style={[
+                styles.scoreProgress,
+                { 
+                  backgroundColor: getScoreColor(item.score, item.total_questions),
+                  width: `${(item.score / item.total_questions) * 100}%`
+                }
+              ]}
+            />
+          </View>
+          
+          {hasDetails && (
+            <View style={styles.detailsButton}>
+              <MaterialIcons name="info" size={16} color={colors.primary} />
+              <Text style={[styles.detailsButtonText, { color: colors.primary }]}>
+                {translations.exercise.result.viewDetails || 'Detayları Görüntüle'}
+              </Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderHistoryTab = () => {
     if (exerciseHistory.length === 0) {
       return (
@@ -390,44 +499,7 @@ const ExerciseScreen: React.FC = () => {
       <FlatList
         data={exerciseHistory}
         keyExtractor={(item) => item.id?.toString() || item.date}
-        renderItem={({ item }) => (
-          <View
-            style={[
-              styles.historyCard,
-              { backgroundColor: colors.surface, borderColor: colors.border }
-            ]}
-          >
-            <View style={styles.historyHeader}>
-              <Text style={[styles.historyTitle, { color: colors.text.primary }]}>
-                {getExerciseTypeName(item.exercise_type, item.word_source)}
-              </Text>
-              <Text style={[styles.historyDate, { color: colors.text.secondary }]}>
-                {formatString(translations.exercise.historyItem.date, formatDate(item.date))}
-              </Text>
-            </View>
-            <View style={styles.historyDetails}>
-              <Text style={[styles.historyScore, { color: colors.text.primary }]}>
-                {formatString(translations.exercise.historyItem.score, item.score, item.total_questions)}
-              </Text>
-              <View
-                style={[
-                  styles.scoreBar,
-                  { backgroundColor: colors.border }
-                ]}
-              >
-                <View
-                  style={[
-                    styles.scoreProgress,
-                    { 
-                      backgroundColor: colors.primary,
-                      width: `${(item.score / item.total_questions) * 100}%`
-                    }
-                  ]}
-                />
-              </View>
-            </View>
-          </View>
-        )}
+        renderItem={renderWordListItem}
         contentContainerStyle={styles.historyList}
         onEndReached={loadMoreExerciseHistory}
         onEndReachedThreshold={0.5}
@@ -774,14 +846,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   historyDate: {
-    fontSize: 12,
+    fontSize: 11,
+    textAlign: 'right',
   },
   historyDetails: {
     marginTop: 8,
   },
+  scoreAndDateContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   historyScore: {
     fontSize: 14,
-    marginBottom: 8,
   },
   scoreBar: {
     height: 6,
@@ -866,6 +944,19 @@ const styles = StyleSheet.create({
   loadingMoreText: {
     fontSize: 14,
     marginLeft: 8,
+  },
+  speakButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  detailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  detailsButtonText: {
+    fontSize: 12,
+    marginLeft: 4,
   },
 });
 

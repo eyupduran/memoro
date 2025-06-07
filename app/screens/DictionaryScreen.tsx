@@ -22,6 +22,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { DataLoader } from '../components/DataLoader';
 import { storageService } from '../services/storage';
 import { WordListModal } from '../components/WordListModal';
+import * as Speech from 'expo-speech';
+import { MaterialIcons } from '@expo/vector-icons';
 
 type DictionaryScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -67,7 +69,8 @@ const DictionaryScreen = () => {
         setShowDataLoader(true);
       } else {
         console.log('Dictionary: Veri bulundu, kelimeler yükleniyor');
-        // İlk yüklemede fetchWords'ü çağırmıyoruz, aşağıdaki useEffect onu çağıracak
+        // İlk yükleme için fetchWords'ü doğrudan çağır
+        fetchWords();
       }
     } catch (error) {
       console.error('Dictionary: Veri kontrolü hatası', error);
@@ -117,8 +120,15 @@ const DictionaryScreen = () => {
     setLoading(false);
   };
 
-  // Arama yapıldığında veya sayfa ilk kez yüklendiğinde kelimeleri getir
+  // Arama yapıldığında veya filtre değiştiğinde kelimeleri getir
   useEffect(() => {
+    // İlk yükleme sırasında bu useEffect'i çalıştırma
+    // İlk yükleme checkDataAndFetchWords tarafından yapılacak
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+      return;
+    }
+    
     // Sayfa durumunu sıfırla
     setPage(0);
     
@@ -172,6 +182,7 @@ const DictionaryScreen = () => {
       // Öğrenilen kelimeleri kaydet
       const now = new Date().toISOString();
       const learnedWords = selectedWords.map(word => ({
+        id: word.id,
         word: word.word,
         meaning: word.meaning,
         example: word.example || '',
@@ -187,6 +198,7 @@ const DictionaryScreen = () => {
         level: 'custom',
         wordCount: selectedWords.length,
         selectedWords: selectedWords.map(w => ({
+          id: w.id,
           word: w.word,
           meaning: w.meaning,
           example: w.example
@@ -198,6 +210,19 @@ const DictionaryScreen = () => {
   const formatString = (template: string, ...args: any[]) => {
     return template.replace(/{(\d+)}/g, (match, number) => {
       return typeof args[number] !== 'undefined' ? args[number] : match;
+    });
+  };
+
+  // Metni sesli okuma fonksiyonu
+  const speakText = (text: string) => {
+    // Mevcut konuşma varsa durdur
+    Speech.stop();
+    
+    // Metni seslendir
+    Speech.speak(text, {
+      language: currentLanguagePair.split('-')[0], // İlk dil kodu (örn: "en-tr" -> "en")
+      pitch: 1.0,
+      rate: 0.9,
     });
   };
 
@@ -219,30 +244,73 @@ const DictionaryScreen = () => {
             borderWidth: isSelected ? 2 : 1,
           },
         ]}>
+          <View style={styles.levelTagContainer}>
+            <Text style={[styles.levelTag, { 
+              backgroundColor: colors.primary + '20',
+              color: colors.primary,
+            }]}>
+              {item.level}
+            </Text>
+          </View>
+          
           <View style={styles.wordHeader}>
             <View style={styles.wordMain}>
-              <Text style={[styles.wordText, { color: colors.text.primary }]}>{item.word}</Text>
+              <View style={styles.wordWithSpeech}>
+                <Text style={[styles.wordText, { color: colors.text.primary }]}>{item.word}</Text>
+                <TouchableOpacity 
+                  style={styles.speakButton}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    speakText(item.word);
+                  }}
+                >
+                  <MaterialIcons name="volume-up" size={20} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
               <Text style={[styles.meaningText, { color: colors.text.secondary }]}>{item.meaning}</Text>
               {item.example && (
                 <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
-                  {translations.dictionaryScreen.examplePrefix} {item.example}
+                  <Text style={styles.examplePrefix}>{translations.dictionaryScreen.examplePrefix}</Text> {item.example}
                 </Text>
               )}
             </View>
-            <View style={styles.wordMeta}>
-              <TouchableOpacity
-                style={[styles.addToListButton, { backgroundColor: colors.primary + '20' }]}
-                onPress={() => setSelectedWordForList(item)}
-              >
-                <Text style={[styles.addToListButtonText, { color: colors.primary }]}>+</Text>
-              </TouchableOpacity>
-              <Text style={[styles.levelTag, { 
-                backgroundColor: colors.primary + '20',
-                color: colors.primary,
-              }]}>
-                {item.level}
+          </View>
+          
+          <View style={styles.wordActions}>
+            <TouchableOpacity
+              style={[styles.addToListButton, { backgroundColor: colors.primary + '15' }]}
+              onPress={(e) => {
+                e.stopPropagation();
+                setSelectedWordForList(item);
+              }}
+            >
+              <MaterialIcons name="playlist-add" size={16} color={colors.primary} />
+              <Text style={[styles.addToListButtonText, { color: colors.primary }]}>
+                {translations.wordListModal?.addToList || 'Listeye Ekle'}
               </Text>
-            </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.selectButton, { 
+                backgroundColor: isSelected ? colors.primary + '15' : 'transparent',
+                borderColor: isSelected ? colors.primary : colors.border,
+              }]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleWordSelect(item);
+              }}
+            >
+              <MaterialIcons 
+                name={isSelected ? "check" : "add"} 
+                size={16} 
+                color={isSelected ? colors.primary : colors.text.secondary} 
+              />
+              <Text style={[styles.selectButtonText, { 
+                color: isSelected ? colors.primary : colors.text.secondary,
+              }]}>
+                {isSelected ? 'Seçildi' : 'Seç'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>
@@ -281,7 +349,15 @@ const DictionaryScreen = () => {
                 borderColor: colors.border,
               },
             ]}
-            onPress={() => setSelectedLevel(null)}
+            onPress={() => {
+              if (selectedLevel !== null) {
+                setSelectedLevel(null);
+                // Sayfa durumunu sıfırla ve yeni sorgu yap
+                setPage(0);
+                // Seçim değiştiğinde doğrudan fetchWords çağırmıyoruz
+                // useEffect içinde selectedLevel değiştiğinde otomatik olarak çağrılacak
+              }
+            }}
           >
             <Text 
               style={[
@@ -305,7 +381,18 @@ const DictionaryScreen = () => {
                   borderColor: colors.border,
                 },
               ]}
-              onPress={() => setSelectedLevel(selectedLevel === level ? null : level)}
+              onPress={() => {
+                // Aynı seviyeye tekrar tıklandığında seçimi kaldır
+                if (selectedLevel === level) {
+                  setSelectedLevel(null);
+                } else {
+                  setSelectedLevel(level);
+                }
+                // Sayfa durumunu sıfırla ve yeni sorgu yap
+                setPage(0);
+                // Seçim değiştiğinde doğrudan fetchWords çağırmıyoruz
+                // useEffect içinde selectedLevel değiştiğinde otomatik olarak çağrılacak
+              }}
             >
               <Text 
                 style={[
@@ -520,16 +607,32 @@ const styles = StyleSheet.create({
   },
   wordItem: {
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
+    overflow: 'hidden',
+  },
+  levelTagContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 1,
+  },
+  levelTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontSize: 10,
+    fontWeight: '600',
   },
   wordHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 6,
   },
   wordMain: {
     flex: 1,
+    paddingRight: 30,
   },
   wordText: {
     fontSize: 16,
@@ -543,17 +646,57 @@ const styles = StyleSheet.create({
   exampleText: {
     fontSize: 12,
     fontStyle: 'italic',
+    lineHeight: 16,
+  },
+  examplePrefix: {
+    fontWeight: '500',
+    fontStyle: 'normal',
   },
   wordMeta: {
     marginLeft: 8,
     alignItems: 'flex-end',
   },
-  levelTag: {
-    paddingHorizontal: 8,
+  wordWithSpeech: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  speakButton: {
+    padding: 2,
+    marginLeft: 6,
+  },
+  wordActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  addToListButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+  },
+  addToListButtonText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
+    marginLeft: 3,
+  },
+  selectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  selectButtonText: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginLeft: 3,
   },
   bottomContainer: {
     width: '100%',
@@ -622,21 +765,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 12,
     fontWeight: '600',
-  },
-  addToListButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  addToListButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-    lineHeight: 20,
   },
 });
 

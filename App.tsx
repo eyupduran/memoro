@@ -24,6 +24,7 @@ import * as Notifications from 'expo-notifications';
 import { View } from 'react-native';
 import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { LanguageProvider, useLanguage } from './app/contexts/LanguageContext';
+import ExerciseDetailScreen from './app/screens/ExerciseDetailScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -177,12 +178,21 @@ const AppNavigator = () => {
         <Stack.Screen
           name="ExerciseQuestion"
           component={ExerciseQuestionScreen}
-          options={{ title: translations.exercise.question.title.replace('{0}', '').replace('{1}', '') }}
+          options={{ 
+            title: 'Soru' // Sabit başlık
+          }}
         />
         <Stack.Screen
           name="ExerciseResult"
           component={ExerciseResultScreen}
-          options={{ title: translations.exercise.result.title }}
+          options={{ 
+            title: translations.exercise.result.title 
+          }}
+        />
+        <Stack.Screen
+          name="ExerciseDetail"
+          component={ExerciseDetailScreen}
+          options={{ title: translations.exercise.detail.title }}
         />
         <Stack.Screen
           name="WordListDetail"
