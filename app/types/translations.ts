@@ -107,6 +107,19 @@ export interface Translations {
   };
   dictionaryScreen: {
     title: string;
+    wordCount: string;
+    infoText: string;
+    searchPlaceholder: string;
+    examplePrefix: string;
+    continueButton: string;
+    loadingMore: string;
+    levelFilter: string;
+    allLevels: string;
+    selectMinWords: string;
+    continueWithWords: string;
+    maxWordsLimit: string;
+    searchPrompt: string;
+    noResults: string;
   };
   wordListModal: {
     title: string;
@@ -239,5 +252,9 @@ export interface Translations {
     subtitle: string;
     comingSoon: string;
     selectLevel: string;
+  };
+  dictionary: {
+    title: string;
+    close: string;
   };
 } 

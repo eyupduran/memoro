@@ -145,7 +145,9 @@ export default {
     allLevels: 'Todos',
     selectMinWords: 'Selecione pelo menos 2 palavras',
     continueWithWords: 'Continuar com {0} palavras',
-    maxWordsLimit: 'Você pode selecionar no máximo {0} palavras'
+    maxWordsLimit: 'Você pode selecionar no máximo {0} palavras',
+    searchPrompt: 'Digite a palavra que deseja pesquisar',
+    noResults: 'Nenhum resultado encontrado'
   },
   wordListModal: {
     title: 'Selecionar Lista de Palavras',
@@ -386,5 +388,9 @@ export default {
     subtitle: 'Aprenda as regras gramaticais',
     comingSoon: 'Em breve...',
     selectLevel: 'Escolha o Nível'
+  },
+  dictionary: {
+    title: 'Dicionário',
+    close: 'Fechar'
   }
 };

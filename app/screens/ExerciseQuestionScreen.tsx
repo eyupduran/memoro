@@ -11,6 +11,7 @@ import {
   Modal,
   Alert,
   BackHandler,
+  Dimensions,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
@@ -23,6 +24,7 @@ import { RootStackParamList } from '../types/navigation';
 import { storageService } from '../services/storage';
 import { dbService } from '../services/database';
 import type { LearnedWord, Word } from '../types/words';
+import DictionaryScreen from './DictionaryScreen';
 
 type ExerciseQuestionScreenProps = NativeStackScreenProps<RootStackParamList, 'ExerciseQuestion'>;
 type ExerciseQuestionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -94,6 +96,8 @@ const ExerciseQuestionScreen: React.FC = () => {
 
   // Tüm soruları ve cevapları kaydetmek için state
   const [questionDetails, setQuestionDetails] = useState<QuestionDetail[]>([]);
+
+  const [isDictionaryModalVisible, setIsDictionaryModalVisible] = useState(false);
 
   // Önceki sayfadan gelen soru detaylarını yükle
   useEffect(() => {
@@ -1090,6 +1094,35 @@ const ExerciseQuestionScreen: React.FC = () => {
     });
   };
 
+  const renderDictionaryModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isDictionaryModalVisible}
+      onRequestClose={() => setIsDictionaryModalVisible(false)}
+    >
+      <View style={[styles.modalOverlay]}>
+        <View style={[styles.dictionaryModalContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.dictionaryModalHeader, { borderBottomColor: colors.border }]}>
+            <TouchableOpacity 
+              onPress={() => setIsDictionaryModalVisible(false)}
+              style={styles.closeDictionaryButton}
+            >
+              <MaterialIcons name="close" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+            <Text style={[styles.dictionaryModalTitle, { color: colors.text.primary }]}>
+              {translations.dictionary?.title || 'Sözlük'}
+            </Text>
+            <View style={{ width: 24 }}>
+              <Text> </Text>
+            </View>
+          </View>
+          <DictionaryScreen isModal={true} />
+        </View>
+      </View>
+    </Modal>
+  );
+
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -1170,6 +1203,24 @@ const ExerciseQuestionScreen: React.FC = () => {
 
       {renderAnswerModal()}
       {renderWordListModal()}
+      {renderDictionaryModal()}
+
+      {/* Dictionary Button */}
+      <TouchableOpacity
+        style={[
+          styles.dictionaryButton, 
+          { 
+            backgroundColor: colors.primary,
+            bottom: answerShown ? 200 : 20 
+          }
+        ]}
+        onPress={() => setIsDictionaryModalVisible(true)}
+      >
+        <MaterialIcons name="book" size={24} color={colors.text.onPrimary} />
+        <Text style={[styles.dictionaryButtonText, { color: colors.text.onPrimary }]}>
+          {translations.dictionary?.title || 'Sözlük'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -1343,9 +1394,8 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-end',
   },
   modalContent: {
     width: '90%',
@@ -1442,6 +1492,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 16,
+  },
+  dictionaryButton: {
+    position: 'absolute',
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 25,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  dictionaryButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dictionaryModalContainer: {
+    height: '90%',
+    width: '100%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  dictionaryModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  dictionaryModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  closeDictionaryButton: {
+    padding: 4,
   },
 });
 

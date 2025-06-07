@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -27,7 +27,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 type DictionaryScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
-const DictionaryScreen = () => {
+type DictionaryScreenProps = {
+  isModal?: boolean;
+};
+
+const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) => {
   const navigation = useNavigation<DictionaryScreenNavigationProp>();
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
@@ -47,6 +51,7 @@ const DictionaryScreen = () => {
   const headerHeight = React.useRef(new Animated.Value(0)).current;
   const lastScrollY = React.useRef(0);
   const [selectedWordForList, setSelectedWordForList] = useState<Word | null>(null);
+  const searchInputRef = useRef<TextInput>(null);
   
   const ITEMS_PER_PAGE = 50;
   const LEVELS: Level[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -55,56 +60,79 @@ const DictionaryScreen = () => {
   const SCROLL_THRESHOLD = 50; // Minimum scroll distance to trigger header animation
   const SCROLL_OFFSET_TRIGGER = 20; // Minimum difference in scroll position to trigger change
 
+  const checkDataAndFetchWords = async () => {
+    if (isModal) {
+      setIsInitialLoad(false);
+      return;
+    }
+
+    setShowDataLoader(true);
+    try {
+      const isLoaded = await dbService.isLanguageDataLoaded(currentLanguagePair);
+      if (!isLoaded) {
+        console.log('Dictionary: Veri bulunamadı, indirme başlatılıyor');
+      } else {
+        console.log('Dictionary: Veri bulundu, kelimeler yükleniyor');
+        setPage(0);
+        fetchWords();
+      }
+    } catch (error) {
+      console.error('Error checking data:', error);
+    } finally {
+      setShowDataLoader(false);
+    }
+  };
+
   useEffect(() => {
     checkDataAndFetchWords();
   }, []);
 
-  // SQLite'da veri var mı kontrol et, yoksa indirme ekranını göster
-  const checkDataAndFetchWords = async () => {
-    try {
-      const isLoaded = await dbService.isLanguageDataLoaded(currentLanguagePair);
-      
-      if (!isLoaded) {
-        console.log('Dictionary: Veri bulunamadı, indirme başlatılıyor');
-        setShowDataLoader(true);
-      } else {
-        console.log('Dictionary: Veri bulundu, kelimeler yükleniyor');
-        // İlk yükleme için fetchWords'ü doğrudan çağır
-        fetchWords();
-      }
-    } catch (error) {
-      console.error('Dictionary: Veri kontrolü hatası', error);
+  useEffect(() => {
+    if (isModal && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 300); // Add a small delay to ensure the modal animation is complete
+    }
+  }, [isModal]);
+
+  // Daha fazla kelime yükle
+  const loadMoreWords = () => {
+    if (!loading && hasMore && (!isModal || searchQuery.trim())) {
+      setPage(prev => prev + 1);
+      fetchWords();
     }
   };
-  
+
   // Veri indirme tamamlandı
   const onDataLoadComplete = () => {
     setShowDataLoader(false);
-    fetchWords(); // Burada çağrı yapılması sorun değil çünkü indirme sonrasında tek sefer çalışacak
+    if (!isModal) {
+      fetchWords();
+    }
   };
 
-  // Sayfalama ile kelimeleri yükle
   const fetchWords = async () => {
+    // Modal modunda ve arama yoksa, kelimeleri yükleme
+    if (isModal && !searchQuery.trim()) {
+      setWords([]);
+      setFilteredWords([]);
+      return;
+    }
+
     setLoading(true);
     try {
       let results: Word[];
       
       if (searchQuery.trim() && selectedLevel) {
-        // Hem arama metni hem de seviye filtresi var
         results = await dbService.searchWordsByQueryAndLevel(searchQuery, selectedLevel, currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
       } else if (searchQuery.trim()) {
-        // Sadece arama metni var
         results = await dbService.searchWords(searchQuery, currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
       } else if (selectedLevel) {
-        // Sadece seviye filtresi var
         results = await dbService.searchWordsByLevel(selectedLevel, currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
       } else {
-        // Hiçbir filtre yok, tüm kelimeleri getir
         results = await dbService.getAllWords(currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
       }
 
-      console.log(`Dictionary: ${results.length} kelime yüklendi`);
-      
       if (page === 0) {
         setWords(results);
         setFilteredWords(results);
@@ -123,7 +151,6 @@ const DictionaryScreen = () => {
   // Arama yapıldığında veya filtre değiştiğinde kelimeleri getir
   useEffect(() => {
     // İlk yükleme sırasında bu useEffect'i çalıştırma
-    // İlk yükleme checkDataAndFetchWords tarafından yapılacak
     if (isInitialLoad) {
       setIsInitialLoad(false);
       return;
@@ -138,15 +165,7 @@ const DictionaryScreen = () => {
     }, 500);
     
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, currentLanguagePair, selectedLevel]); // selectedLevel ekledik ki seviye değiştiğinde tekrar sorgu yapılsın
-
-  // Daha fazla kelime yükle
-  const loadMoreWords = () => {
-    if (!loading && hasMore) {
-      setPage(prev => prev + 1);
-      fetchWords();
-    }
-  };
+  }, [searchQuery, currentLanguagePair, selectedLevel]);
 
   const showMaxWordsToast = () => {
     setShowMaxWordsMessage(true);
@@ -460,13 +479,22 @@ const DictionaryScreen = () => {
           style={styles.wordList}
           contentContainerStyle={[
             styles.contentContainer,
-            { paddingTop: 162, paddingBottom: 84 } 
+            { paddingTop: isModal ? 82 : 162, paddingBottom: isModal ? 20 : 84 } 
           ]}
           onEndReached={loadMoreWords}
           onEndReachedThreshold={0.5}
           ListFooterComponent={renderFooter}
           onScroll={handleScroll}
           scrollEventThrottle={16}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+                {isModal && !searchQuery.trim() 
+                  ? translations.dictionaryScreen.searchPrompt || 'Aramak istediğiniz kelimeyi yazın'
+                  : translations.dictionaryScreen.noResults || 'Sonuç bulunamadı'}
+              </Text>
+            </View>
+          )}
           maintainVisibleContentPosition={{
             minIndexForVisible: 0,
             autoscrollToTopThreshold: 10,
@@ -495,9 +523,10 @@ const DictionaryScreen = () => {
         }
       ]}>
         <View style={styles.contentContainer}>
-          {renderLevelSelector()}
+          {!isModal && renderLevelSelector()}
 
           <TextInput
+            ref={searchInputRef}
             style={[
               styles.searchInput,
               { 
@@ -514,7 +543,7 @@ const DictionaryScreen = () => {
         </View>
       </Animated.View>
 
-      <View style={[styles.contentContainer, { paddingBottom: 10 }]}>
+      {!isModal && (
         <View style={styles.bottomContainer}>
           {showMaxWordsMessage && (
             <Animated.View style={[
@@ -557,7 +586,7 @@ const DictionaryScreen = () => {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      )}
 
       <DataLoader 
         visible={showDataLoader} 
@@ -765,6 +794,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 12,
     fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 });
 

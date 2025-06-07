@@ -145,7 +145,9 @@ export default {
     allLevels: 'Tümü',
     selectMinWords: 'En az 2 kelime seçiniz',
     continueWithWords: '{0} kelime ile devam et',
-    maxWordsLimit: 'Maksimum {0} kelime seçebilirsiniz'
+    maxWordsLimit: 'Maksimum {0} kelime seçebilirsiniz',
+    searchPrompt: 'Aramak istediğiniz kelimeyi yazın',
+    noResults: 'Sonuç bulunamadı'
   },
   wordListModal: {
     title: 'Kelime Listesi Seç',
@@ -386,5 +388,9 @@ export default {
     subtitle: 'Dil bilgisi kurallarını öğrenin',
     comingSoon: 'Yakında...',
     selectLevel: 'Seviye Seçin',
+  },
+  dictionary: {
+    title: 'Sözlük',
+    close: 'Kapat'
   },
 };
