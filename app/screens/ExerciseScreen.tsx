@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   FlatList,
   Modal,
+  Alert,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';
@@ -19,6 +20,7 @@ import { RootStackParamList } from '../types/navigation';
 import { dbService } from '../services/database';
 import { storageService } from '../services/storage';
 import type { LearnedWord, ExerciseResult, Word, Level } from '../types/words';
+import type { UnfinishedExercise } from './ExerciseQuestionScreen';
 
 type ExerciseScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Exercise'>;
 
@@ -50,6 +52,8 @@ const ExerciseScreen: React.FC = () => {
   const [wordLists, setWordLists] = useState<{ id: number; name: string }[]>([]);
   const [selectedWordList, setSelectedWordList] = useState<number | null>(null);
   const [wordListModalVisible, setWordListModalVisible] = useState(false);
+
+  const [unfinishedExercise, setUnfinishedExercise] = useState<UnfinishedExercise | null>(null);
 
   // Tıklama sesini yükle
   useEffect(() => {
@@ -175,6 +179,60 @@ const ExerciseScreen: React.FC = () => {
     // Cleanup fonksiyonu
     return unsubscribe;
   }, [navigation, loadData]);
+
+  useEffect(() => {
+    checkUnfinishedExercise();
+  }, []);
+
+  const checkUnfinishedExercise = async () => {
+    const exercise = await storageService.getUnfinishedExercise();
+    if (exercise) {
+      // 24 saatten eski egzersizleri sil
+      if (Date.now() - exercise.timestamp > 24 * 60 * 60 * 1000) {
+        await storageService.clearUnfinishedExercise();
+        return;
+      }
+      setUnfinishedExercise(exercise);
+    }
+  };
+
+  const continueExercise = async () => {
+    if (!unfinishedExercise) return;
+
+    // Egzersizi devam ettir
+    navigation.navigate('ExerciseQuestion', {
+      exerciseType: unfinishedExercise.exerciseType,
+      questionIndex: unfinishedExercise.questionIndex,
+      totalQuestions: unfinishedExercise.totalQuestions,
+      score: unfinishedExercise.score,
+      askedWords: unfinishedExercise.askedWords,
+      previousType: unfinishedExercise.previousType,
+      wordSource: unfinishedExercise.wordSource,
+      level: unfinishedExercise.level,
+      wordListId: unfinishedExercise.wordListId,
+      wordListName: unfinishedExercise.wordListName,
+      questionDetails: unfinishedExercise.questionDetails
+    });
+
+    // Yarım kalan egzersizi sil
+    await storageService.clearUnfinishedExercise();
+    setUnfinishedExercise(null);
+  };
+
+  const startNewExercise = (type: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'mixed') => {
+    navigation.navigate('ExerciseQuestion', {
+      exerciseType: type,
+      questionIndex: 0,
+      totalQuestions: 10,
+      score: 0,
+      askedWords: [],
+      questionDetails: [],
+      wordSource: 'learned', // Default to learned words
+      level: null,
+      wordListId: 0,
+      wordListName: ''
+    });
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -721,6 +779,26 @@ const ExerciseScreen: React.FC = () => {
       
       {renderExerciseOptionsModal()}
       {renderWordListModal()}
+
+      {unfinishedExercise && (
+        <TouchableOpacity
+          style={[styles.unfinishedExerciseCard, { backgroundColor: colors.primary + '20' }]}
+          onPress={continueExercise}
+        >
+          <View style={styles.unfinishedExerciseContent}>
+            <MaterialIcons name="play-circle-outline" size={24} color={colors.primary} />
+            <View style={styles.unfinishedExerciseInfo}>
+              <Text style={[styles.unfinishedExerciseTitle, { color: colors.text.primary }]}>
+                {translations.exercise.continueExercise || 'Egzersize Devam Et'}
+              </Text>
+              <Text style={[styles.unfinishedExerciseDetails, { color: colors.text.secondary }]}>
+                {`${translations.exercise.score}: ${unfinishedExercise.score}/${unfinishedExercise.questionIndex}`}
+              </Text>
+            </View>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color={colors.primary} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -957,6 +1035,29 @@ const styles = StyleSheet.create({
   detailsButtonText: {
     fontSize: 12,
     marginLeft: 4,
+  },
+  unfinishedExerciseCard: {
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  unfinishedExerciseContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  unfinishedExerciseInfo: {
+    marginLeft: 12,
+  },
+  unfinishedExerciseTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  unfinishedExerciseDetails: {
+    fontSize: 14,
+    marginTop: 4,
   },
 });
 

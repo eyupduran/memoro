@@ -23,7 +23,7 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { RootStackParamList } from '../types/navigation';
 import { storageService } from '../services/storage';
 import { dbService } from '../services/database';
-import type { LearnedWord, Word } from '../types/words';
+import type { LearnedWord, Word, WordSource } from '../types/words';
 import DictionaryScreen from './DictionaryScreen';
 
 type ExerciseQuestionScreenProps = NativeStackScreenProps<RootStackParamList, 'ExerciseQuestion'>;
@@ -38,6 +38,23 @@ export type QuestionDetail = {
   userAnswer: string | null;
   isCorrect: boolean | null;
 };
+
+// Yarım kalan egzersiz için tip tanımı
+export type UnfinishedExercise = {
+  exerciseType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'mixed';
+  questionIndex: number;
+  totalQuestions: number;
+  score: number;
+  askedWords: string[];
+  previousType?: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch';
+  wordSource?: WordSource;
+  level?: string | null;
+  wordListId?: number;
+  wordListName?: string;
+  questionDetails: QuestionDetail[];
+  languagePair: string;
+  timestamp: number;
+}
 
 // Ses nesnelerini tanımla
 const sounds = {
@@ -202,7 +219,10 @@ const ExerciseQuestionScreen: React.FC = () => {
             },
             {
               text: translations.exercise.exitWarning?.confirm || 'Çıkış',
-              onPress: () => navigation.goBack(),
+              onPress: async () => {
+                await saveUnfinishedExercise();
+                navigation.goBack();
+              },
               style: 'destructive',
             },
           ],
@@ -232,7 +252,7 @@ const ExerciseQuestionScreen: React.FC = () => {
         // Component unmount olduğunda event listener'ı kaldır
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
       };
-    }, [navigation, answerShown, loading, translations])
+    }, [navigation, answerShown, loading, translations, questionIndex, score, askedWordsForNextQuestion])
   );
 
   React.useLayoutEffect(() => {
@@ -1163,6 +1183,33 @@ const ExerciseQuestionScreen: React.FC = () => {
       </View>
     </Modal>
   );
+
+  // Yarım kalan egzersizi kaydet
+  const saveUnfinishedExercise = async () => {
+    if (questionIndex === 0) return; // İlk sorudaysa kaydetmeye gerek yok
+    
+    const unfinishedExercise: UnfinishedExercise = {
+      exerciseType,
+      questionIndex,
+      totalQuestions,
+      score,
+      askedWords: askedWordsForNextQuestion,
+      previousType: currentQuestionType,
+      wordSource,
+      level,
+      wordListId,
+      wordListName,
+      questionDetails,
+      languagePair: currentLanguagePair,
+      timestamp: Date.now()
+    };
+
+    try {
+      await storageService.saveUnfinishedExercise(unfinishedExercise);
+    } catch (error) {
+      console.error('Error saving unfinished exercise:', error);
+    }
+  };
 
   if (loading) {
     return (

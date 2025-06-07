@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import type { LearnedWord, WordList } from '../types/words';
 import { dbService } from './database';
+import type { UnfinishedExercise } from '../screens/ExerciseQuestionScreen';
 
 const STORAGE_KEYS = {
   LEARNED_WORDS: 'learnedWords',
@@ -277,6 +278,38 @@ class StorageService {
     } catch (error) {
       console.error('Önbellek temizleme hatası:', error);
       return false;
+    }
+  }
+
+  // Yarım kalan egzersizi kaydet
+  async saveUnfinishedExercise(exercise: UnfinishedExercise): Promise<void> {
+    try {
+      await AsyncStorage.setItem('unfinished_exercise', JSON.stringify(exercise));
+    } catch (error) {
+      console.error('Error saving unfinished exercise:', error);
+      throw error;
+    }
+  }
+
+  // Yarım kalan egzersizi getir
+  async getUnfinishedExercise(): Promise<UnfinishedExercise | null> {
+    try {
+      const exerciseStr = await AsyncStorage.getItem('unfinished_exercise');
+      if (!exerciseStr) return null;
+      return JSON.parse(exerciseStr);
+    } catch (error) {
+      console.error('Error getting unfinished exercise:', error);
+      return null;
+    }
+  }
+
+  // Yarım kalan egzersizi sil
+  async clearUnfinishedExercise(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem('unfinished_exercise');
+    } catch (error) {
+      console.error('Error clearing unfinished exercise:', error);
+      throw error;
     }
   }
 }
