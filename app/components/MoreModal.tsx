@@ -46,7 +46,7 @@ export const MoreModal: React.FC<Props> = ({ visible, onClose, navigation }) => 
     }
   }, [visible]);
 
-  const handleNavigate = (screen: 'Settings' | 'Grammar') => {
+  const handleNavigate = (screen: 'Settings' | 'Grammar' | 'Games') => {
     onClose();
     navigation.navigate(screen);
   };
@@ -61,6 +61,11 @@ export const MoreModal: React.FC<Props> = ({ visible, onClose, navigation }) => 
       icon: 'spellcheck',
       title: translations.grammar?.title || 'Gramer',
       onPress: () => handleNavigate('Grammar'),
+    },
+    {
+      icon: 'sports-esports',
+      title: translations.home.games || 'Oyunlar',
+      onPress: () => handleNavigate('Games'),
     },
   ];
 

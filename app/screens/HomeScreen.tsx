@@ -12,6 +12,39 @@ export const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { translations } = useLanguage();
 
+  const menuItems = [
+    {
+      id: 'dictionary',
+      title: translations.home.dictionary,
+      icon: 'book',
+      screen: 'Dictionary',
+    },
+    {
+      id: 'grammar',
+      title: translations.home.grammar,
+      icon: 'school',
+      screen: 'Grammar',
+    },
+    {
+      id: 'exercise',
+      title: translations.home.exercise,
+      icon: 'fitness-center',
+      screen: 'Exercise',
+    },
+    {
+      id: 'wordLists',
+      title: translations.home.wordLists,
+      icon: 'format-list-bulleted',
+      screen: 'WordLists',
+    },
+    {
+      id: 'settings',
+      title: translations.home.settings,
+      icon: 'settings',
+      screen: 'Settings',
+    },
+  ];
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -20,29 +53,16 @@ export const HomeScreen = () => {
       </View>
       
       <View style={styles.menu}>
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('LevelSelection')}
-        >
-          <MaterialIcons name="school" size={40} color="#4A90E2" />
-          <Text style={styles.menuText}>{translations.home.learnWords}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('Stats')}
-        >
-          <MaterialIcons name="trending-up" size={40} color="#4A90E2" />
-          <Text style={styles.menuText}>{translations.home.statistics}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('Settings')}
-        >
-          <MaterialIcons name="settings" size={40} color="#4A90E2" />
-          <Text style={styles.menuText}>{translations.home.settings}</Text>
-        </TouchableOpacity>
+        {menuItems.map((item) => (
+          <TouchableOpacity 
+            key={item.id}
+            style={styles.menuItem}
+            onPress={() => navigation.navigate(item.screen)}
+          >
+            <MaterialIcons name={item.icon} size={40} color="#4A90E2" />
+            <Text style={styles.menuText}>{item.title}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </View>
   );

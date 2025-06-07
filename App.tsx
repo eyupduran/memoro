@@ -25,6 +25,7 @@ import { View } from 'react-native';
 import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { LanguageProvider, useLanguage } from './app/contexts/LanguageContext';
 import ExerciseDetailScreen from './app/screens/ExerciseDetailScreen';
+import GamesScreen from './app/screens/GamesScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -163,7 +164,18 @@ const AppNavigator = () => {
         <Stack.Screen
           name="Grammar"
           component={GrammarScreen}
-          options={{ title: translations.grammar?.title || 'Gramer' }}
+          options={{
+            headerShown: true,
+            title: translations.home.grammar,
+          }}
+        />
+        <Stack.Screen
+          name="Games"
+          component={GamesScreen}
+          options={{
+            headerShown: true,
+            title: translations.home.games,
+          }}
         />
         <Stack.Screen
           name="Dictionary"

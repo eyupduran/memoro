@@ -1,6 +1,8 @@
 import type { Word } from './words';
 import type { ImageSourcePropType } from 'react-native';
-import type { QuestionDetail } from '../screens/ExerciseQuestionScreen';
+import { QuestionDetail } from '../screens/ExerciseQuestionScreen';
+
+export type WordSource = 'learned' | 'dictionary' | 'wordlist';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -29,20 +31,22 @@ export type RootStackParamList = {
   Stats: undefined;
   Settings: undefined;
   Dictionary: undefined;
-  Exercise: undefined;
   Grammar: undefined;
+  Games: undefined;
+  Exercise: undefined;
   WordListDetail: {
     listId: string;
-    listName: string;
+    level: string;
+    wordCount: number;
   };
   ExerciseQuestion: {
     exerciseType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'mixed';
     questionIndex: number;
     totalQuestions: number;
     score: number;
-    askedWords: string[];
+    askedWords?: string[];
     previousType?: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch';
-    wordSource: 'learned' | 'dictionary' | 'wordlist';
+    wordSource?: WordSource;
     level?: string | null;
     wordListId?: number;
     wordListName?: string;
@@ -52,7 +56,7 @@ export type RootStackParamList = {
     score: number;
     totalQuestions: number;
     exerciseType: string;
-    wordSource: 'learned' | 'dictionary' | 'wordlist';
+    wordSource?: WordSource;
     level?: string | null;
     wordListId?: number;
     wordListName?: string;
@@ -70,5 +74,10 @@ export type RootStackParamList = {
     date: string;
     languagePair: string;
     details: QuestionDetail[];
+  };
+  WordLists: undefined;
+  WordList: {
+    listId: number;
+    listName: string;
   };
 }; 
