@@ -65,7 +65,8 @@ export default {
     reinforcement: {
       info: 'Öğrendiğiniz kelimeleri pekiştirmek için 2-5 arası kelime seçebilirsiniz. Seçtiğiniz kelimelerle görsel eşleştirme yaparak tekrar çalışabilirsiniz.',
       button: '{0} Kelimeyi Pekiştir'
-    }
+    },
+    information: 'Bilgilendirme'
   },
   languageSelector: {
     title: 'Dil Seçimi',
@@ -320,18 +321,6 @@ export default {
       wordMatch: 'Kelime Eşleştirme',
       mixed: 'Karışık',
       sentenceMatch: 'Cümle Eşleştirme',
-    },
-    question: {
-      title: 'Soru {0}/{1}',
-      screenTitle: 'Soru',
-      fillInTheBlank: 'Boşluğu doldurun:',
-      wordMatch: 'Doğru eşleştirmeyi seçin:',
-      sentenceMatchQuestionPrompt: 'Anlamı verilen kelime için doğru İngilizce cümleyi seçin:',
-      correct: 'Doğru!',
-      incorrect: 'Yanlış!',
-      correctAnswer: 'Doğru Cevap',
-      next: 'Sonraki',
-      finish: 'Bitir',
     },
     result: {
       title: 'Egzersiz Sonucu',

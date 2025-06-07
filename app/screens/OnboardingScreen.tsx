@@ -149,7 +149,7 @@ export const OnboardingScreen = () => {
               {activeIndex === onboardingData.length - 1 
                 ? translations.onboarding.start 
                 : activeIndex === 0 
-                  ? translations.onboarding.next 
+                  ? "Next" 
                   : translations.onboarding.next}
             </Text>
           </TouchableOpacity>

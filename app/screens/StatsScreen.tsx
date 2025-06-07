@@ -35,9 +35,13 @@ const LEVELS = [
 
 const ITEMS_PER_PAGE = 10;
 
+// Tab types
+type TabType = 'learnedWords' | 'wordLists';
+
 export const StatsScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
+  const [selectedTab, setSelectedTab] = useState<TabType>('learnedWords');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [words, setWords] = useState<LearnedWord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -296,106 +300,124 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.levelScroll}
-        contentContainerStyle={styles.levelScrollContent}
-      >
-        <TouchableOpacity
-          style={[
-            styles.levelButton,
-            { 
-              backgroundColor: selectedLevel === 'all' ? colors.primary : colors.surface,
-              borderColor: selectedLevel === 'all' ? colors.primary : colors.border,
-            },
-          ]}
-          onPress={() => setSelectedLevel('all')}
-        >
-          <Text
-            style={[
-              styles.levelName,
-              { 
-                color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.primary,
-              },
-            ]}
-          >
-            {translations.stats.levels.all}
-          </Text>
-          <Text
-            style={[
-              styles.levelDescription,
-              { 
-                color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.secondary,
-              },
-            ]}
-          >
-            {translations.stats.levels.allDescription}
-          </Text>
-        </TouchableOpacity>
-        {LEVELS.map((level) => (
-          <TouchableOpacity
-            key={level.id}
-            style={[
-              styles.levelButton,
-              { 
-                backgroundColor: selectedLevel === level.id ? colors.primary : colors.surface,
-                borderColor: selectedLevel === level.id ? colors.primary : colors.border,
-              },
-            ]}
-            onPress={() => setSelectedLevel(level.id)}
-          >
-            <Text
-              style={[
-                styles.levelName,
-                { 
-                  color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.primary,
-                },
-              ]}
-            >
-              {level.name}
-            </Text>
-            <Text
-              style={[
-                styles.levelDescription,
-                { 
-                  color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.secondary,
-                },
-              ]}
-            >
-              {translations.stats.levels[level.translationKey]}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <View style={styles.content}>
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { paddingHorizontal: 20 }, { color: colors.text.primary }]}>
-            {translations.stats.wordLists || 'Kelime Listeleri'}
-          </Text>
-          {loadingLists ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : wordLists.length === 0 ? (
+  // Kelime Listeleri tab içeriği
+  const renderWordListsTab = () => {
+    return (
+      <View style={styles.tabContent}>
+        {loadingLists ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : wordLists.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <MaterialIcons 
+              name="list" 
+              size={64} 
+              color={colors.text.secondary}
+              style={styles.emptyIcon}
+            />
             <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
               {translations.wordListModal?.noLists || 'Henüz liste oluşturulmamış'}
             </Text>
-          ) : (
-            <FlatList
-              data={wordLists}
-              renderItem={renderWordListItem}
-              keyExtractor={(item) => item.id.toString()}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.wordListsContainer}
-            />
-          )}
+            <Text style={[styles.emptySubtext, { color: colors.text.secondary }]}>
+              {translations.wordListModal?.noLists ? 'Kelimelerinizi organize etmek için listeler oluşturabilirsiniz' : 'Kelimelerinizi organize etmek için listeler oluşturabilirsiniz'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={wordLists}
+            renderItem={renderWordListItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.wordListsGridContainer}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
+    );
+  };
+
+  // Öğrenilen Kelimeler tab içeriği
+  const renderLearnedWordsTab = () => {
+    return (
+      <View style={styles.tabContent}>
+        <View style={styles.levelScrollWrapper}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.levelScroll}
+            contentContainerStyle={styles.levelScrollContent}
+          >
+            <TouchableOpacity
+              style={[
+                styles.levelButton,
+                { 
+                  backgroundColor: selectedLevel === 'all' ? colors.primary : colors.surface,
+                  borderColor: selectedLevel === 'all' ? colors.primary : colors.border,
+                },
+              ]}
+              onPress={() => setSelectedLevel('all')}
+            >
+              <Text
+                style={[
+                  styles.levelName,
+                  { 
+                    color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.primary,
+                  },
+                ]}
+              >
+                {translations.stats.levels.all}
+              </Text>
+              <Text
+                style={[
+                  styles.levelDescription,
+                  { 
+                    color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.secondary,
+                  },
+                ]}
+              >
+                {translations.stats.levels.allDescription}
+              </Text>
+            </TouchableOpacity>
+            {LEVELS.map((level) => (
+              <TouchableOpacity
+                key={level.id}
+                style={[
+                  styles.levelButton,
+                  { 
+                    backgroundColor: selectedLevel === level.id ? colors.primary : colors.surface,
+                    borderColor: selectedLevel === level.id ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => setSelectedLevel(level.id)}
+              >
+                <Text
+                  style={[
+                    styles.levelName,
+                    { 
+                      color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.primary,
+                    },
+                  ]}
+                >
+                  {level.name}
+                </Text>
+                <Text
+                  style={[
+                    styles.levelDescription,
+                    { 
+                      color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.secondary,
+                    },
+                  ]}
+                >
+                  {translations.stats.levels[level.translationKey]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
-        <View style={[styles.section, { flex: 1 }]}>
+        <View style={[styles.levelSeparator, { backgroundColor: colors.border }]} />
+
+        <View style={styles.learnedWordsContainer}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
               {translations.stats.learnedWords} ({totalWords})
@@ -412,46 +434,10 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <Modal
-            animationType="fade"
-            transparent={true}
-            visible={showInfoModal}
-            onRequestClose={() => setShowInfoModal(false)}
-          >
-            <Pressable 
-              style={styles.modalOverlay}
-              onPress={() => setShowInfoModal(false)}
-            >
-              <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-                <View style={styles.modalHeader}>
-                  <MaterialIcons 
-                    name="error-outline" 
-                    size={24} 
-                    color={colors.primary}
-                  />
-                  <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
-                    Bilgilendirme
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setShowInfoModal(false)}
-                    style={styles.closeButton}
-                  >
-                    <MaterialIcons 
-                      name="close" 
-                      size={24} 
-                      color={colors.text.secondary}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <Text style={[styles.modalText, { color: colors.text.secondary }]}>
-                  {translations.stats.reinforcement?.info || 'Pekiştirmek istediğiniz 2-5 kelime seçin'}
-                </Text>
-              </View>
-            </Pressable>
-          </Modal>
-
           {loading ? (
-            <ActivityIndicator size="large" color={colors.primary} />
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
           ) : words.length === 0 ? (
             <View style={styles.emptyContainer}>
               <MaterialIcons 
@@ -497,12 +483,136 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
           )}
         </View>
       </View>
+    );
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Tab Navigation */}
+      <View style={[styles.tabBar, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          style={[
+            styles.tabButton,
+            selectedTab === 'learnedWords' && [styles.activeTab, { borderBottomColor: colors.primary }]
+          ]}
+          onPress={() => setSelectedTab('learnedWords')}
+        >
+          <MaterialIcons
+            name="school"
+            size={24}
+            color={selectedTab === 'learnedWords' ? colors.primary : colors.text.secondary}
+            style={styles.tabIcon}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              { color: selectedTab === 'learnedWords' ? colors.primary : colors.text.secondary }
+            ]}
+          >
+            {translations.stats.learnedWords || 'Öğrenilen Kelimeler'}
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[
+            styles.tabButton,
+            selectedTab === 'wordLists' && [styles.activeTab, { borderBottomColor: colors.primary }]
+          ]}
+          onPress={() => setSelectedTab('wordLists')}
+        >
+          <MaterialIcons
+            name="list"
+            size={24}
+            color={selectedTab === 'wordLists' ? colors.primary : colors.text.secondary}
+            style={styles.tabIcon}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              { color: selectedTab === 'wordLists' ? colors.primary : colors.text.secondary }
+            ]}
+          >
+            {translations.stats.wordLists || 'Kelime Listeleri'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Tab Content */}
+      <View style={styles.content}>
+        {selectedTab === 'learnedWords' ? renderLearnedWordsTab() : renderWordListsTab()}
+      </View>
+
+      {/* Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showInfoModal}
+        onRequestClose={() => setShowInfoModal(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowInfoModal(false)}
+        >
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <MaterialIcons 
+                name="error-outline" 
+                size={24} 
+                color={colors.primary}
+              />
+              <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
+                {translations.stats.information || 'Bilgilendirme'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowInfoModal(false)}
+                style={styles.closeButton}
+              >
+                <MaterialIcons 
+                  name="close" 
+                  size={24} 
+                  color={colors.text.secondary}
+                />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.modalText, { color: colors.text.secondary }]}>
+              {translations.stats.reinforcement?.info || 'Pekiştirmek istediğiniz 2-5 kelime seçin'}
+            </Text>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    paddingTop: 8,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomWidth: 3,
+  },
+  tabIcon: {
+    marginRight: 8,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  tabContent: {
     flex: 1,
   },
   header: {
@@ -528,38 +638,50 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 16,
   },
+  levelScrollWrapper: {
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  levelSectionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+    paddingHorizontal: 20,
+  },
   levelScroll: {
-    maxHeight: 80,
-    marginBottom: 16,
+    maxHeight: 50,
+    marginBottom: 12,
   },
   levelScrollContent: {
     paddingHorizontal: 20,
   },
   levelButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginRight: 12,
-    borderWidth: 2,
-    minWidth: 120,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginRight: 10,
+    borderWidth: 1,
+    minWidth: 100,
   },
   levelName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     marginBottom: 2,
   },
   levelDescription: {
-    fontSize: 12,
+    fontSize: 10,
   },
   wordListsContainer: {
     paddingHorizontal: 20,
   },
+  wordListsGridContainer: {
+    padding: 20,
+  },
   wordListCard: {
     padding: 16,
     borderRadius: 12,
-    marginRight: 12,
+    marginBottom: 12,
     borderWidth: 1,
-    width: 200,
   },
   wordListHeader: {
     flexDirection: 'row',
@@ -577,6 +699,9 @@ const styles = StyleSheet.create({
   },
   wordListDate: {
     fontSize: 12,
+  },
+  learnedWordsContainer: {
+    flex: 1,
   },
   wordList: {
     flex: 1,
@@ -670,6 +795,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loadingMoreContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -745,5 +875,11 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
+  },
+  levelSeparator: {
+    height: 1,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    opacity: 0.5,
   },
 });

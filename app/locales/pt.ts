@@ -1,23 +1,23 @@
 export default {
   onboarding: {
-    languageSelection: 'Seleção de idioma',
-    learningLanguage: 'Idioma que você quer aprender',
-    nativeLanguage: 'Seu idioma nativo',
+    languageSelection: 'Seleção de Idioma',
+    learningLanguage: 'Idioma que Deseja Aprender',
+    nativeLanguage: 'Seu Idioma Nativo',
     continue: 'Continuar',
     welcome: 'Bem-vindo',
-    welcomeDescription: 'Você está pronto para aprender palavras em inglês com Memoro?',
-    selectLevel: 'Selecione seu Nível',
-    selectLevelDescription: 'Aprenda palavras de qualquer nível, de A1 a C2.',
+    welcomeDescription: 'Pronto para aprender vocabulário em inglês com o Memoro?',
+    selectLevel: 'Escolha Seu Nível',
+    selectLevelDescription: 'Aprenda palavras do nível A1 ao C2.',
     visualize: 'Visualize',
-    visualizeDescription: 'Aprenda de forma mais eficaz combinando palavras com imagens.',
+    visualizeDescription: 'Combine palavras com imagens para um aprendizado mais duradouro.',
     dictionary: 'Dicionário',
-    dictionaryDescription: 'Selecione as palavras que você quer e crie seu próprio conjunto de aprendizado.',
-    trackProgress: 'Acompanhe seu Progresso',
-    trackProgressDescription: 'Salve as palavras que você aprendeu e veja seu desenvolvimento.',
-    exerciseTitle: 'Pratique com Exercícios',
-    exerciseDescription: 'Teste seu conhecimento com exercícios usando palavras que você aprendeu ou do seu nível.',
-    back: 'Pular',
-    next: 'Próximo',
+    dictionaryDescription: 'Escolha palavras e crie seu próprio conjunto de aprendizado.',
+    trackProgress: 'Acompanhe Seu Progresso',
+    trackProgressDescription: 'Registre as palavras aprendidas e veja sua evolução.',
+    exerciseTitle: 'Reforce com Exercícios',
+    exerciseDescription: 'Teste seus conhecimentos com exercícios baseados nas palavras aprendidas ou adequadas ao seu nível.',
+    back: 'Voltar',
+    next: 'Avançar',
     start: 'Começar'
   },
   languages: {
@@ -27,114 +27,117 @@ export default {
     en: 'Inglês'
   },
   dataLoader: {
-    loading: 'Baixando dados de palavras e imagens...',
-    completed: 'Dados de palavras e imagens carregados com sucesso!',
-    error: 'Erro ao carregar os dados.',
+    loading: 'Carregando palavras e imagens...',
+    completed: 'Palavras e imagens carregadas com sucesso!',
+    error: 'Ocorreu um erro ao carregar os dados.',
     progress: 'Progresso: {0}%',
-    pleaseWait: 'Por favor, aguarde. Isso pode levar 1-2 minutos.',
+    pleaseWait: 'Por favor, aguarde. Isso pode levar de 1 a 2 minutos.',
     loadingImages: 'Preparando imagens de fundo...'
   },
   notifications: {
-    dailyReminderTitle: 'Hora da Palavra Diária! 📚',
+    dailyReminderTitle: 'Hora do Vocabulário Diário! 📚',
     dailyReminderBody: 'Que tal aprender novas palavras hoje?',
-    dailyWordReminder: 'Lembrete Diário de Palavras 📚',
+    dailyWordReminder: 'Lembrete de Palavras Diárias 📚',
     dailyWordReminderBody: 'Que tal aprender suas palavras de hoje?'
   },
   stats: {
     title: 'Estatísticas',
     totalWords: 'Total de {0} palavras aprendidas',
+    wordLists: 'Listas de Palavras',
+    learnedWords: 'Palavras Aprendidas',
     levels: {
       all: 'Todos',
       allDescription: 'Todas as Palavras',
       beginner: 'Iniciante',
       elementary: 'Elementar',
       preIntermediate: 'Pré-Intermediário',
-      upperIntermediate: 'Intermediário Superior',
+      upperIntermediate: 'Intermediário Avançado',
       advanced: 'Avançado',
-      proficiency: 'Proficiência',
-      examPrep: 'Preparação para Exame',
-      dictionary: 'Selecionados do Dicionário'
+      proficiency: 'Proficiente',
+      examPrep: 'Preparação para Exames',
+      dictionary: 'Selecionadas do Dicionário'
     },
     noWords: {
-      allLevels: 'Nenhuma palavra aprendida ainda',
+      allLevels: 'Ainda não há palavras aprendidas',
       specificLevel: 'Nenhuma palavra aprendida neste nível ainda',
-      subtext: 'As palavras aparecerão aqui conforme você for aprendendo'
+      subtext: 'As palavras aprendidas serão listadas aqui à medida que você progredir'
     },
     reinforcement: {
-      info: 'Você pode selecionar de 2 a 5 palavras para reforçar seu aprendizado. Você pode praticar novamente com correspondência visual usando as palavras selecionadas.',
+      info: 'Você pode selecionar de 2 a 5 palavras aprendidas para reforçar. Pratique associando essas palavras a imagens.',
       button: 'Reforçar {0} Palavras'
-    }
+    },
+    information: 'Informação'
   },
   languageSelector: {
     title: 'Seleção de Idioma',
-    description: 'Selecione seu idioma nativo para personalizar sua experiência de aprendizado. Significados de palavras e explicações serão mostrados no idioma selecionado.',
+    description: 'Personalize sua experiência de aprendizado escolhendo seu idioma nativo. Os significados e explicações das palavras serão exibidos no idioma selecionado.',
     nativeLanguage: 'Seu Idioma Nativo',
-    learningLanguage: 'Idioma para Aprender',
-    note: 'Atualmente, apenas inglês está disponível para aprendizado. Novos idiomas serão adicionados em breve.',
-    info: 'Você pode alterar sua seleção de idioma a qualquer momento. Quando você fizer uma alteração, as listas de palavras serão atualizadas de acordo com o novo idioma selecionado.'
+    learningLanguage: 'Idioma que Você Aprenderá',
+    note: 'No momento, apenas o aprendizado de inglês está disponível. Novos idiomas serão adicionados em breve.',
+    info: 'Você pode alterar sua seleção de idioma a qualquer momento. Ao fazer isso, as listas de palavras serão atualizadas para o idioma escolhido.'
   },
   wordList: {
     title: '{0} Palavras Selecionadas',
-    subtitle: 'Você está pronto para aprender estas palavras?',
+    subtitle: 'Pronto para aprender essas palavras?',
     loading: 'Carregando palavras...',
     wordLabel: 'Palavra',
     wordDetail: {
       meaning: 'Significado',
-      example: 'Exemplo:'
+      example: 'Frase de Exemplo:'
     },
     buttons: {
-      regenerate: 'Regenerar',
+      regenerate: 'Gerar Novamente',
       continue: 'Continuar'
     }
   },
   home: {
     title: 'Memoro',
-    subtitle: 'Assistente de Aprendizado de Palavras em Inglês',
+    subtitle: 'Assistente de Aprendizado de Vocabulário em Inglês',
     learnWords: 'Aprender Palavras',
     statistics: 'Estatísticas',
     settings: 'Configurações'
   },
   levelSelection: {
-    title: 'Selecione o Nível',
-    subtitle: 'Escolha o nível que você deseja aprender',
+    title: 'Escolha o Nível',
+    subtitle: 'Selecione o nível que deseja aprender',
     loading: 'Carregando...',
     levels: {
       A1: 'Iniciante',
-      A2: 'Básico',
+      A2: 'Elementar',
       B1: 'Pré-Intermediário',
-      B2: 'Intermediário Superior',
+      B2: 'Intermediário Avançado',
       C1: 'Avançado',
-      C2: 'Proficiente',
+      C2: 'Proficiente'
     },
     tabs: {
       home: 'Início',
       dictionary: 'Dicionário',
       stats: 'Estatísticas',
-      settings: 'Config'
+      settings: 'Configurações'
     }
   },
   wordCount: {
-    title: 'Número de Palavras',
-    subtitle: 'Quantas palavras você quer adicionar à sua tela de bloqueio?',
+    title: 'Quantidade de Palavras',
+    subtitle: 'Quantas palavras deseja adicionar à sua tela de bloqueio?',
     wordText: '{0} Palavras',
     levelText: 'Nível {0}',
     levels: {
       2: 'Iniciante',
-      3: 'Básico',
+      3: 'Fácil',
       4: 'Intermediário',
       5: 'Avançado'
     }
   },
   imageSelection: {
-    title: 'Selecione o Plano de Fundo',
-    subtitle: 'Escolha um belo plano de fundo para suas palavras',
+    title: 'Escolha o Fundo',
+    subtitle: 'Selecione um fundo bonito para suas palavras',
     loading: 'Carregando imagens...'
   },
   dictionaryScreen: {
     title: 'Dicionário',
-    wordCount: 'Quantas palavras você quer adicionar à sua tela de bloqueio?',
-    infoText: 'Selecione {0} palavras da lista ou pesquise. Com as palavras selecionadas, você pode escolher uma imagem de fundo para personalizar sua experiência de aprendizado na tela de bloqueio.',
-    searchPlaceholder: 'Pesquisar palavra em inglês ou significado em português...',
+    wordCount: 'Quantas palavras deseja adicionar à sua tela de bloqueio?',
+    infoText: 'Escolha {0} palavras da lista ou por meio de busca. Combine as palavras selecionadas com uma imagem de fundo para personalizar sua experiência de aprendizado e adicioná-las à sua tela de bloqueio.',
+    searchPlaceholder: 'Pesquise por palavra em inglês ou seu significado em português...',
     examplePrefix: 'Exemplo:',
     continueButton: 'Continuar ({0}/{1})',
     loadingMore: 'Carregando mais palavras...',
@@ -151,10 +154,11 @@ export default {
     error: 'Erro',
     success: 'Sucesso',
     emptyListName: 'O nome da lista não pode estar vazio',
-    createError: 'Erro ao criar lista',
+    createError: 'Ocorreu um erro ao criar a lista',
     addSuccess: 'Palavra adicionada à lista',
-    addError: 'Erro ao adicionar palavra',
-    noLists: 'Nenhuma lista criada ainda'
+    addError: 'Ocorreu um erro ao adicionar a palavra',
+    noLists: 'Nenhuma lista criada ainda',
+    addToList: 'Adicionar à Lista'
   },
   settings: {
     title: 'Configurações',
@@ -163,11 +167,11 @@ export default {
     themes: {
       light: {
         label: 'Tema Claro',
-        description: 'Fundo branco com texto escuro'
+        description: 'Fundo branco com textos escuros'
       },
       dark: {
         label: 'Tema Escuro',
-        description: 'Fundo escuro com texto claro'
+        description: 'Fundo escuro com textos claros'
       },
       pastel: {
         label: 'Tema Pastel',
@@ -175,73 +179,79 @@ export default {
       }
     },
     notifications: 'Notificações',
-    notificationTime: 'Lembretes serão enviados todos os dias às 10:00.',
+    notificationTime: 'Os lembretes serão enviados diariamente às 10:00.',
     offlineMode: 'Uso Offline',
-    offlineModeDescription: 'O modo offline permite que você acesse listas de palavras mesmo sem conexão com a internet. Para isso, você precisa baixar os dados primeiro.',
+    offlineModeDescription: 'O modo offline permite acessar listas de palavras mesmo sem conexão com a internet. Para isso, é necessário baixar os dados primeiro.',
     lastUpdated: 'Última atualização:',
     downloadingData: 'Baixando dados...',
     downloadAll: 'Baixar Todos os Dados',
     updateData: 'Atualizar Dados',
     downloadedData: {
       title: 'Dados Baixados',
-      description: 'As listas de palavras e dados visuais são baixados automaticamente no primeiro uso ou quando você muda o idioma, permitindo o uso offline do aplicativo. Você pode atualizar esses dados para acessar o conteúdo mais recente quando novas palavras e imagens forem adicionadas ou quando quiser verificar as atualizações.',
+      description: 'Para usar o aplicativo offline, as listas de palavras e imagens são baixadas automaticamente na primeira utilização ou ao mudar de idioma. Você pode atualizar esses dados para acessar o conteúdo mais recente quando novas palavras ou imagens forem adicionadas.',
       learningLanguage: 'Idioma Selecionado',
       update: 'Atualizar Dados',
       noData: 'Nenhum dado baixado ainda',
-      updateSuccess: 'Dados de palavras e imagens atualizados com sucesso',
-      updateError: 'Erro ao atualizar os dados'
+      updateSuccess: 'Palavras e imagens atualizadas com sucesso',
+      updateError: 'Ocorreu um erro ao atualizar os dados'
     }
   },
   wordOverlay: {
     preview: 'Visualização',
-    styleSection: 'Estilo de Texto',
-    positionSection: 'Posição das Palavras',
+    styleSection: 'Estilo',
+    positionSection: 'Posição',
     fontSize: 'Tamanho da Fonte',
-    xPosition: 'Posição X',
-    yPosition: 'Posição Y',
-    wordFormat: 'Formato de Palavra',
-    layoutPosition: 'Posição do Layout',
+    xPosition: 'Posição Horizontal',
+    yPosition: 'Posição Vertical',
+    wordFormat: 'Formato da Palavra',
+    formatTitle: 'Formato',
+    colorTitle: 'Cor',
+    fontTitle: 'Fonte',
+    layoutTitle: 'Layout',
+    fontSizeTitle: 'Tamanho',
+    horizontalTitle: 'Horizontal',
+    verticalTitle: 'Vertical',
+    horizontal: 'Horizontal',
+    vertical: 'Vertical',
+    pronunciation: 'Pronúncia da palavra',
+    layoutPosition: 'Posição',
     layoutPositions: {
       top: 'Superior',
-      middle: 'Meio',
+      middle: 'Centro',
       bottom: 'Inferior'
     },
-    formatTypes: {
-      standard: 'Padrão',
-      inline: 'Em linha',
-      compact: 'Compacto',
-      flashcard: 'Flashcard',
-      dictionary: 'Dicionário',
-      quiz: 'Quiz',
-      poetic: 'Poético',
-      bubble: 'Bolha',
-      memo: 'Memo',
-      modern: 'Moderno'
-    },
-    saveButton: 'Salvar',
-    customizeButton: 'Personalizar',
-    homeButton: 'Início',
     color: 'Cor',
     font: 'Fonte',
     defaultFont: 'Padrão',
     layout: 'Layout',
+    saveButton: 'Salvar',
+    customizeButton: 'Personalizar',
+    homeButton: 'Início',
+    wordTitle: 'Palavra',
+    formatTypes: {
+      inline: 'Em Linha',
+      standard: 'Padrão',
+      compact: 'Compacto',
+      flashcard: 'Cartão',
+      dictionary: 'Dicionário',
+      quiz: 'Quiz',
+      poetic: 'Poético',
+      bubble: 'Bolha',
+      memo: 'Nota',
+      modern: 'Moderno'
+    },
     layoutTypes: {
       plain: 'Simples',
       box: 'Caixa',
       gradient: 'Gradiente',
-      shadow: 'Sombra',
-      outline: 'Contorno',
-      minimal: 'Mínimo',
+      shadow: 'Sombreado',
+      outline: 'Contornado',
+      minimal: 'Minimalista',
       card3d: 'Cartão 3D',
       neon: 'Neon',
       vintage: 'Vintage',
-      watercolor: 'Aquarela',
-      boxShadow: 'Caixa com Sombra'
+      watercolor: 'Aquarela'
     },
-    horizontal: 'Horizontal',
-    vertical: 'Vertical',
-    pronunciation: 'pronúncia da palavra',
-    wordTitle: 'Palavra para Aprender',
     saveSuccess: 'Salvo com sucesso!',
     saveError: 'Falha ao salvar!',
     savePermissionError: 'Permissão necessária para salvar!',
@@ -253,92 +263,98 @@ export default {
     complete: 'Concluído!',
     continueButton: 'Continuar',
     closeButton: 'Fechar',
-    restartButton: 'Recomeçar'
+    restartButton: 'Reiniciar'
   },
   alerts: {
     permissionRequired: 'Permissão Necessária',
-    galleryPermission: 'É necessária permissão de galeria para salvar a imagem.',
+    galleryPermission: 'É necessária permissão para salvar a imagem na galeria.',
     error: 'Erro',
-    processingError: 'Ocorreu um erro durante o processo.',
+    processingError: 'Ocorreu um erro durante o processamento.',
     success: 'Sucesso! 🎉',
     imageSaved: 'Imagem salva na galeria!',
-    imageSavedWithTip: 'Imagem salva na galeria!\n\nVocê pode ir para a galeria e definir esta imagem como tela de bloqueio:\n1. Abra a imagem na galeria\n2. Clique no botão compartilhar ou menu\n3. Selecione "Definir como papel de parede"\n4. Escolha "Tela de bloqueio"',
-    imageAndWordsSaved: 'Imagem salva na galeria e palavras marcadas como aprendidas!\n\nVocê pode ir para a galeria e definir esta imagem como tela de bloqueio:\n1. Abra a imagem na galeria\n2. Clique no botão compartilhar ou menu\n3. Selecione "Definir como papel de parede"\n4. Escolha "Tela de bloqueio"',
-    okay: 'OK',
+    imageSavedWithTip: 'Imagem salva na galeria!\n\nAcesse a galeria para definir a imagem como tela de bloqueio:\n1. Abra a imagem na galeria\n2. Clique no botão de compartilhar ou no menu\n3. Selecione "Definir como papel de parede"\n4. Escolha a opção "Tela de bloqueio"',
+    imageAndWordsSaved: 'Imagem salva na galeria e palavras marcadas como aprendidas!\n\nAcesse a galeria para definir a imagem como tela de bloqueio:\n1. Abra a imagem na galeria\n2. Clique no botão de compartilhar ou no menu\n3. Selecione "Definir como papel de parede"\n4. Escolha a opção "Tela de bloqueio"',
+    okay: 'Ok',
+    viewInGallery: 'Ver na Galeria',
     dataDownloadSuccess: 'Todas as listas de palavras e imagens foram baixadas. Agora você pode usar o aplicativo offline.',
-    dataDownloadError: 'Ocorreu um erro ao baixar os dados. Por favor, verifique sua conexão com a internet e tente novamente.',
+    dataDownloadError: 'Ocorreu um erro ao baixar os dados. Verifique sua conexão com a internet e tente novamente.',
     dataSyncSuccess: 'Dados e imagens atualizados com sucesso.',
-    dataSyncError: 'Ocorreu um erro ao atualizar os dados. Por favor, verifique sua conexão com a internet e tente novamente.',
-    notificationSchedulingError: 'Ocorreu um erro ao agendar a notificação.',
-    notificationCancellationError: 'Ocorreu um erro ao cancelar as notificações.'
+    dataSyncError: 'Ocorreu um erro ao atualizar os dados. Verifique sua conexão com a internet e tente novamente.',
+    notificationSchedulingError: 'Ocorreu um problema ao agendar as notificações.',
+    notificationCancellationError: 'Ocorreu um problema ao cancelar as notificações.'
   },
   exercise: {
     title: 'Exercícios',
-    subtitle: 'Teste e melhore seu conhecimento de vocabulário',
-    noWords: 'Você precisa aprender pelo menos 2 palavras para fazer exercícios.',
+    subtitle: 'Teste e melhore seu vocabulário',
+    noWords: 'É necessário aprender pelo menos 2 palavras para realizar exercícios.',
     start: 'Iniciar Exercícios',
     history: 'Histórico de Exercícios',
     score: 'Pontuação: {0}/{1}',
     learnedWordsExercise: 'Com Palavras Aprendidas',
     learnedWordsExerciseDesc: 'Pratique com as palavras que você já aprendeu',
-    dictionaryExercise: 'Palavras Aleatórias por Nível',
-    dictionaryExerciseDesc: 'Teste seu conhecimento com palavras do nível selecionado',
-    exerciseOptions: 'Opções de Exercício',
-    selectLevel: 'Selecione o Nível',
+    dictionaryExercise: 'Palavras Aleatórias do Seu Nível',
+    dictionaryExerciseDesc: 'Teste seus conhecimentos com palavras do nível selecionado',
+    exerciseOptions: 'Opções de Exercícios',
+    selectLevel: 'Escolha o Nível',
     startExercise: 'Iniciar Exercício',
-    learnedSource: 'Das Aprendidas',
+    learnedSource: 'Do Aprendizado',
     dictionarySource: 'Do Dicionário',
-    exercises: {
-      fillInTheBlank: 'Preencher Lacunas',
-      wordMatch: 'Correspondência de Palavras',
-      mixed: 'Misturado',
-      sentenceMatch: 'Correspondência de Frases',
-    },
+    wordListExercise: 'Exercício com Lista de Palavras',
+    wordListExerciseDesc: 'Pratique com as palavras de uma lista selecionada',
+    selectWordList: 'Selecionar Lista de Palavras',
+    noWordLists: 'Nenhuma lista de palavras criada ainda',
     question: {
-      title: 'Questão {0}/{1}',
-      screenTitle: 'Questão',
-      fillInTheBlank: 'Preencha a lacuna:',
-      wordMatch: 'Escolha a correspondência correta:',
-      sentenceMatchQuestionPrompt: 'Escolha a frase em inglês correta para a palavra com o significado dado:',
+      title: 'Pergunta',
+      screenTitle: 'Exercício',
+      fillInTheBlank: 'Preencha a Lacuna',
+      wordMatch: 'Associação de Palavras',
+      sentenceMatchQuestionPrompt: 'A qual palavra esta frase pertence?',
       correct: 'Correto!',
       incorrect: 'Incorreto!',
-      correctAnswer: 'Resposta Correta: {0}',
+      wrong: 'Errado!',
+      correctAnswer: 'Resposta Correta',
       next: 'Próximo',
-      finish: 'Finalizar',
+      finish: 'Finalizar'
+    },
+    exercises: {
+      fillInTheBlank: 'Preencher Lacunas',
+      wordMatch: 'Associação de Palavras',
+      mixed: 'Misto',
+      sentenceMatch: 'Associação de Frases'
     },
     result: {
       title: 'Resultado do Exercício',
       score: 'Sua pontuação: {0}/{1}',
-      perfect: 'Perfeito! Você acertou todas as questões!',
-      great: 'Ótimo! Você conseguiu uma pontuação muito boa!',
-      good: 'Bom! Você pode melhorar ainda mais com mais prática.',
+      perfect: 'Perfeito! Você acertou todas as perguntas!',
+      great: 'Ótimo! Você obteve uma pontuação excelente!',
+      good: 'Bom! Com um pouco mais de prática, você pode melhorar ainda mais.',
       needsPractice: 'Você precisa praticar mais. Tente novamente!',
       tryAgain: 'Tentar Novamente',
       backToExercises: 'Voltar aos Exercícios',
-      date: 'Data: {0}',
+      date: 'Data: {0}'
     },
     egsersizeHistory: {
       title: 'Histórico de Exercícios',
-      empty: 'Ainda não há exercícios concluídos.',
+      empty: 'Nenhum exercício concluído ainda.'
     },
     historyItem: {
       date: 'Data: {0}',
       score: 'Pontuação: {0}/{1}',
-      type: 'Tipo: {0}',
+      type: 'Tipo: {0}'
     },
     tabs: {
       exercise: 'Exercício',
       stats: 'Estatísticas',
-      settings: 'Configurações',
+      settings: 'Configurações'
     }
   },
   more: {
-    title: 'Mais',
+    title: 'Mais'
   },
   grammar: {
     title: 'Gramática',
-    subtitle: 'Aprenda regras gramaticais',
+    subtitle: 'Aprenda as regras gramaticais',
     comingSoon: 'Em breve...',
-    selectLevel: 'Selecione o Nível',
-  },
-}; 
+    selectLevel: 'Escolha o Nível'
+  }
+};
