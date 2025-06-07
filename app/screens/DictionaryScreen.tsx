@@ -246,14 +246,14 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
   };
 
   const renderItem = ({ item }: { item: Word }) => {
-    const isSelected = selectedWords.some(w => w.word === item.word);
+    const isSelected = !isModal && selectedWords.some(w => w.word === item.word);
     return (
       <TouchableOpacity
         style={[
           styles.wordItemContainer,
           isSelected && styles.selectedWordItemContainer
         ]}
-        onPress={() => handleWordSelect(item)}
+        onPress={() => !isModal && handleWordSelect(item)}
       >
         <View style={[
           styles.wordItem,
@@ -272,29 +272,27 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
             </Text>
           </View>
           
-          <View style={styles.wordHeader}>
-            <View style={styles.wordMain}>
-              <View style={styles.wordWithSpeech}>
-                <Text style={[styles.wordText, { color: colors.text.primary }]}>{item.word}</Text>
-                <TouchableOpacity 
-                  style={styles.speakButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    speakText(item.word);
-                  }}
-                >
-                  <MaterialIcons name="volume-up" size={20} color={colors.primary} />
-                </TouchableOpacity>
-              </View>
-              <Text style={[styles.meaningText, { color: colors.text.secondary }]}>{item.meaning}</Text>
-              {item.example && (
-                <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
-                  <Text style={styles.examplePrefix}>{translations.dictionaryScreen.examplePrefix}</Text> {item.example}
-                </Text>
-              )}
+          <View style={styles.wordMain}>
+            <View style={styles.wordWithSpeech}>
+              <Text style={[styles.wordText, { color: colors.text.primary }]}>{item.word}</Text>
+              <TouchableOpacity 
+                style={styles.speakButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  speakText(item.word);
+                }}
+              >
+                <MaterialIcons name="volume-up" size={20} color={colors.primary} />
+              </TouchableOpacity>
             </View>
+            <Text style={[styles.meaningText, { color: colors.text.secondary }]}>{item.meaning}</Text>
+            {item.example && (
+              <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
+                <Text style={styles.examplePrefix}>{translations.dictionaryScreen.examplePrefix}</Text> {item.example}
+              </Text>
+            )}
           </View>
-          
+
           <View style={styles.wordActions}>
             <TouchableOpacity
               style={[styles.addToListButton, { backgroundColor: colors.primary + '15' }]}
@@ -309,27 +307,29 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
               </Text>
             </TouchableOpacity>
             
-            <TouchableOpacity
-              style={[styles.selectButton, { 
-                backgroundColor: isSelected ? colors.primary + '15' : 'transparent',
-                borderColor: isSelected ? colors.primary : colors.border,
-              }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleWordSelect(item);
-              }}
-            >
-              <MaterialIcons 
-                name={isSelected ? "check" : "add"} 
-                size={16} 
-                color={isSelected ? colors.primary : colors.text.secondary} 
-              />
-              <Text style={[styles.selectButtonText, { 
-                color: isSelected ? colors.primary : colors.text.secondary,
-              }]}>
-                {isSelected ? 'Seçildi' : 'Seç'}
-              </Text>
-            </TouchableOpacity>
+            {!isModal && (
+              <TouchableOpacity
+                style={[styles.selectButton, { 
+                  backgroundColor: isSelected ? colors.primary + '15' : 'transparent',
+                  borderColor: isSelected ? colors.primary : colors.border,
+                }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleWordSelect(item);
+                }}
+              >
+                <MaterialIcons 
+                  name={isSelected ? "check" : "add"} 
+                  size={16} 
+                  color={isSelected ? colors.primary : colors.text.secondary} 
+                />
+                <Text style={[styles.selectButtonText, { 
+                  color: isSelected ? colors.primary : colors.text.secondary,
+                }]}>
+                  {isSelected ? 'Seçildi' : 'Seç'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -653,12 +653,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
-  wordHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 6,
-  },
   wordMain: {
     flex: 1,
     paddingRight: 30,
@@ -680,10 +674,6 @@ const styles = StyleSheet.create({
   examplePrefix: {
     fontWeight: '500',
     fontStyle: 'normal',
-  },
-  wordMeta: {
-    marginLeft: 8,
-    alignItems: 'flex-end',
   },
   wordWithSpeech: {
     flexDirection: 'row',
