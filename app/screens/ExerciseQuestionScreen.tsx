@@ -78,7 +78,7 @@ const ExerciseQuestionScreen: React.FC = () => {
   const [missingWordIndex, setMissingWordIndex] = useState(-1);
   const [sentence, setSentence] = useState<string[]>([]);
   const [currentQuestionType, setCurrentQuestionType] = useState<'fillInTheBlank' | 'wordMatch' | 'sentenceMatch'>('fillInTheBlank');
-  
+
   // İlerleme çubuğu animasyonu için ref
   const progressAnimValue = useRef(new Animated.Value(0)).current;
   const progressBlinkAnim = useRef(new Animated.Value(1)).current;
@@ -247,6 +247,34 @@ const ExerciseQuestionScreen: React.FC = () => {
   useEffect(() => {
     loadWords();
   }, []);
+
+  // Soru yüklendiğinde otomatik okuma için useEffect
+  useEffect(() => {
+    if (currentQuestion && !loading && currentQuestionType !== 'sentenceMatch') {
+      // Soru tipine göre okunacak metni belirle
+      if (currentQuestionType === 'wordMatch') {
+        // Kelime eşleştirme sorusunda kelimeyi oku
+        speakText(currentQuestion.word);
+      } else if (currentQuestionType === 'fillInTheBlank' && currentQuestion.example) {
+        // Boşluk doldurma sorusunda cümleyi parçalara ayır
+        const wordBase = currentQuestion.word.replace(/ed$|ing$|s$/, '');
+        const regex = new RegExp(`\\b${wordBase}\\w*\\b`, 'i');
+        const parts = currentQuestion.example.split(regex);
+        
+        // İlk parçayı oku
+        if (parts[0]) {
+          speakText(parts[0]);
+        }
+
+        // Boşluktan sonraki kısmı 1 saniye bekleyip oku
+        if (parts[1]) {
+          setTimeout(() => {
+            speakText(parts[1]);
+          }, 1000);
+        }
+      }
+    }
+  }, [currentQuestion, currentQuestionType, loading]);
 
   const loadWords = async () => {
     setLoading(true);
