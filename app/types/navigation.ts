@@ -36,8 +36,9 @@ export type RootStackParamList = {
   Exercise: undefined;
   WordListDetail: {
     listId: string;
-    level: string;
-    wordCount: number;
+    level?: string;
+    wordCount?: number;
+    listName: string;
   };
   ExerciseQuestion: {
     exerciseType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'mixed';
@@ -76,8 +77,4 @@ export type RootStackParamList = {
     details: QuestionDetail[];
   };
   WordLists: undefined;
-  WordList: {
-    listId: number;
-    listName: string;
-  };
 }; 

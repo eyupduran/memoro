@@ -197,7 +197,7 @@ class StorageService {
   }
 
   // Resimleri indir ve yerel dosya sistemine kaydet
-  private async downloadAndCacheImages(imageUrls: string[]): Promise<string[]> {
+  async downloadAndCacheImages(imageUrls: string[]): Promise<string[]> {
     // Önce cache dizininin var olduğundan emin olalım
     await this.ensureCacheDirectoryExists();
     
@@ -210,6 +210,18 @@ class StorageService {
       const fileName = this.getFileNameFromUrl(url);
       const localFilePath = `${IMAGE_CACHE_DIR}${fileName}`;
       
+      // Önce dosyanın var olup olmadığını kontrol et
+      const fileInfo = await FileSystem.getInfoAsync(localFilePath);
+      
+      // Eğer dosya zaten varsa, doğrudan listeye ekle
+      if (fileInfo.exists) {
+        cachedPaths.push(localFilePath);
+        // Veritabanında da güncelleyelim
+        await dbService.updateBackgroundImageLocalPath(url, localFilePath);
+        continue;
+      }
+      
+      // Dosya yoksa indirme işlemini ekle
       downloadPromises.push(
         this.downloadImage(url, localFilePath)
           .then(() => {
@@ -226,7 +238,9 @@ class StorageService {
     }
     
     // Tüm indirme işlemlerinin tamamlanmasını bekleyelim
-    await Promise.all(downloadPromises);
+    if (downloadPromises.length > 0) {
+      await Promise.all(downloadPromises);
+    }
     
     return cachedPaths;
   }

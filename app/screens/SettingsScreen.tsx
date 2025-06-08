@@ -11,19 +11,32 @@ import * as Notifications from 'expo-notifications';
 import { LanguageSelectorSettings } from '../components/LanguageSelectorSettings';
 import { DataLoader } from '../components/DataLoader';
 import { checkWordDataExists } from '../utils/database';
+import { BackupRestoreSection } from '../components/BackupRestoreSection';
+import { translations as allTranslations, NativeLanguage } from '../contexts/LanguageContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
-export const SettingsScreen: React.FC<Props> = () => {
+export const SettingsScreen: React.FC<Props> = (props) => {
   const { theme, setTheme, colors } = useTheme();
-  const { translations, currentLanguagePair, showDataLoader, setShowDataLoader } = useLanguage();
+  const { translations, currentLanguagePair, showDataLoader: globalShowDataLoader, setShowDataLoader: setGlobalShowDataLoader, setNativeLanguage } = useLanguage();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [hasDownloadedData, setHasDownloadedData] = useState(false);
+  const [showDataLoader, setShowDataLoader] = useState(false);
 
   useEffect(() => {
-    checkNotificationSettings();
-    checkDownloadedData();
-  }, [currentLanguagePair]);
+    // Odaklanma olayını dinle
+    const unsubscribe = props.navigation.addListener('focus', () => {
+      checkDownloadedData();
+      checkNotificationSettings();
+      // Başka bir ekranda tetiklenmiş olabilecek global loader'ı kapat
+      if (globalShowDataLoader) {
+        setGlobalShowDataLoader(false);
+      }
+    });
+
+    // Temizleme
+    return unsubscribe;
+  }, [props.navigation, currentLanguagePair, globalShowDataLoader]);
 
   const checkNotificationSettings = async () => {
     try {
@@ -147,8 +160,51 @@ export const SettingsScreen: React.FC<Props> = () => {
 
   // Veri indirme işlemi tamamlandığında
   const onDataLoadComplete = async () => {
-    setShowDataLoader(false);
+    setShowDataLoader(false); // Local loader'ı kapat
     await checkDownloadedData(); // Verileri tekrar kontrol et
+  };
+
+  const handleImportComplete = (result: { success: boolean; languagePair?: string }) => {
+    if (result.success && result.languagePair) {
+      if (result.languagePair !== currentLanguagePair) {
+        // Dil çifti farklı, güncelleme gerekiyor
+        const newNativeLang = result.languagePair.split('-')[1] as NativeLanguage;
+        
+        setNativeLanguage(newNativeLang);
+        
+        const newTranslations = allTranslations[newNativeLang];
+
+        setTimeout(() => {
+          Alert.alert(
+            newTranslations.settings.backup.languageChangedTitle,
+            newTranslations.settings.backup.languageChangedMessage,
+            [
+              {
+                text: newTranslations.alerts.okay,
+                onPress: () => {
+                  setShowDataLoader(true); // Veri indirmeyi tetikle
+                }
+              }
+            ]
+          );
+        }, 500);
+
+      } else {
+        // Dil çifti aynı, normal başarı mesajı
+        setTimeout(() => {
+          Alert.alert(
+            translations.alerts.success,
+            translations.settings.backup.importSuccess
+          );
+        }, 500);
+      }
+    } else {
+      // İçe aktarma başarısız oldu
+       Alert.alert(
+        translations.alerts.error,
+        translations.settings.backup.importError
+      );
+    }
   };
 
   const themes: { type: ThemeType; label: string; icon: keyof typeof MaterialIcons.glyphMap; description: string }[] = [
@@ -273,13 +329,32 @@ export const SettingsScreen: React.FC<Props> = () => {
             
             <TouchableOpacity
               style={[styles.updateButton, { backgroundColor: colors.primary }]}
-              onPress={() => setShowDataLoader(true)}
+              onPress={() => {
+                // Global loader'ı etkilemeden sadece bu ekranda loader'ı göster
+                if (globalShowDataLoader) {
+                  setGlobalShowDataLoader(false);
+                }
+                setShowDataLoader(true);
+              }}
             >
               <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>
                 {translations.settings.downloadedData.update}
               </Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Backup and Restore Section */}
+        <View style={styles.section}>
+          <BackupRestoreSection 
+            currentLanguagePair={currentLanguagePair} 
+            onRestoreComplete={() => {
+              // Tema ve dil ayarlarını kontrol et
+              checkNotificationSettings();
+              checkDownloadedData();
+            }}
+            onImportComplete={handleImportComplete}
+          />
         </View>
 
         <View style={[styles.section, { marginBottom: 0 }]}>

@@ -89,7 +89,6 @@ export const GrammarLevelModal: React.FC<Props> = ({ visible, onClose, onSelectL
                 ]}
                 onPress={() => {
                   onSelectLevel(level.url);
-                  onClose();
                 }}
               >
                 <View style={styles.menuItemContent}>

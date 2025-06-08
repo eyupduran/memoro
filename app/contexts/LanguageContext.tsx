@@ -5,8 +5,15 @@ import pt from '../locales/pt';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dbService } from '../services/database';
 
-type NativeLanguage = 'tr' | 'pt';
+export const translations = {
+  tr,
+  pt,
+};
+
+export type NativeLanguage = keyof typeof translations;
 type LearningLanguage = 'en';
+
+const availableNativeLanguages = Object.keys(translations) as NativeLanguage[];
 
 interface LanguageContextType {
   nativeLanguage: NativeLanguage;
@@ -22,11 +29,6 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
-
-const translations: Record<NativeLanguage, typeof tr> = {
-  tr,
-  pt,
-};
 
 const WORD_LIST_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const DEFAULT_LANGUAGE: NativeLanguage = 'tr';
@@ -47,7 +49,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const savedNativeLanguage = await storageService.getItem('selectedLanguage');
       const savedLearningLanguage = await storageService.getItem('learningLanguage');
 
-      if (savedNativeLanguage && (savedNativeLanguage === 'tr' || savedNativeLanguage === 'pt')) {
+      if (savedNativeLanguage && availableNativeLanguages.includes(savedNativeLanguage as NativeLanguage)) {
         setNativeLanguageState(savedNativeLanguage as NativeLanguage);
       } else {
         await storageService.setItem('selectedLanguage', DEFAULT_LANGUAGE);

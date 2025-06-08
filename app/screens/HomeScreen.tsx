@@ -12,7 +12,7 @@ export const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { translations } = useLanguage();
 
-  const menuItems = [
+  const menuItems: { id: string; title: string; icon: keyof typeof MaterialIcons.glyphMap; screen: keyof RootStackParamList }[] = [
     {
       id: 'dictionary',
       title: translations.home.dictionary,
@@ -57,7 +57,7 @@ export const HomeScreen = () => {
           <TouchableOpacity 
             key={item.id}
             style={styles.menuItem}
-            onPress={() => navigation.navigate(item.screen)}
+            onPress={() => navigation.navigate(item.screen as any)}
           >
             <MaterialIcons name={item.icon} size={40} color="#4A90E2" />
             <Text style={styles.menuText}>{item.title}</Text>

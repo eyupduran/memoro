@@ -41,10 +41,13 @@ const fetchWordList = async (level: string): Promise<WordList> => {
     
     console.log(`Retrieved ${words.length} words from SQLite for level ${level}`);
     
-    return { words };
+    // Son güncelleme tarihini al veya şimdiki zamanı kullan
+    const lastUpdated = await dbService.getDbInfo(`lastUpdate_${languagePair}`) || new Date().toISOString();
+    
+    return { words, lastUpdated };
   } catch (error) {
     console.error(`Error fetching word list for ${level}:`, error);
-    return { words: [] };
+    return { words: [], lastUpdated: new Date().toISOString() };
   }
 };
 

@@ -114,7 +114,7 @@ export const DataLoader: React.FC<DataLoaderProps> = ({
       // Arkaplan resimleri veritabanında kayıtlı mı kontrol et
       const hasImages = await dbService.hasBackgroundImagesInDb();
       
-      if (!hasImages) {
+      if (!hasImages || forceUpdate) {
         // Resim URL'lerini GitHub'dan al
         const imageUrls = await fetchGithubImages();
         
@@ -123,11 +123,26 @@ export const DataLoader: React.FC<DataLoaderProps> = ({
           const imageObjects = imageUrls.map(url => ({ url }));
           await dbService.saveBackgroundImages(imageObjects);
           console.log(`${imageUrls.length} arkaplan resmi veritabanına kaydedildi`);
+          
+          // Resimleri önbelleğe al (storage servisini import etmek yerine doğrudan dbService üzerinden çağırıyoruz)
+          const { storageService } = require('../services/storage');
+          await storageService.downloadAndCacheImages(imageUrls);
+          console.log('Arkaplan resimleri önbelleğe alındı');
         } else {
           console.warn('Hiç arkaplan resmi bulunamadı');
         }
       } else {
         console.log('Arkaplan resimleri zaten veritabanında kayıtlı');
+        
+        // Veritabanında kayıtlı resimlerin yerel dosya sisteminde de var olduğundan emin ol
+        const dbImages = await dbService.getBackgroundImages();
+        const imageUrls = dbImages.map(img => img.url);
+        
+        if (imageUrls.length > 0) {
+          const { storageService } = require('../services/storage');
+          await storageService.downloadAndCacheImages(imageUrls);
+          console.log('Arkaplan resimleri önbelleğe alındı/güncellendi');
+        }
       }
       
       setLoadingImages(false);

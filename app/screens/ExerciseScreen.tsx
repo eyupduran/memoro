@@ -174,6 +174,8 @@ const ExerciseScreen: React.FC = () => {
     const unsubscribe = navigation.addListener('focus', () => {
       // Ekran her odaklandığında verileri yeniden yükle
       loadData();
+      // Yarım kalan egzersizleri kontrol et
+      checkUnfinishedExercise();
     });
 
     // Cleanup fonksiyonu
@@ -781,6 +783,12 @@ const ExerciseScreen: React.FC = () => {
       {renderWordListModal()}
 
       {unfinishedExercise && (
+        <>
+          <View style={[styles.unfinishedExerciseHeader, { backgroundColor: colors.background }]}>
+            <Text style={[styles.unfinishedExerciseHeaderText, { color: colors.text.primary }]}>
+              {translations.exercise.unfinishedExercise?.title || 'Tamamlanmayan Egzersiz'}
+            </Text>
+          </View>
         <TouchableOpacity
           style={[styles.unfinishedExerciseCard, { backgroundColor: colors.primary + '20' }]}
           onPress={continueExercise}
@@ -792,12 +800,15 @@ const ExerciseScreen: React.FC = () => {
                 {translations.exercise.continueExercise || 'Egzersize Devam Et'}
               </Text>
               <Text style={[styles.unfinishedExerciseDetails, { color: colors.text.secondary }]}>
-                {`${translations.exercise.score}: ${unfinishedExercise.score}/${unfinishedExercise.questionIndex}`}
+                  {formatString(translations.exercise.unfinishedExercise?.progress || 'İlerleme: {0}/{1}', 
+                    unfinishedExercise.score, 
+                    unfinishedExercise.totalQuestions)}
               </Text>
             </View>
           </View>
           <MaterialIcons name="chevron-right" size={24} color={colors.primary} />
         </TouchableOpacity>
+        </>
       )}
     </View>
   );
@@ -1036,8 +1047,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 4,
   },
+  unfinishedExerciseHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  unfinishedExerciseHeaderText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   unfinishedExerciseCard: {
     margin: 16,
+    marginTop: 0,
     padding: 16,
     borderRadius: 12,
     flexDirection: 'row',

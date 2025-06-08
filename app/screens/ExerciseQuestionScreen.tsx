@@ -1206,6 +1206,8 @@ const ExerciseQuestionScreen: React.FC = () => {
 
     try {
       await storageService.saveUnfinishedExercise(unfinishedExercise);
+      // Egzersiz sayfasına geri döndüğünde yarım kalan egzersizi hemen görebilmesi için
+      // ExerciseScreen'deki checkUnfinishedExercise fonksiyonu navigation.focus event'inde çağrılacak
     } catch (error) {
       console.error('Error saving unfinished exercise:', error);
     }

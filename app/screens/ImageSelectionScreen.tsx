@@ -17,6 +17,7 @@ import { RootStackParamList } from '../types/navigation';
 import { storageService } from '../services/storage';
 import { dbService } from '../services/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
 import type { Word } from '../types/words';
 
 const { width } = Dimensions.get('window');
@@ -67,13 +68,44 @@ export const ImageSelectionScreen: React.FC<Props> = ({ navigation, route }) => 
           .map(img => img.localPath as string);
           
         if (localImages.length > 0) {
-          // Yerel dosyalara öncelik ver
-          setBackgrounds(shuffleArray(localImages));
-        } else {
-          // Yerel dosya yoksa URL'leri kullan
-          const imageUrls = dbImages.map(img => img.url);
-          setBackgrounds(shuffleArray(imageUrls));
+          // Yerel dosyaların gerçekten var olduğunu kontrol et
+          const validLocalImages = await validateLocalImages(localImages);
+          
+          if (validLocalImages.length > 0) {
+            // Yerel dosyalara öncelik ver
+            setBackgrounds(shuffleArray(validLocalImages));
+            setLoading(false);
+            return;
+          }
         }
+        
+        // Yerel dosya yoksa veya geçersizse URL'leri kullan
+        // Ancak önce bu URL'leri indirmeye çalış
+        const imageUrls = dbImages.map(img => img.url);
+        
+        // İnternet bağlantısı kontrolü
+        const isConnected = await checkInternetConnection();
+        
+        if (isConnected) {
+          // İnternet varsa resimleri indir
+          console.log('İnternet bağlantısı var, resimleri indirmeye çalışılıyor...');
+          try {
+            const { storageService } = require('../services/storage');
+            const cachedImages = await storageService.downloadAndCacheImages(imageUrls);
+            
+            if (cachedImages.length > 0) {
+              setBackgrounds(shuffleArray(cachedImages));
+              setLoading(false);
+              return;
+            }
+          } catch (downloadError) {
+            console.error('Resim indirme hatası:', downloadError);
+            // İndirme başarısız olursa URL'leri kullan
+          }
+        }
+        
+        // İndirme başarısız olduysa veya internet yoksa URL'leri kullan
+        setBackgrounds(shuffleArray(imageUrls));
       } else {
         // Veritabanında resim yok, StorageService üzerinden yükle
         console.log('Veritabanında resim bulunamadı, StorageService kullanılıyor');
@@ -86,6 +118,43 @@ export const ImageSelectionScreen: React.FC<Props> = ({ navigation, route }) => 
       setBackgrounds([]);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Yerel dosyaların var olup olmadığını kontrol et
+  const validateLocalImages = async (imagePaths: string[]): Promise<string[]> => {
+    const validImages: string[] = [];
+    
+    for (const path of imagePaths) {
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(path);
+        if (fileInfo.exists) {
+          validImages.push(path);
+        }
+      } catch (error) {
+        console.warn(`Dosya kontrolü başarısız: ${path}`, error);
+      }
+    }
+    
+    return validImages;
+  };
+  
+  // Basit internet bağlantısı kontrolü
+  const checkInternetConnection = async (): Promise<boolean> => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch('https://www.google.com', { 
+        method: 'HEAD',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch (error) {
+      console.log('İnternet bağlantısı yok veya zayıf');
+      return false;
     }
   };
 
@@ -114,14 +183,14 @@ export const ImageSelectionScreen: React.FC<Props> = ({ navigation, route }) => 
     return (
       <View style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background }]}>
         <Text style={[styles.errorText, { color: colors.error }]}>
-          Resimler yüklenemedi. Lütfen internet bağlantınızı kontrol edin.
+          {translations.imageSelection.error}
         </Text>
         <TouchableOpacity 
           style={[styles.retryButton, { backgroundColor: colors.primary }]}
           onPress={loadImages}
         >
           <Text style={[styles.retryButtonText, { color: colors.background }]}>
-            Tekrar Dene
+            {translations.imageSelection.retry}
           </Text>
         </TouchableOpacity>
       </View>

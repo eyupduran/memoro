@@ -95,7 +95,12 @@ export default {
     subtitle: 'İngilizce Kelime Öğrenme Asistanı',
     learnWords: 'Kelime Öğren',
     statistics: 'İstatistikler',
-    settings: 'Ayarlar'
+    settings: 'Ayarlar',
+    dictionary: 'Sözlük',
+    grammar: 'Gramer',
+    exercise: 'Egzersizler',
+    wordLists: 'Kelime Listeleri',
+    games: 'Oyunlar'
   },
   levelSelection: {
     title: 'Seviye Seçin',
@@ -131,7 +136,9 @@ export default {
   imageSelection: {
     title: 'Arka Plan Seçin',
     subtitle: 'Kelimeleriniz için güzel bir arka plan seçin',
-    loading: 'Resimler yükleniyor...'
+    loading: 'Resimler yükleniyor...',
+    error: 'Resimler yüklenemedi. Lütfen internet bağlantınızı kontrol edin.',
+    retry: 'Tekrar Dene'
   },
   dictionaryScreen: {
     title: 'Sözlük',
@@ -196,6 +203,27 @@ export default {
       noData: 'Henüz indirilmiş veri bulunmuyor',
       updateSuccess: 'Kelime ve resim verileri başarıyla güncellendi',
       updateError: 'Veriler güncellenirken bir hata oluştu'
+    },
+    backup: {
+      title: 'Veri Yedekleme ve Geri Yükleme',
+      description: 'Öğrendiğiniz kelimeler, egzersiz geçmişiniz ve diğer kişisel verilerinizi yedekleyebilir ve gerektiğinde geri yükleyebilirsiniz. Bu özellik, uygulamayı yeniden yüklediğinizde verilerin kaybolmasını önler.',
+      export: 'Verileri Dışa Aktar',
+      import: 'Verileri İçe Aktar',
+      exportSuccess: 'Veriler başarıyla dışa aktarıldı',
+      exportError: 'Veriler dışa aktarılırken bir hata oluştu',
+      importSuccess: 'Veriler başarıyla içe aktarıldı',
+      importError: 'Veriler içe aktarılırken bir hata oluştu',
+      exportInfo: 'Verileriniz cihazınıza kaydedilecektir. Bu dosyayı güvenli bir yerde saklayın.',
+      importInfo: 'Önceden dışa aktardığınız bir yedek dosyasını seçin.',
+      importWarning: 'Dikkat: Bu işlem mevcut verilerinizin üzerine yazacaktır. Devam etmek istiyor musunuz?',
+      importConfirm: 'Evet, Devam Et',
+      importCancel: 'İptal',
+      exportDate: 'Yedekleme Tarihi: {0}',
+      selectFile: 'Dosya Seç',
+      noFileSelected: 'Dosya seçilmedi',
+      fileSelected: 'Seçilen dosya: {0}',
+      languageChangedTitle: 'Dil Ayarı Değişti',
+      languageChangedMessage: 'Veri yedeklemeniz farklı bir dil çifti içeriyor. Uygulama ayarlarınız güncellendi ve ilgili kelime verileri şimdi indirilecek.'
     }
   },
   wordOverlay: {
@@ -308,6 +336,12 @@ export default {
     wordListExerciseDesc: 'Seçtiğiniz kelime listesindeki kelimelerle egzersiz yapın',
     selectWordList: 'Kelime Listesi Seç',
     noWordLists: 'Henüz kelime listesi oluşturulmamış',
+    continueExercise: 'Egzersize Devam Et',
+    unfinishedExercise: {
+      title: 'Tamamlanmayan Egzersizler',
+      progress: 'İlerleme: {0}/{1}',
+      continue: 'Devam Et'
+    },
     exitWarning: {
       title: 'Egzersizden Çıkış',
       message: 'Egzersizi tamamlamadınız. Çıkmak istediğinizden emin misiniz?',
@@ -392,5 +426,8 @@ export default {
   dictionary: {
     title: 'Sözlük',
     close: 'Kapat'
+  },
+  words: {
+    newWords: 'Yeni Kelimeler',
   },
 };

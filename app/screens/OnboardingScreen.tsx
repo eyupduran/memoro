@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,6 +9,8 @@ import { useTheme } from '../context/ThemeContext';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { useLanguage } from '../contexts/LanguageContext';
 import { DataLoader } from '../components/DataLoader';
+import { backupService } from '../services/backup';
+import { translations as allTranslations, NativeLanguage } from '../contexts/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -17,9 +19,12 @@ type OnboardingScreenNavigationProp = NativeStackNavigationProp<RootStackParamLi
 export const OnboardingScreen = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
   const [activeIndex, setActiveIndex] = useState(0);
-  const { colors } = useTheme();
-  const { translations, currentLanguagePair } = useLanguage();
+  const { colors, setTheme } = useTheme();
+  const { translations, currentLanguagePair, setNativeLanguage } = useLanguage();
   const [showDataLoader, setShowDataLoader] = useState(false);
+  const [showImportOption, setShowImportOption] = useState(false);
+  const [isUpdatingDataForNewLanguage, setIsUpdatingDataForNewLanguage] = useState(false);
+  const [newLanguagePair, setNewLanguagePair] = useState<string | null>(null);
 
   const onboardingData = [
     {
@@ -84,13 +89,104 @@ export const OnboardingScreen = () => {
 
   const onDataLoadComplete = async () => {
     try {
-      await AsyncStorage.setItem('hasSeenOnboarding', 'true');
       setShowDataLoader(false);
-      navigation.replace('LevelSelection');
+      setShowImportOption(true);
     } catch (error) {
       console.error('Error completing onboarding:', error);
     }
   };
+
+  const reloadSettings = async () => {
+    try {
+      const themeSetting = await AsyncStorage.getItem('theme');
+      if (themeSetting) {
+        setTimeout(() => {
+          setTheme(themeSetting as any);
+        }, 100);
+      }
+      
+      const languageSetting = await AsyncStorage.getItem('selectedLanguage');
+      if (languageSetting && (languageSetting === 'tr' || languageSetting === 'pt')) {
+        setTimeout(() => {
+          setNativeLanguage(languageSetting as any);
+        }, 200);
+      }
+    } catch (error) {
+      console.error('Ayarlar yeniden yüklenirken hata:', error);
+    }
+  };
+
+  const handleImportData = async () => {
+    try {
+      const result = await backupService.restoreData(reloadSettings);
+      if (result.success && result.languagePair) {
+        if (result.languagePair !== currentLanguagePair) {
+          // Dil çifti farklı, güncelleme gerekiyor
+          setNewLanguagePair(result.languagePair);
+          const newNativeLang = result.languagePair.split('-')[1] as NativeLanguage;
+          
+          setNativeLanguage(newNativeLang);
+          
+          setShowImportOption(false);
+          
+          const newTranslations = allTranslations[newNativeLang];
+
+          setTimeout(() => {
+            Alert.alert(
+              newTranslations.settings.backup.languageChangedTitle,
+              newTranslations.settings.backup.languageChangedMessage,
+              [
+                {
+                  text: newTranslations.alerts.okay,
+                  onPress: () => {
+                    setIsUpdatingDataForNewLanguage(true);
+                  }
+                }
+              ]
+            );
+          }, 500);
+
+        } else {
+          // Dil çifti aynı, normal başarı mesajı
+          setTimeout(() => {
+            Alert.alert(
+              translations.alerts.success,
+              translations.settings.backup.importSuccess,
+              [
+                {
+                  text: translations.alerts.okay,
+                  onPress: completeOnboarding
+                }
+              ]
+            );
+          }, 500);
+        }
+      } else {
+        // İçe aktarma başarısız oldu
+        completeOnboarding();
+      }
+    } catch (error) {
+      console.error('Veri içe aktarma hatası:', error);
+      completeOnboarding();
+    }
+  };
+
+  const completeOnboarding = async () => {
+    try {
+      await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+      
+      setTimeout(() => {
+        navigation.replace('LevelSelection');
+      }, 300);
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+    }
+  };
+
+  const onDataUpdateComplete = () => {
+    setIsUpdatingDataForNewLanguage(false);
+    completeOnboarding();
+  }
 
   const currentItem = onboardingData[activeIndex];
 
@@ -162,6 +258,49 @@ export const OnboardingScreen = () => {
           onComplete={onDataLoadComplete}
           languagePair={currentLanguagePair}
         />
+      )}
+
+      {isUpdatingDataForNewLanguage && newLanguagePair && (
+        <DataLoader
+          visible={isUpdatingDataForNewLanguage}
+          onComplete={onDataUpdateComplete}
+          languagePair={newLanguagePair}
+          forceUpdate={true} // Kelime verilerini zorla güncelle
+        />
+      )}
+
+      {showImportOption && (
+        <View style={[styles.importOverlay, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
+          <View style={[styles.importCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.importTitle, { color: colors.text.primary }]}>
+              {translations.settings.backup.title}
+            </Text>
+            
+            <Text style={[styles.importDescription, { color: colors.text.secondary }]}>
+              {translations.settings.backup.importInfo}
+            </Text>
+            
+            <View style={styles.importButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.importButton, { backgroundColor: colors.surfaceVariant }]}
+                onPress={completeOnboarding}
+              >
+                <Text style={[styles.importButtonText, { color: colors.text.primary }]}>
+                  {translations.settings.backup.importCancel}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.importButton, { backgroundColor: colors.primary }]}
+                onPress={handleImportData}
+              >
+                <Text style={[styles.importButtonText, { color: colors.text.onPrimary }]}>
+                  {translations.settings.backup.import}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       )}
     </View>
   );
@@ -254,5 +393,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 4,
     fontWeight: '500',
+  },
+  importOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  importCard: {
+    width: width * 0.85,
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  importTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  importDescription: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  importButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  importButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  importButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

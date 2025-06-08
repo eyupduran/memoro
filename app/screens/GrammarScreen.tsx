@@ -7,6 +7,7 @@ import { RootStackParamList } from '../types/navigation';
 import { GrammarLevelModal } from '../components/GrammarLevelModal';
 import WebView from 'react-native-webview';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Grammar'>;
 
@@ -18,10 +19,21 @@ export const GrammarScreen: React.FC<Props> = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
   const webViewRef = useRef<WebView>(null);
+  const navigation = useNavigation();
 
   const handleLevelSelect = (url: string) => {
     setSelectedUrl(url);
     setIsLoading(true);
+    // Seviye seçildiğinde modalı kapat
+    setIsLevelModalVisible(false);
+  };
+
+  const handleModalClose = () => {
+    setIsLevelModalVisible(false);
+    // Eğer kullanıcı henüz bir seviye seçmemişse, gramer ekranından çık
+    if (!selectedUrl) {
+      navigation.goBack();
+    }
   };
 
   const handleNavigationStateChange = (navState: { canGoBack: boolean }) => {
@@ -40,62 +52,54 @@ export const GrammarScreen: React.FC<Props> = () => {
     }
   };
 
-  if (!selectedUrl) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <GrammarLevelModal
-          visible={isLevelModalVisible}
-          onClose={() => setIsLevelModalVisible(false)}
-          onSelectLevel={handleLevelSelect}
-        />
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <WebView
-        ref={webViewRef}
-        source={{ uri: selectedUrl }}
-        style={styles.webview}
-        onLoadStart={() => setIsLoading(true)}
-        onLoadEnd={() => setIsLoading(false)}
-        onNavigationStateChange={handleNavigationStateChange}
-      />
-      {isLoading && (
-        <View style={[styles.loading, { backgroundColor: colors.background }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+      {selectedUrl && (
+        <>
+          <WebView
+            ref={webViewRef}
+            source={{ uri: selectedUrl }}
+            style={styles.webview}
+            onLoadStart={() => setIsLoading(true)}
+            onLoadEnd={() => setIsLoading(false)}
+            onNavigationStateChange={handleNavigationStateChange}
+          />
+          {isLoading && (
+            <View style={[styles.loading, { backgroundColor: colors.background }]}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          )}
+          <View style={[styles.navigationBar, { backgroundColor: colors.surface }]}>
+            <TouchableOpacity
+              style={[
+                styles.navButton,
+                !canGoBack && styles.navButtonDisabled,
+              ]}
+              onPress={goBack}
+              disabled={!canGoBack}
+            >
+              <MaterialIcons
+                name="arrow-back"
+                size={24}
+                color={canGoBack ? colors.text.primary : `${colors.text.secondary}50`}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.navButton}
+              onPress={refresh}
+            >
+              <MaterialIcons
+                name="refresh"
+                size={24}
+                color={colors.text.primary}
+              />
+            </TouchableOpacity>
+          </View>
+        </>
       )}
-      <View style={[styles.navigationBar, { backgroundColor: colors.surface }]}>
-        <TouchableOpacity
-          style={[
-            styles.navButton,
-            !canGoBack && styles.navButtonDisabled,
-          ]}
-          onPress={goBack}
-          disabled={!canGoBack}
-        >
-          <MaterialIcons
-            name="arrow-back"
-            size={24}
-            color={canGoBack ? colors.text.primary : `${colors.text.secondary}50`}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navButton}
-          onPress={refresh}
-        >
-          <MaterialIcons
-            name="refresh"
-            size={24}
-            color={colors.text.primary}
-          />
-        </TouchableOpacity>
-      </View>
       <GrammarLevelModal
         visible={isLevelModalVisible}
-        onClose={() => setIsLevelModalVisible(false)}
+        onClose={handleModalClose}
         onSelectLevel={handleLevelSelect}
       />
     </View>

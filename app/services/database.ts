@@ -15,6 +15,17 @@ class DatabaseService {
     }
   }
 
+  // Veritabanı nesnesine erişim için getter
+  public getDatabase(): SQLite.SQLiteDatabase {
+    return this.db;
+  }
+
+  // Veritabanı transaction işlemi için yardımcı metot
+  public async withTransaction(callback: () => Promise<void>): Promise<void> {
+    if (!this.initialized) await this.initDatabase();
+    await this.db.withTransactionAsync(callback);
+  }
+
   // Tek bir sonuç satırı getiren yardımcı metod
   async getFirstAsync<T>(query: string, params: any[] = []): Promise<T | null> {
     try {
@@ -194,7 +205,7 @@ class DatabaseService {
     }
   }
 
-  // Kelime datasını dil çiftine göre SQLite'a kaydet - toplu insert ile optimize edildi
+  // Kelime datasını dil çiftine göre SQLite'a kaydet - toplu insert yerine tek tek insert ile optimize edildi
   async saveWords(words: Word[], level: string, languagePair: string): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
@@ -781,11 +792,27 @@ class DatabaseService {
     try {
       if (!this.initialized) await this.initDatabase();
       
-      const addedAt = new Date().toISOString();
-      await this.db.runAsync(
-        'INSERT OR IGNORE INTO custom_word_list_items (list_id, word, meaning, example, level, added_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [listId, word.word, word.meaning, word.example || '', word.level || 'custom', addedAt]
+      // Önce kelimenin zaten listede olup olmadığını kontrol et
+      const existingWord = await this.db.getFirstAsync<{id: number}>(
+        'SELECT id FROM custom_word_list_items WHERE list_id = ? AND word = ?',
+        [listId, word.word]
       );
+      
+      if (existingWord) {
+        // Kelime zaten var, güncelleme yap
+        const addedAt = new Date().toISOString();
+        await this.db.runAsync(
+          'UPDATE custom_word_list_items SET meaning = ?, example = ?, level = ?, added_at = ? WHERE list_id = ? AND word = ?',
+          [word.meaning, word.example || '', word.level || 'custom', addedAt, listId, word.word]
+        );
+      } else {
+        // Yeni kelime ekle
+        const addedAt = new Date().toISOString();
+        await this.db.runAsync(
+          'INSERT OR IGNORE INTO custom_word_list_items (list_id, word, meaning, example, level, added_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [listId, word.word, word.meaning, word.example || '', word.level || 'custom', addedAt]
+        );
+      }
       
       return true;
     } catch (error) {

@@ -95,7 +95,12 @@ export default {
     subtitle: 'Assistente de Aprendizado de Vocabulário em Inglês',
     learnWords: 'Aprender Palavras',
     statistics: 'Estats',
-    settings: 'Configurações'
+    settings: 'Configurações',
+    dictionary: 'Dicionário',
+    grammar: 'Gramática',
+    exercise: 'Exercícios',
+    wordLists: 'Listas de Palavras',
+    games: 'Jogos'
   },
   levelSelection: {
     title: 'Escolha o Nível',
@@ -131,7 +136,9 @@ export default {
   imageSelection: {
     title: 'Escolha o Fundo',
     subtitle: 'Selecione um fundo bonito para suas palavras',
-    loading: 'Carregando imagens...'
+    loading: 'Carregando imagens...',
+    error: 'Não foi possível carregar as imagens. Por favor, verifique sua conexão com a internet.',
+    retry: 'Tentar Novamente'
   },
   dictionaryScreen: {
     title: 'Dicionário',
@@ -169,11 +176,11 @@ export default {
     themes: {
       light: {
         label: 'Tema Claro',
-        description: 'Fundo branco com textos escuros'
+        description: 'Fundo branco com texto escuro'
       },
       dark: {
         label: 'Tema Escuro',
-        description: 'Fundo escuro com textos claros'
+        description: 'Fundo escuro com texto claro'
       },
       pastel: {
         label: 'Tema Pastel',
@@ -181,21 +188,42 @@ export default {
       }
     },
     notifications: 'Notificações',
-    notificationTime: 'Os lembretes serão enviados diariamente às 10:00.',
-    offlineMode: 'Uso Offline',
-    offlineModeDescription: 'O modo offline permite acessar listas de palavras mesmo sem conexão com a internet. Para isso, é necessário baixar os dados primeiro.',
+    notificationTime: 'Os lembretes serão enviados todos os dias às 10:00.',
+    offlineMode: 'Modo Offline',
+    offlineModeDescription: 'O modo offline permite que você acesse listas de palavras mesmo sem conexão com a internet. Para isso, você precisa primeiro baixar os dados.',
     lastUpdated: 'Última atualização:',
     downloadingData: 'Baixando dados...',
     downloadAll: 'Baixar Todos os Dados',
     updateData: 'Atualizar Dados',
     downloadedData: {
       title: 'Dados Baixados',
-      description: 'Para usar o aplicativo offline, as listas de palavras e imagens são baixadas automaticamente na primeira utilização ou ao mudar de idioma. Você pode atualizar esses dados para acessar o conteúdo mais recente quando novas palavras ou imagens forem adicionadas.',
+      description: 'Para usar o aplicativo offline, as listas de palavras e dados de imagem são baixados automaticamente no primeiro uso ou quando você muda o idioma. À medida que novas palavras e imagens são adicionadas ou quando você deseja verificar atualizações, você pode atualizar esses dados para acessar o conteúdo mais recente.',
       learningLanguage: 'Idioma Selecionado',
       update: 'Atualizar Dados',
       noData: 'Nenhum dado baixado ainda',
-      updateSuccess: 'Palavras e imagens atualizadas com sucesso',
+      updateSuccess: 'Dados de palavras e imagens atualizados com sucesso',
       updateError: 'Ocorreu um erro ao atualizar os dados'
+    },
+    backup: {
+      title: 'Backup e Restauração de Dados',
+      description: 'Você pode fazer backup das palavras aprendidas, histórico de exercícios e outros dados pessoais e restaurá-los quando necessário. Este recurso impede a perda de dados quando você reinstala o aplicativo.',
+      export: 'Exportar Dados',
+      import: 'Importar Dados',
+      exportSuccess: 'Dados exportados com sucesso',
+      exportError: 'Ocorreu um erro ao exportar os dados',
+      importSuccess: 'Dados importados com sucesso',
+      importError: 'Ocorreu um erro ao importar os dados',
+      exportInfo: 'Seus dados serão salvos no seu dispositivo. Guarde este arquivo em um local seguro.',
+      importInfo: 'Selecione um arquivo de backup que você exportou anteriormente.',
+      importWarning: 'Atenção: Esta ação irá sobrescrever seus dados atuais. Deseja continuar?',
+      importConfirm: 'Sim, Continuar',
+      importCancel: 'Cancelar',
+      exportDate: 'Data do Backup: {0}',
+      selectFile: 'Selecionar Arquivo',
+      noFileSelected: 'Nenhum arquivo selecionado',
+      fileSelected: 'Arquivo selecionado: {0}',
+      languageChangedTitle: 'Configuração de idioma alterada',
+      languageChangedMessage: 'Seu backup de dados contém um par de idiomas diferente. As configurações do seu aplicativo foram atualizadas e os dados de palavras correspondentes serão baixados agora.'
     }
   },
   wordOverlay: {
@@ -308,6 +336,12 @@ export default {
     wordListExerciseDesc: 'Pratique com as palavras de uma lista selecionada',
     selectWordList: 'Selecionar Lista de Palavras',
     noWordLists: 'Nenhuma lista de palavras criada ainda',
+    continueExercise: 'Continuar Exercício',
+    unfinishedExercise: {
+      title: 'Exercícios Incompletos',
+      progress: 'Progresso: {0}/{1}',
+      continue: 'Continuar'
+    },
     exitWarning: {
       title: 'Sair do Exercício',
       message: 'Você não completou o exercício. Tem certeza que deseja sair?',
@@ -392,5 +426,8 @@ export default {
   dictionary: {
     title: 'Dicionário',
     close: 'Fechar'
+  },
+  words: {
+    newWords: 'Novas Palavras',
   }
 };
