@@ -17,7 +17,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
-import { storageService } from '../services/storage';
 import { dbService } from '../services/database';
 import type { LearnedWord } from '../types/words';
 
@@ -25,13 +24,13 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Stats'>;
 
 type LevelTranslationKey = 'beginner' | 'elementary' | 'preIntermediate' | 'upperIntermediate' | 'advanced' | 'proficiency' | 'examPrep';
 
-const LEVELS = [
-  { id: 'A1', name: 'A1', translationKey: 'beginner' as LevelTranslationKey },
-  { id: 'A2', name: 'A2', translationKey: 'elementary' as LevelTranslationKey },
-  { id: 'B1', name: 'B1', translationKey: 'preIntermediate' as LevelTranslationKey },
-  { id: 'B2', name: 'B2', translationKey: 'upperIntermediate' as LevelTranslationKey },
-  { id: 'C1', name: 'C1', translationKey: 'advanced' as LevelTranslationKey },
-  { id: 'C2', name: 'C2', translationKey: 'proficiency' as LevelTranslationKey },
+const LEVELS : { id: string; name: string; translationKey: LevelTranslationKey }[] = [
+  { id: 'A1', name: 'A1', translationKey: 'beginner' satisfies LevelTranslationKey },
+  { id: 'A2', name: 'A2', translationKey: 'elementary' satisfies LevelTranslationKey },
+  { id: 'B1', name: 'B1', translationKey: 'preIntermediate' satisfies LevelTranslationKey },
+  { id: 'B2', name: 'B2', translationKey: 'upperIntermediate' satisfies LevelTranslationKey },
+  { id: 'C1', name: 'C1', translationKey: 'advanced' satisfies LevelTranslationKey },
+  { id: 'C2', name: 'C2', translationKey: 'proficiency' satisfies LevelTranslationKey },
 ];
 
 const ITEMS_PER_PAGE = 10;
