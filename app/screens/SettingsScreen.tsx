@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Alert, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -22,6 +22,7 @@ export const SettingsScreen: React.FC<Props> = (props) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [hasDownloadedData, setHasDownloadedData] = useState(false);
   const [showDataLoader, setShowDataLoader] = useState(false);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     // Odaklanma olayını dinle
@@ -36,7 +37,18 @@ export const SettingsScreen: React.FC<Props> = (props) => {
 
     // Temizleme
     return unsubscribe;
-  }, [props.navigation, currentLanguagePair, globalShowDataLoader]);
+  }, [props.navigation, globalShowDataLoader]);
+
+  // Dil çifti değiştiğinde veri yükleyiciyi tetikle
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // Dil değiştiğinde DataLoader'ı göster
+    setShowDataLoader(true);
+  }, [currentLanguagePair]);
 
   const checkNotificationSettings = async () => {
     try {
@@ -322,7 +334,7 @@ export const SettingsScreen: React.FC<Props> = (props) => {
                 color={colors.text.secondary} 
                 style={styles.infoIcon}
               />
-              <Text style={[styles.descriptionText, { color: colors.text.secondary }]}>
+              <Text style={[styles.descriptionText, { color: colors.text.secondary, fontSize: 13 }]}>
                 {translations.settings.downloadedData.description}
               </Text>
             </View>

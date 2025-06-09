@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import type { Word, WordList, LearnedWord } from '../types/words';
+import type { UnfinishedExercise } from '../screens/ExerciseQuestionScreen';
 
 class DatabaseService {
   private db!: SQLite.SQLiteDatabase;
@@ -135,6 +136,22 @@ class DatabaseService {
           FOREIGN KEY(list_id) REFERENCES custom_word_lists(id) ON DELETE CASCADE,
           UNIQUE(list_id, word)
         );
+
+        CREATE TABLE IF NOT EXISTS unfinished_exercises (
+          timestamp REAL PRIMARY KEY,
+          language_pair TEXT NOT NULL,
+          exercise_type TEXT NOT NULL,
+          question_index INTEGER NOT NULL,
+          total_questions INTEGER NOT NULL,
+          score INTEGER NOT NULL,
+          asked_words TEXT NOT NULL,
+          question_details TEXT NOT NULL,
+          word_source TEXT,
+          level TEXT,
+          word_list_id INTEGER,
+          word_list_name TEXT,
+          previous_type TEXT
+        );
       `);
 
       // Mevcut learned_words tablosunu kontrol et ve güncelle
@@ -197,6 +214,7 @@ class DatabaseService {
         CREATE INDEX IF NOT EXISTS idx_exercise_results_lang ON exercise_results(language_pair);
         CREATE INDEX IF NOT EXISTS idx_custom_word_lists_lang ON custom_word_lists(language_pair);
         CREATE INDEX IF NOT EXISTS idx_custom_word_list_items_list ON custom_word_list_items(list_id);
+        CREATE INDEX IF NOT EXISTS idx_unfinished_exercises_lang ON unfinished_exercises(language_pair);
       `);
       
       this.initialized = true;
@@ -953,6 +971,63 @@ class DatabaseService {
       console.error('Egzersiz sonuçları alınırken hata:', error);
       return [];
     }
+  }
+
+  // Yarım Kalan Egzersizler için Fonksiyonlar
+  
+  async saveUnfinishedExercise(exercise: UnfinishedExercise): Promise<void> {
+    const query = `
+      INSERT OR REPLACE INTO unfinished_exercises (
+        timestamp, language_pair, exercise_type, question_index, total_questions, score, 
+        asked_words, question_details, word_source, level, word_list_id, word_list_name, previous_type
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const params = [
+      exercise.timestamp,
+      exercise.languagePair,
+      exercise.exerciseType,
+      exercise.questionIndex,
+      exercise.totalQuestions,
+      exercise.score,
+      JSON.stringify(exercise.askedWords),
+      JSON.stringify(exercise.questionDetails),
+      exercise.wordSource || null,
+      exercise.level || null,
+      exercise.wordListId || null,
+      exercise.wordListName || null,
+      exercise.previousType || null,
+    ];
+    await this.db.runAsync(query, params);
+  }
+
+  async getUnfinishedExercises(languagePair: string): Promise<UnfinishedExercise[]> {
+    const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const query = `
+      SELECT * FROM unfinished_exercises 
+      WHERE language_pair = ? AND timestamp >= ? 
+      ORDER BY timestamp DESC
+    `;
+    const results = await this.getAllAsync<any>(query, [languagePair, twentyFourHoursAgo]);
+    
+    // JSON stringleri parse et
+    return results.map(ex => ({
+      ...ex,
+      languagePair: ex.language_pair,
+      exerciseType: ex.exercise_type,
+      questionIndex: ex.question_index,
+      totalQuestions: ex.total_questions,
+      askedWords: JSON.parse(ex.asked_words),
+      questionDetails: JSON.parse(ex.question_details),
+      wordSource: ex.word_source,
+      wordListId: ex.word_list_id,
+      wordListName: ex.word_list_name,
+      previousType: ex.previous_type,
+    }));
+  }
+
+  async deleteUnfinishedExercise(timestamp: number): Promise<void> {
+    const query = 'DELETE FROM unfinished_exercises WHERE timestamp = ?';
+    await this.db.runAsync(query, [timestamp]);
   }
 }
 

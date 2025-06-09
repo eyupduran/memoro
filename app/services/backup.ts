@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Platform } from 'react-native';
 import { dbService } from './database';
 import { storageService } from './storage';
+import type { UnfinishedExercise } from '../screens/ExerciseQuestionScreen';
 
 // Yedekleme için kullanılacak dizin
 const BACKUP_DIRECTORY = `${FileSystem.documentDirectory}backups/`;
@@ -17,6 +18,7 @@ interface BackupData {
   exerciseDetails: any[];
   customWordLists: any[];
   customWordListItems: any[];
+  unfinishedExercises: UnfinishedExercise[];
   settings: Record<string, any>;
   timestamp: string;
   version: string;
@@ -85,6 +87,7 @@ class BackupService {
       // Veritabanından verileri al
       const learnedWords = await dbService.getLearnedWords(languagePair);
       const exerciseResults = await dbService.getExerciseResults(languagePair);
+      const unfinishedExercises = await dbService.getUnfinishedExercises(languagePair);
       
       // Egzersiz detaylarını al
       const exerciseDetails = [];
@@ -118,6 +121,7 @@ class BackupService {
         exerciseDetails,
         customWordLists,
         customWordListItems,
+        unfinishedExercises,
         settings,
         timestamp: new Date().toISOString(),
         version: '1.0',
@@ -264,7 +268,18 @@ class BackupService {
         }
       }
       
-      // 4. Ayarları geri yükle
+      // 4. Yarım kalan egzersizleri geri yükle
+      if (backupData.unfinishedExercises && backupData.unfinishedExercises.length > 0) {
+        for (const exercise of backupData.unfinishedExercises) {
+          try {
+            await dbService.saveUnfinishedExercise(exercise);
+          } catch (error) {
+            console.warn(`Yarım kalan egzersiz kaydedilirken hata: ${exercise.timestamp}`, error);
+          }
+        }
+      }
+      
+      // 5. Ayarları geri yükle
       if (backupData.settings) {
         for (const [key, value] of Object.entries(backupData.settings)) {
           if (value !== null && value !== undefined) {

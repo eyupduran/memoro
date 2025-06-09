@@ -9,6 +9,7 @@ import {
   FlatList,
   Modal,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';
@@ -53,7 +54,7 @@ const ExerciseScreen: React.FC = () => {
   const [selectedWordList, setSelectedWordList] = useState<number | null>(null);
   const [wordListModalVisible, setWordListModalVisible] = useState(false);
 
-  const [unfinishedExercise, setUnfinishedExercise] = useState<UnfinishedExercise | null>(null);
+  const [unfinishedExercises, setUnfinishedExercises] = useState<UnfinishedExercise[]>([]);
 
   // Tıklama sesini yükle
   useEffect(() => {
@@ -187,38 +188,54 @@ const ExerciseScreen: React.FC = () => {
   }, []);
 
   const checkUnfinishedExercise = async () => {
-    const exercise = await storageService.getUnfinishedExercise();
-    if (exercise) {
-      // 24 saatten eski egzersizleri sil
-      if (Date.now() - exercise.timestamp > 24 * 60 * 60 * 1000) {
-        await storageService.clearUnfinishedExercise();
-        return;
-      }
-      setUnfinishedExercise(exercise);
-    }
+    const exercises = await storageService.getUnfinishedExercises(currentLanguagePair);
+    setUnfinishedExercises(exercises);
   };
 
-  const continueExercise = async () => {
-    if (!unfinishedExercise) return;
+  const continueExercise = async (exercise: UnfinishedExercise) => {
+    if (!exercise) return;
 
     // Egzersizi devam ettir
     navigation.navigate('ExerciseQuestion', {
-      exerciseType: unfinishedExercise.exerciseType,
-      questionIndex: unfinishedExercise.questionIndex,
-      totalQuestions: unfinishedExercise.totalQuestions,
-      score: unfinishedExercise.score,
-      askedWords: unfinishedExercise.askedWords,
-      previousType: unfinishedExercise.previousType,
-      wordSource: unfinishedExercise.wordSource,
-      level: unfinishedExercise.level,
-      wordListId: unfinishedExercise.wordListId,
-      wordListName: unfinishedExercise.wordListName,
-      questionDetails: unfinishedExercise.questionDetails
+      exerciseType: exercise.exerciseType,
+      questionIndex: exercise.questionIndex,
+      totalQuestions: exercise.totalQuestions,
+      score: exercise.score,
+      askedWords: exercise.askedWords,
+      previousType: exercise.previousType,
+      wordSource: exercise.wordSource,
+      level: exercise.level,
+      wordListId: exercise.wordListId,
+      wordListName: exercise.wordListName,
+      questionDetails: exercise.questionDetails
     });
 
     // Yarım kalan egzersizi sil
-    await storageService.clearUnfinishedExercise();
-    setUnfinishedExercise(null);
+    await storageService.deleteUnfinishedExercise(exercise.timestamp);
+    // State'i güncelle
+    setUnfinishedExercises(prev => prev.filter(ex => ex.timestamp !== exercise.timestamp));
+  };
+
+  const deleteUnfinishedExercise = async (timestamp: number) => {
+    Alert.alert(
+      translations.exercise.unfinishedExercise.deleteTitle,
+      translations.exercise.unfinishedExercise.deleteMessage,
+      [
+        {
+          text: translations.exercise.exitWarning?.cancel || 'İptal',
+          style: 'cancel'
+        },
+        {
+          text: translations.exercise.unfinishedExercise.deleteConfirm,
+          style: 'destructive',
+          onPress: async () => {
+            await storageService.deleteUnfinishedExercise(timestamp);
+            // State'i güncelle
+            setUnfinishedExercises(prev => prev.filter(ex => ex.timestamp !== timestamp));
+          }
+        }
+      ]
+    );
   };
 
   const startNewExercise = (type: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'mixed') => {
@@ -782,33 +799,81 @@ const ExerciseScreen: React.FC = () => {
       {renderExerciseOptionsModal()}
       {renderWordListModal()}
 
-      {unfinishedExercise && (
-        <>
+      {unfinishedExercises.length > 0 && (
+        <View style={{ marginBottom: 16 }}>
           <View style={[styles.unfinishedExerciseHeader, { backgroundColor: colors.background }]}>
             <Text style={[styles.unfinishedExerciseHeaderText, { color: colors.text.primary }]}>
-              {translations.exercise.unfinishedExercise?.title || 'Tamamlanmayan Egzersiz'}
+              {translations.exercise.unfinishedExercise?.title || 'Tamamlanmayan Egzersizler'}
             </Text>
           </View>
-        <TouchableOpacity
-          style={[styles.unfinishedExerciseCard, { backgroundColor: colors.primary + '20' }]}
-          onPress={continueExercise}
-        >
-          <View style={styles.unfinishedExerciseContent}>
-            <MaterialIcons name="play-circle-outline" size={24} color={colors.primary} />
-            <View style={styles.unfinishedExerciseInfo}>
-              <Text style={[styles.unfinishedExerciseTitle, { color: colors.text.primary }]}>
-                {translations.exercise.continueExercise || 'Egzersize Devam Et'}
-              </Text>
-              <Text style={[styles.unfinishedExerciseDetails, { color: colors.text.secondary }]}>
-                  {formatString(translations.exercise.unfinishedExercise?.progress || 'İlerleme: {0}/{1}', 
-                    unfinishedExercise.score, 
-                    unfinishedExercise.totalQuestions)}
-              </Text>
-            </View>
-          </View>
-          <MaterialIcons name="chevron-right" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        </>
+          {unfinishedExercises.length === 1 ? (
+            // Tek egzersiz varsa normal bir görünüm kullan
+            <TouchableOpacity
+              style={[styles.unfinishedExerciseCard, 
+                { backgroundColor: colors.primary + '20', marginHorizontal: 16 }]}
+              onPress={() => continueExercise(unfinishedExercises[0])}
+            >
+              <View style={styles.unfinishedExerciseContent}>
+                <MaterialIcons name="play-circle-outline" size={24} color={colors.primary} />
+                <View style={styles.unfinishedExerciseInfo}>
+                  <Text style={[styles.unfinishedExerciseTitle, { color: colors.text.primary }]}>
+                    {translations.exercise.continueExercise || 'Egzersize Devam Et'}
+                  </Text>
+                  <Text style={[styles.unfinishedExerciseDetails, { color: colors.text.secondary }]}>
+                    {formatString(translations.exercise.unfinishedExercise?.progress || 'İlerleme: {0}/{1}', 
+                      unfinishedExercises[0].score, 
+                      unfinishedExercises[0].totalQuestions)}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.deleteUnfinishedExerciseButton}
+                onPress={() => deleteUnfinishedExercise(unfinishedExercises[0].timestamp)}
+              >
+                <MaterialIcons name="delete" size={24} color={colors.error} />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ) : (
+            // Birden fazla egzersiz varsa yatay kaydırılabilir liste kullan
+            <FlatList
+              horizontal
+              data={unfinishedExercises}
+              keyExtractor={(item) => item.timestamp.toString()}
+              renderItem={({ item: exercise }) => (
+                <TouchableOpacity
+                  style={[styles.unfinishedExerciseCard, 
+                    { backgroundColor: colors.primary + '20', width: Dimensions.get('window').width * 0.8 }]}
+                  onPress={() => continueExercise(exercise)}
+                >
+                  <View style={styles.unfinishedExerciseContent}>
+                    <MaterialIcons name="play-circle-outline" size={24} color={colors.primary} />
+                    <View style={styles.unfinishedExerciseInfo}>
+                      <Text style={[styles.unfinishedExerciseTitle, { color: colors.text.primary }]}>
+                        {translations.exercise.continueExercise || 'Egzersize Devam Et'}
+                      </Text>
+                      <Text style={[styles.unfinishedExerciseDetails, { color: colors.text.secondary }]}>
+                        {formatString(translations.exercise.unfinishedExercise?.progress || 'İlerleme: {0}/{1}', 
+                          exercise.score, 
+                          exercise.totalQuestions)}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.deleteUnfinishedExerciseButton}
+                    onPress={(e) => {
+                      e.stopPropagation(); // Prevent card press
+                      deleteUnfinishedExercise(exercise.timestamp);
+                    }}
+                  >
+                    <MaterialIcons name="delete" size={24} color={colors.error} />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              )}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.unfinishedExerciseList}
+            />
+          )}
+        </View>
       )}
     </View>
   );
@@ -1047,6 +1112,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 4,
   },
+  unfinishedExerciseList: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
   unfinishedExerciseHeader: {
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -1057,20 +1126,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   unfinishedExerciseCard: {
-    margin: 16,
-    marginTop: 0,
+    marginRight: 12, // Kartlar arası boşluk
     padding: 16,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   unfinishedExerciseContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1, // İçeriğin genişlemesini sağla
   },
   unfinishedExerciseInfo: {
     marginLeft: 12,
+    flex: 1, // Metinlerin genişlemesini sağla
   },
   unfinishedExerciseTitle: {
     fontSize: 16,
@@ -1080,6 +1149,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   },
+  deleteUnfinishedExerciseButton: {
+    padding: 8,
+    marginLeft: 8,
+  }
 });
 
 export default ExerciseScreen;

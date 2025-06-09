@@ -19,7 +19,6 @@ import { dbService } from '../services/database';
 import type { Word, WordList, Level } from '../types/words';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { DataLoader } from '../components/DataLoader';
 import { storageService } from '../services/storage';
 import { WordListModal } from '../components/WordListModal';
 import * as Speech from 'expo-speech';
@@ -42,7 +41,6 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [showDataLoader, setShowDataLoader] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [showMaxWordsMessage, setShowMaxWordsMessage] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
@@ -52,6 +50,7 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
   const lastScrollY = React.useRef(0);
   const [selectedWordForList, setSelectedWordForList] = useState<Word | null>(null);
   const searchInputRef = useRef<TextInput>(null);
+  const activeSearchId = useRef(0);
   
   const ITEMS_PER_PAGE = 50;
   const LEVELS: Level[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -60,31 +59,12 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
   const SCROLL_THRESHOLD = 50; // Minimum scroll distance to trigger header animation
   const SCROLL_OFFSET_TRIGGER = 20; // Minimum difference in scroll position to trigger change
 
-  const checkDataAndFetchWords = async () => {
-    if (isModal) {
-      setIsInitialLoad(false);
-      return;
-    }
-
-    setShowDataLoader(true);
-    try {
-      const isLoaded = await dbService.isLanguageDataLoaded(currentLanguagePair);
-      if (!isLoaded) {
-        console.log('Dictionary: Veri bulunamadı, indirme başlatılıyor');
-      } else {
-        console.log('Dictionary: Veri bulundu, kelimeler yükleniyor');
-        setPage(0);
-        fetchWords();
-      }
-    } catch (error) {
-      console.error('Error checking data:', error);
-    } finally {
-      setShowDataLoader(false);
-    }
-  };
-
   useEffect(() => {
-    checkDataAndFetchWords();
+    // In modal mode, words are fetched based on search input.
+    // Otherwise, fetch the initial list of words.
+    if (!isModal) {
+      fetchWords();
+    }
   }, []);
 
   useEffect(() => {
@@ -103,16 +83,11 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
     }
   };
 
-  // Veri indirme tamamlandı
-  const onDataLoadComplete = () => {
-    setShowDataLoader(false);
-    if (!isModal) {
-      fetchWords();
-    }
-  };
-
   const fetchWords = async () => {
-    // Modal modunda ve arama yoksa, kelimeleri yükleme
+    // Increment and assign a unique ID for this search operation.
+    const searchId = ++activeSearchId.current;
+
+    // Don't fetch if it's a modal without a search query.
     if (isModal && !searchQuery.trim()) {
       setWords([]);
       setFilteredWords([]);
@@ -133,6 +108,11 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
         results = await dbService.getAllWords(currentLanguagePair, ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
       }
 
+      // If this is not the most recent search, ignore its results.
+      if (searchId !== activeSearchId.current) {
+        return;
+      }
+
       if (page === 0) {
         setWords(results);
         setFilteredWords(results);
@@ -150,19 +130,23 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
 
   // Arama yapıldığında veya filtre değiştiğinde kelimeleri getir
   useEffect(() => {
-    // İlk yükleme sırasında bu useEffect'i çalıştırma
     if (isInitialLoad) {
       setIsInitialLoad(false);
       return;
     }
     
-    // Sayfa durumunu sıfırla
+    // Reset page state
     setPage(0);
+
+    // Don't search for very short queries to improve performance
+    if (searchQuery.trim().length > 0 && searchQuery.trim().length < 2) {
+      return;
+    }
     
-    // Kullanıcı bir şeyler yazarken bekleyelim (debounce)
+    // Debounce user input
     const timeoutId = setTimeout(() => {
       fetchWords();
-    }, 500);
+    }, 300); // Reduced debounce time for a snappier feel
     
     return () => clearTimeout(timeoutId);
   }, [searchQuery, currentLanguagePair, selectedLevel]);
@@ -588,12 +572,6 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
         </View>
       )}
 
-      <DataLoader 
-        visible={showDataLoader} 
-        onComplete={onDataLoadComplete}
-        languagePair={currentLanguagePair}
-      />
-
       <WordListModal
         visible={!!selectedWordForList}
         onClose={() => setSelectedWordForList(null)}
@@ -719,10 +697,12 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     width: '100%',
-    marginTop: 8,
+    marginTop: 6,
+    alignItems: 'center',
+    paddingBottom: 4,
   },
   continueButton: {
-    width: '100%',
+    width: '90%',
     height: 56,
     padding: 16,
     borderRadius: 8,

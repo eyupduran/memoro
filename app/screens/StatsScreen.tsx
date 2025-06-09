@@ -10,6 +10,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  Alert,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -257,6 +258,51 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
+  // Kelime listesi silme işlemini yönet
+  const handleDeleteWordList = (listId: number, listName: string) => {
+    Alert.alert(
+      translations.wordListModal?.deleteListTitle || 'Listeyi Sil',
+      translations.wordListModal?.deleteListMessage || 'Bu listeyi silmek istediğinizden emin misiniz? Listeyle birlikte içindeki tüm kelimeler de silinecektir.',
+      [
+        {
+          text: translations.wordListModal?.deleteListCancel || 'İptal',
+          style: 'cancel'
+        },
+        {
+          text: translations.wordListModal?.deleteListConfirm || 'Evet, Sil',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const success = await dbService.deleteWordList(listId);
+              
+              if (success) {
+                // Listeleri yeniden yükle
+                loadWordLists();
+                // Başarı mesajı göster
+                Alert.alert(
+                  translations.wordListModal?.success || 'Başarılı',
+                  translations.wordListModal?.deleteListSuccess || 'Liste başarıyla silindi'
+                );
+              } else {
+                // Hata mesajı göster
+                Alert.alert(
+                  translations.wordListModal?.error || 'Hata',
+                  translations.wordListModal?.deleteListError || 'Liste silinirken bir hata oluştu'
+                );
+              }
+            } catch (error) {
+              console.error('Error deleting word list:', error);
+              Alert.alert(
+                translations.wordListModal?.error || 'Hata',
+                translations.wordListModal?.deleteListError || 'Liste silinirken bir hata oluştu'
+              );
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Kelime listesi kartını render et
   const renderWordListItem = ({ item }: { item: { id: number; name: string; created_at: string } }) => (
     <TouchableOpacity
@@ -278,11 +324,26 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
             {formatDate(item.created_at)}
           </Text>
         </View>
-        <MaterialIcons 
-          name="chevron-right" 
-          size={24} 
-          color={colors.text.secondary}
-        />
+        <View style={styles.wordListActions}>
+          <TouchableOpacity
+            style={[styles.deleteListButton, { backgroundColor: `${colors.error}15` }]}
+            onPress={(e) => {
+              e.stopPropagation(); // Listeye tıklamayı engelle
+              handleDeleteWordList(item.id, item.name);
+            }}
+          >
+            <MaterialIcons 
+              name="delete-outline" 
+              size={22} 
+              color={colors.error || '#f44336'} 
+            />
+          </TouchableOpacity>
+          <MaterialIcons 
+            name="chevron-right" 
+            size={24} 
+            color={colors.text.secondary}
+          />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -682,6 +743,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   wordListHeader: {
     flexDirection: 'row',
@@ -690,7 +756,6 @@ const styles = StyleSheet.create({
   },
   wordListInfo: {
     flex: 1,
-    marginRight: 8,
   },
   wordListName: {
     fontSize: 16,
@@ -699,6 +764,7 @@ const styles = StyleSheet.create({
   },
   wordListDate: {
     fontSize: 12,
+    opacity: 0.5,
   },
   learnedWordsContainer: {
     flex: 1,
@@ -881,5 +947,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 16,
     opacity: 0.5,
+  },
+  wordListActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteListButton: {
+    padding: 8,
+    marginRight: 12,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

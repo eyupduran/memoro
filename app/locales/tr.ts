@@ -32,7 +32,8 @@ export default {
     error: 'Veriler yüklenirken hata oluştu.',
     progress: 'İlerleme: {0}%',
     pleaseWait: 'Lütfen bekleyin, bu işlem 1-2 dakika sürebilir.',
-    loadingImages: 'Arkaplan resimleri hazırlanıyor...'
+    loadingImages: 'Arkaplan resimleri hazırlanıyor...',
+    savingLevel: '{0} seviyesi kaydediliyor...'
   },
   notifications: {
     dailyReminderTitle: 'Günlük Kelime Zamanı! 📚',
@@ -167,7 +168,13 @@ export default {
     addSuccess: 'Kelime listeye eklendi',
     addError: 'Kelime eklenirken bir hata oluştu',
     noLists: 'Henüz liste oluşturulmamış',
-    addToList: 'Listeye Ekle'
+    addToList: 'Listeye Ekle',
+    deleteListTitle: 'Listeyi Sil',
+    deleteListMessage: 'Bu listeyi silmek istediğinizden emin misiniz? Listeyle birlikte içindeki tüm kelimeler de silinecektir.',
+    deleteListConfirm: 'Evet, Sil',
+    deleteListCancel: 'İptal',
+    deleteListSuccess: 'Liste başarıyla silindi',
+    deleteListError: 'Liste silinirken bir hata oluştu'
   },
   settings: {
     title: 'Ayarlar',
@@ -197,7 +204,7 @@ export default {
     updateData: 'Verileri Güncelle',
     downloadedData: {
       title: 'İndirilen Veriler',
-      description: 'Uygulamayı çevrimdışı kullanabilmeniz için kelime listeleri ve görsel verileri, ilk kullanımda veya dil değişikliğinde otomatik olarak indirilmektedir. Yeni kelimeler ve görseller eklendikçe veya güncellemeleri kontrol etmek istediğinizde, bu verileri güncelleyerek en güncel içeriğe erişebilirsiniz.',
+      description: 'Kelime listeleri ve görseller ilk kullanımda veya dil değişikliğinde otomatik indirilir. Güncellemeler için "Verileri Güncelle" butonunu kullanabilirsiniz.',
       learningLanguage: 'Seçili Dil',
       update: 'Verileri Güncelle',
       noData: 'Henüz indirilmiş veri bulunmuyor',
@@ -340,7 +347,10 @@ export default {
     unfinishedExercise: {
       title: 'Tamamlanmayan Egzersizler',
       progress: 'İlerleme: {0}/{1}',
-      continue: 'Devam Et'
+      continueExercise: 'Egzersize Devam Et',
+      deleteTitle: 'Egzersizi Sil',
+      deleteMessage: 'Bu tamamlanmamış egzersizi silmek istediğinizden emin misiniz?',
+      deleteConfirm: 'Sil'
     },
     exitWarning: {
       title: 'Egzersizden Çıkış',

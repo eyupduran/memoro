@@ -298,31 +298,29 @@ class StorageService {
   // Yarım kalan egzersizi kaydet
   async saveUnfinishedExercise(exercise: UnfinishedExercise): Promise<void> {
     try {
-      await AsyncStorage.setItem('unfinished_exercise', JSON.stringify(exercise));
+      await dbService.saveUnfinishedExercise(exercise);
     } catch (error) {
-      console.error('Error saving unfinished exercise:', error);
+      console.error('Error saving unfinished exercise to DB:', error);
       throw error;
     }
   }
 
-  // Yarım kalan egzersizi getir
-  async getUnfinishedExercise(): Promise<UnfinishedExercise | null> {
+  // Yarım kalan egzersizleri getir
+  async getUnfinishedExercises(languagePair: string): Promise<UnfinishedExercise[]> {
     try {
-      const exerciseStr = await AsyncStorage.getItem('unfinished_exercise');
-      if (!exerciseStr) return null;
-      return JSON.parse(exerciseStr);
+      return await dbService.getUnfinishedExercises(languagePair);
     } catch (error) {
-      console.error('Error getting unfinished exercise:', error);
-      return null;
+      console.error('Error getting unfinished exercises from DB:', error);
+      return [];
     }
   }
 
-  // Yarım kalan egzersizi sil
-  async clearUnfinishedExercise(): Promise<void> {
+  // Yarım kalan bir egzersizi sil (timestamp'e göre)
+  async deleteUnfinishedExercise(timestamp: number): Promise<void> {
     try {
-      await AsyncStorage.removeItem('unfinished_exercise');
+      await dbService.deleteUnfinishedExercise(timestamp);
     } catch (error) {
-      console.error('Error clearing unfinished exercise:', error);
+      console.error('Error deleting unfinished exercise from DB:', error);
       throw error;
     }
   }

@@ -194,13 +194,13 @@ export const DataLoader: React.FC<DataLoaderProps> = ({
               
               {currentLevel && !loadingImages && (
                 <Text style={[styles.levelText, { color: colors.text.secondary }]}>
-                  {currentLevel} seviyesi kaydediliyor...
+                  {translations.dataLoader.savingLevel.replace('{0}', currentLevel)}
                 </Text>
               )}
               
               {loadingImages && (
                 <Text style={[styles.levelText, { color: colors.text.secondary }]}>
-                  Arkaplan resimleri hazırlanıyor...
+                  {translations.dataLoader.loadingImages}
                 </Text>
               )}
               

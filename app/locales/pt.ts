@@ -32,7 +32,8 @@ export default {
     error: 'Ocorreu um erro ao carregar os dados.',
     progress: 'Progresso: {0}%',
     pleaseWait: 'Por favor, aguarde. Isso pode levar de 1 a 2 minutos.',
-    loadingImages: 'Preparando imagens de fundo...'
+    loadingImages: 'Preparando imagens de fundo...',
+    savingLevel: 'Salvando nível {0}...'
   },
   notifications: {
     dailyReminderTitle: 'Hora do Vocabulário Diário! 📚',
@@ -167,7 +168,13 @@ export default {
     addSuccess: 'Palavra adicionada à lista',
     addError: 'Ocorreu um erro ao adicionar a palavra',
     noLists: 'Nenhuma lista criada ainda',
-    addToList: 'Adicionar à Lista'
+    addToList: 'Adicionar à Lista',
+    deleteListTitle: 'Excluir Lista',
+    deleteListMessage: 'Tem certeza de que deseja excluir esta lista? Todas as palavras na lista também serão excluídas.',
+    deleteListConfirm: 'Sim, Excluir',
+    deleteListCancel: 'Cancelar',
+    deleteListSuccess: 'Lista excluída com sucesso',
+    deleteListError: 'Ocorreu um erro ao excluir a lista'
   },
   settings: {
     title: 'Configurações',
@@ -197,7 +204,7 @@ export default {
     updateData: 'Atualizar Dados',
     downloadedData: {
       title: 'Dados Baixados',
-      description: 'Para usar o aplicativo offline, as listas de palavras e dados de imagem são baixados automaticamente no primeiro uso ou quando você muda o idioma. À medida que novas palavras e imagens são adicionadas ou quando você deseja verificar atualizações, você pode atualizar esses dados para acessar o conteúdo mais recente.',
+      description: 'As listas de palavras e imagens são baixadas automaticamente no primeiro uso ou quando o idioma é alterado. Para atualizações, use o botão "Atualizar Dados".',
       learningLanguage: 'Idioma Selecionado',
       update: 'Atualizar Dados',
       noData: 'Nenhum dado baixado ainda',
@@ -338,9 +345,12 @@ export default {
     noWordLists: 'Nenhuma lista de palavras criada ainda',
     continueExercise: 'Continuar Exercício',
     unfinishedExercise: {
-      title: 'Exercícios Incompletos',
+      title: 'Exercícios Inacabados',
       progress: 'Progresso: {0}/{1}',
-      continue: 'Continuar'
+      continueExercise: 'Continuar Exercício',
+      deleteTitle: 'Excluir Exercício',
+      deleteMessage: 'Tem certeza de que deseja excluir este exercício inacabado?',
+      deleteConfirm: 'Excluir'
     },
     exitWarning: {
       title: 'Sair do Exercício',

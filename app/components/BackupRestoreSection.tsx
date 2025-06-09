@@ -168,7 +168,7 @@ export const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
         </TouchableOpacity>
       </View>
       
-      <View style={[styles.card, { backgroundColor: colors.card.background, marginTop: 16 }]}>
+      <View style={[styles.card, { backgroundColor: colors.card.background, marginTop: 4 }]}>
         <View style={styles.infoContainer}>
           <MaterialIcons 
             name="info-outline" 
@@ -213,17 +213,17 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    marginBottom: 16,
+    marginBottom: 12,
     lineHeight: 20,
   },
   card: {
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
   },
   infoContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   infoIcon: {
     marginRight: 8,
