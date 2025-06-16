@@ -28,13 +28,21 @@ type DictionaryScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 type DictionaryScreenProps = {
   isModal?: boolean;
+  searchQuery?: string;
+  onSearchQueryChange?: (query: string) => void;
 };
 
-const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) => {
+const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ 
+  isModal = false,
+  searchQuery: externalSearchQuery,
+  onSearchQueryChange
+}) => {
   const navigation = useNavigation<DictionaryScreenNavigationProp>();
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [internalSearchQuery, setInternalSearchQuery] = useState('');
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
+  const setSearchQuery = onSearchQueryChange || setInternalSearchQuery;
   const [words, setWords] = useState<Word[]>([]);
   const [filteredWords, setFilteredWords] = useState<Word[]>([]);
   const [selectedWords, setSelectedWords] = useState<Word[]>([]);
@@ -509,21 +517,31 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
         <View style={styles.contentContainer}>
           {!isModal && renderLevelSelector()}
 
-          <TextInput
-            ref={searchInputRef}
-            style={[
-              styles.searchInput,
-              { 
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                color: colors.text.primary,
-              }
-            ]}
-            placeholder={translations.dictionaryScreen.searchPlaceholder}
-            placeholderTextColor={colors.text.secondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+          <View style={styles.searchInputContainer}>
+            <TextInput
+              ref={searchInputRef}
+              style={[
+                styles.searchInput,
+                { 
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  color: colors.text.primary,
+                }
+              ]}
+              placeholder={translations.dictionaryScreen.searchPlaceholder}
+              placeholderTextColor={colors.text.secondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setSearchQuery('')}
+              >
+                <MaterialIcons name="close" size={20} color={colors.text.secondary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </Animated.View>
 
@@ -598,12 +616,24 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: 16,
   },
+  searchInputContainer: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   searchInput: {
+    flex: 1,
     height: 40,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
     marginBottom: 16,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 12,
+    top: '10%',
+    padding: 4,
   },
   wordItemContainer: {
     marginBottom: 8,
