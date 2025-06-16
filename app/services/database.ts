@@ -413,6 +413,23 @@ class DatabaseService {
     }
   }
 
+  // Belirli bir kelimeyi öğrenilen kelimelerden sil
+  async deleteLearnedWord(word: string, languagePair: string): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const result = await this.db.runAsync(
+        'DELETE FROM learned_words WHERE word = ? AND language_pair = ?',
+        [word, languagePair]
+      );
+      
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error deleting learned word:', error);
+      return false;
+    }
+  }
+
   // Öğrenilen kelimeleri SQLite'a kaydet
   async saveLearnedWords(words: LearnedWord[], languagePair: string): Promise<boolean> {
     try {

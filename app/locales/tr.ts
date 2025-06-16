@@ -67,7 +67,15 @@ export default {
       info: 'Öğrendiğiniz kelimeleri pekiştirmek için 2-5 arası kelime seçebilirsiniz. Seçtiğiniz kelimelerle görsel eşleştirme yaparak tekrar çalışabilirsiniz.',
       button: '{0} Kelimeyi Pekiştir'
     },
-    information: 'Bilgilendirme'
+    information: 'Bilgilendirme',
+    deleteWordTitle: 'Kelimeyi Sil',
+    deleteWordMessage: 'Bu kelimeyi silmek istediğinizden emin misiniz?',
+    deleteWordCancel: 'İptal',
+    deleteWordConfirm: 'Evet, Sil',
+    success: 'Başarılı',
+    deleteWordSuccess: 'Kelime başarıyla silindi',
+    error: 'Hata',
+    deleteWordError: 'Kelime silinirken bir hata oluştu'
   },
   languageSelector: {
     title: 'Dil Seçimi',

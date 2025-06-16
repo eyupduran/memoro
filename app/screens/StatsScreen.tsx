@@ -245,20 +245,36 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
     });
   };
   
-  const handleDeleteWord = async (word: LearnedWord) => {
+  const handleDeleteWord = async (word: string) => {
     try {
-      // Get current learned words
-      const currentWords = await dbService.getLearnedWords(currentLanguagePair);
-      // Filter out the word to be deleted
-      const updatedWords = currentWords.filter(w => w.word !== word.word);
-      // Save the updated list
-      await dbService.saveLearnedWords(updatedWords, currentLanguagePair);
-      // Update the local state
-      setAllWords(updatedWords);
-      setWords(updatedWords.slice(0, ITEMS_PER_PAGE));
-      setTotalWords(updatedWords.length);
+      // Kelimeyi veritabanından sil
+      const success = await dbService.deleteLearnedWord(word, currentLanguagePair);
+      
+      if (success) {
+        // State'i güncelle
+        setAllWords(prevWords => prevWords.filter(w => w.word !== word));
+        
+        // Başarılı silme mesajı göster
+        Alert.alert(
+          translations.stats.success || 'Başarılı',
+          translations.stats.wordDeletedSuccessfully || 'Kelime başarıyla silindi',
+          [{ text: translations.stats.ok || 'Tamam' }]
+        );
+      } else {
+        // Silme başarısız olduğunda hata mesajı göster
+        Alert.alert(
+          translations.stats.error || 'Hata',
+          translations.stats.errorDeletingWord || 'Kelime silinirken bir hata oluştu',
+          [{ text: translations.stats.ok || 'Tamam' }]
+        );
+      }
     } catch (error) {
       console.error('Error deleting word:', error);
+      Alert.alert(
+        translations.stats.error || 'Hata',
+        translations.stats.errorDeletingWord || 'Kelime silinirken bir hata oluştu',
+        [{ text: translations.stats.ok || 'Tamam' }]
+      );
     }
   };
 
@@ -331,6 +347,36 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
               {item.level}
             </Text>
           </View>
+
+          <TouchableOpacity
+            style={[styles.deleteButton, { backgroundColor: colors.error + '15' }]}
+            onPress={(e) => {
+              e.stopPropagation();
+              Alert.alert(
+                translations.stats.deleteWordTitle || 'Kelimeyi Sil',
+                translations.stats.deleteWordMessage || 'Bu kelimeyi silmek istediğinizden emin misiniz?',
+                [
+                  {
+                    text: translations.stats.deleteWordCancel || 'İptal',
+                    style: 'cancel'
+                  },
+                  {
+                    text: translations.stats.deleteWordConfirm || 'Evet, Sil',
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        await handleDeleteWord(item.word);
+                      } catch (error) {
+                        console.error('Error deleting word:', error);
+                      }
+                    }
+                  }
+                ]
+              );
+            }}
+          >
+            <MaterialIcons name="delete-outline" size={16} color={colors.error} />
+          </TouchableOpacity>
           
           <View style={styles.wordMain}>
             <View style={styles.wordWithSpeech}>
@@ -367,27 +413,29 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
               </Text>
             </TouchableOpacity>
             
-            <TouchableOpacity
-              style={[styles.selectButton, { 
-                backgroundColor: isSelected ? colors.primary + '15' : 'transparent',
-                borderColor: isSelected ? colors.primary : colors.border,
-              }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleWordSelect(item);
-              }}
-            >
-              <MaterialIcons 
-                name={isSelected ? "check" : "add"} 
-                size={16} 
-                color={isSelected ? colors.primary : colors.text.secondary} 
-              />
-              <Text style={[styles.selectButtonText, { 
-                color: isSelected ? colors.primary : colors.text.secondary,
-              }]}>
-                {isSelected ? 'Seçildi' : 'Seç'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.rightActions}>
+              <TouchableOpacity
+                style={[styles.selectButton, { 
+                  backgroundColor: isSelected ? colors.primary + '15' : 'transparent',
+                  borderColor: isSelected ? colors.primary : colors.border,
+                }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleWordSelect(item);
+                }}
+              >
+                <MaterialIcons 
+                  name={isSelected ? "check" : "add"} 
+                  size={16} 
+                  color={isSelected ? colors.primary : colors.text.secondary} 
+                />
+                <Text style={[styles.selectButtonText, { 
+                  color: isSelected ? colors.primary : colors.text.secondary,
+                }]}>
+                  {isSelected ? 'Seçildi' : 'Seç'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -1143,9 +1191,13 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     position: 'absolute',
-    right: 12,
-    bottom: 12,
+    top: 32,
+    right: 8,
     padding: 8,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
   },
   headerContainer: {
     position: 'absolute',
@@ -1232,5 +1284,10 @@ const styles = StyleSheet.create({
   examplePrefix: {
     fontWeight: '500',
     fontStyle: 'normal',
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 });

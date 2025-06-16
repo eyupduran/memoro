@@ -67,7 +67,15 @@ export default {
       info: 'Você pode selecionar de 2 a 5 palavras aprendidas para reforçar. Pratique associando essas palavras a imagens.',
       button: 'Reforçar {0} Palavras'
     },
-    information: 'Informação'
+    information: 'Informação',
+    deleteWordTitle: 'Excluir Palavra',
+    deleteWordMessage: 'Tem certeza que deseja excluir esta palavra?',
+    deleteWordCancel: 'Cancelar',
+    deleteWordConfirm: 'Sim, Excluir',
+    success: 'Sucesso',
+    deleteWordSuccess: 'Palavra excluída com sucesso',
+    error: 'Erro',
+    deleteWordError: 'Ocorreu um erro ao excluir a palavra'
   },
   languageSelector: {
     title: 'Seleção de Idioma',
