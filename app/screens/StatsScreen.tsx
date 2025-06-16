@@ -679,8 +679,8 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
                 data={words}
                 renderItem={renderWordItem}
                 keyExtractor={(item) => item.word}
-                style={[styles.wordList, selectedWords.length >= 2 && styles.wordListWithButton]}
-                contentContainerStyle={{ paddingTop: 162, paddingBottom: selectedWords.length >= 2 ? 80 : 0 }}
+                style={[styles.wordList, selectedWords.length > 0 && styles.wordListWithButton]}
+                contentContainerStyle={{ paddingTop: 162, paddingBottom: selectedWords.length > 0 ? 80 : 0 }}
                 showsVerticalScrollIndicator={false}
                 onEndReached={loadMoreWords}
                 onEndReachedThreshold={0.5}
@@ -689,13 +689,31 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
                 scrollEventThrottle={16}
               />
 
-              {selectedWords.length >= 2 && selectedWords.length <= 5 && (
+              {selectedWords.length > 0 && (
                 <TouchableOpacity
-                  style={[styles.reinforceButton, { backgroundColor: colors.primary }]}
+                  style={[
+                    styles.reinforceButton, 
+                    { 
+                      backgroundColor: selectedWords.length >= 2 ? colors.primary : colors.surface,
+                      borderWidth: selectedWords.length < 2 ? 1 : 0,
+                      borderColor: selectedWords.length < 2 ? colors.border : undefined,
+                    }
+                  ]}
                   onPress={handleReinforce}
+                  disabled={selectedWords.length < 2}
                 >
-                  <Text style={[styles.reinforceButtonText, { color: colors.text.onPrimary }]}>
-                    {formatString(translations.stats.reinforcement?.button || '{0} kelimeyi pekiştir', selectedWords.length)}
+                  <Text 
+                    style={[
+                      styles.reinforceButtonText, 
+                      { 
+                        color: selectedWords.length >= 2 ? colors.text.onPrimary : colors.text.secondary 
+                      }
+                    ]}
+                  >
+                    {selectedWords.length < 2 
+                      ? translations.dictionaryScreen?.selectMinWords || 'En az 2 kelime seçin'
+                      : formatString(translations.stats.reinforcement?.button || '{0} kelimeyi pekiştir', selectedWords.length)
+                    }
                   </Text>
                 </TouchableOpacity>
               )}
