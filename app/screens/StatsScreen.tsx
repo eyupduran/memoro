@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   Modal,
   Pressable,
   Alert,
+  TextInput,
+  Animated,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -38,7 +40,7 @@ const ITEMS_PER_PAGE = 10;
 // Tab types
 type TabType = 'learnedWords' | 'wordLists';
 
-export const StatsScreen: React.FC<Props> = ({ navigation }) => {
+export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
   const [selectedTab, setSelectedTab] = useState<TabType>('learnedWords');
@@ -49,6 +51,15 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedWords, setSelectedWords] = useState<LearnedWord[]>([]);
   const [wordLists, setWordLists] = useState<{ id: number; name: string; created_at: string }[]>([]);
   const [loadingLists, setLoadingLists] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredWords, setFilteredWords] = useState<LearnedWord[]>([]);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const searchInputRef = useRef<TextInput>(null);
+  const activeSearchId = useRef(0);
   
   // Pagination için state'ler
   const [page, setPage] = useState(0);
@@ -69,6 +80,29 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
       applyLevelFilter();
     }
   }, [selectedLevel, allWords]);
+
+  // Add search functionality
+  useEffect(() => {
+    if (isInitialLoad) {
+      setIsInitialLoad(false);
+      return;
+    }
+    
+    // Reset page state
+    setPage(0);
+
+    // Don't search for very short queries to improve performance
+    if (searchQuery.trim().length > 0 && searchQuery.trim().length < 2) {
+      return;
+    }
+    
+    // Debounce user input
+    const timeoutId = setTimeout(() => {
+      filterWords();
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, selectedLevel, allWords]);
 
   // Tüm kelimeleri yükle
   const loadAllWords = async () => {
@@ -228,57 +262,134 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const filterWords = () => {
+    const searchId = ++activeSearchId.current;
+    
+    let filtered = allWords;
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(word => 
+        word.word.toLowerCase().includes(query) || 
+        word.meaning.toLowerCase().includes(query)
+      );
+    }
+    
+    if (selectedLevel !== 'all') {
+      filtered = filtered.filter(word => word.level === selectedLevel);
+    }
+    
+    if (searchId === activeSearchId.current) {
+      setFilteredWords(filtered);
+      setWords(filtered.slice(0, ITEMS_PER_PAGE));
+      setHasMore(filtered.length > ITEMS_PER_PAGE);
+    }
+  };
+
+  const handleScroll = (event: any) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const isScrollingDown = currentScrollY > lastScrollY.current;
+    const isScrollingUp = currentScrollY < lastScrollY.current;
+    const hasScrolledEnough = Math.abs(currentScrollY - lastScrollY.current) > 20;
+
+    if (hasScrolledEnough) {
+      Animated.timing(headerTranslateY, {
+        toValue: isScrollingDown ? -100 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      setIsHeaderVisible(!isScrollingDown);
+    }
+
+    lastScrollY.current = currentScrollY;
+  };
+
   // Kelime kartını render et
   const renderWordItem = ({ item }: { item: LearnedWord }) => {
     const isSelected = selectedWords.some(w => w.word === item.word);
     return (
       <TouchableOpacity
-        onPress={() => handleWordSelect(item)}
         style={[
-          styles.wordCard,
+          styles.wordItemContainer,
+          isSelected && styles.selectedWordItemContainer
+        ]}
+        onPress={() => handleWordSelect(item)}
+      >
+        <View style={[
+          styles.wordItem,
           { 
             backgroundColor: colors.surface,
             borderColor: isSelected ? colors.primary : colors.border,
             borderWidth: isSelected ? 2 : 1,
           },
-        ]}
-      >
-        <View style={styles.wordHeader}>
-          <View style={styles.wordMainContent}>
-            <Text style={[styles.wordText, { color: colors.text.primary }]}>
-              {item.word}
-            </Text>
-            <Text style={[styles.meaningText, { color: colors.text.secondary }]}>
-              {item.meaning}
-            </Text>
-          </View>
-          <View style={styles.wordMeta}>
+        ]}>
+          <View style={styles.levelTagContainer}>
             <Text style={[styles.levelTag, { 
               backgroundColor: colors.primary + '20',
               color: colors.primary,
             }]}>
-              {item.level.toUpperCase()}
-            </Text>
-            <Text style={[styles.dateText, { color: colors.text.secondary }]}>
-              {formatDate(item.learnedAt)}
+              {item.level}
             </Text>
           </View>
+          
+          <View style={styles.wordMain}>
+            <View style={styles.wordWithSpeech}>
+              <Text style={[styles.wordText, { color: colors.text.primary }]}>{item.word}</Text>
+              <TouchableOpacity 
+                style={styles.speakButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  // Add speech functionality if needed
+                }}
+              >
+                <MaterialIcons name="volume-up" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.meaningText, { color: colors.text.secondary }]}>{item.meaning}</Text>
+            {item.example && (
+              <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
+                <Text style={styles.examplePrefix}>{translations.dictionaryScreen?.examplePrefix || 'Örnek:'}</Text> {item.example}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.wordActions}>
+            <TouchableOpacity
+              style={[styles.addToListButton, { backgroundColor: colors.primary + '15' }]}
+              onPress={(e) => {
+                e.stopPropagation();
+                // Add to list functionality if needed
+              }}
+            >
+              <MaterialIcons name="playlist-add" size={16} color={colors.primary} />
+              <Text style={[styles.addToListButtonText, { color: colors.primary }]}>
+                {translations.wordListModal?.addToList || 'Listeye Ekle'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.selectButton, { 
+                backgroundColor: isSelected ? colors.primary + '15' : 'transparent',
+                borderColor: isSelected ? colors.primary : colors.border,
+              }]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleWordSelect(item);
+              }}
+            >
+              <MaterialIcons 
+                name={isSelected ? "check" : "add"} 
+                size={16} 
+                color={isSelected ? colors.primary : colors.text.secondary} 
+              />
+              <Text style={[styles.selectButtonText, { 
+                color: isSelected ? colors.primary : colors.text.secondary,
+              }]}>
+                {isSelected ? 'Seçildi' : 'Seç'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        {item.example && (
-          <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
-            {item.example}
-          </Text>
-        )}
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteWord(item)}
-        >
-          <MaterialIcons
-            name="delete-outline"
-            size={24}
-            color={colors.error}
-          />
-        </TouchableOpacity>
       </TouchableOpacity>
     );
   };
@@ -426,103 +537,122 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
   const renderLearnedWordsTab = () => {
     return (
       <View style={styles.tabContent}>
-        <View style={styles.levelScrollWrapper}>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.levelScroll}
-        contentContainerStyle={styles.levelScrollContent}
-      >
-        <TouchableOpacity
-          style={[
-            styles.levelButton,
-            { 
-              backgroundColor: selectedLevel === 'all' ? colors.primary : colors.surface,
-              borderColor: selectedLevel === 'all' ? colors.primary : colors.border,
+        <Animated.View style={[
+          styles.headerContainer,
+          !isInitialLoad && {
+            transform: [{ translateY: headerTranslateY }],
+          },
+          {
+            zIndex: 2,
+            backgroundColor: colors.background,
+            shadowColor: "#000",
+            shadowOffset: {
+              width: 0,
+              height: 2,
             },
-          ]}
-          onPress={() => setSelectedLevel('all')}
-        >
-          <Text
-            style={[
-              styles.levelName,
-              { 
-                color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.primary,
-              },
-            ]}
-          >
-            {translations.stats.levels.all}
-          </Text>
-          <Text
-            style={[
-              styles.levelDescription,
-              { 
-                color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.secondary,
-              },
-            ]}
-          >
-            {translations.stats.levels.allDescription}
-          </Text>
-        </TouchableOpacity>
-        {LEVELS.map((level) => (
-          <TouchableOpacity
-            key={level.id}
-            style={[
-              styles.levelButton,
-              { 
-                backgroundColor: selectedLevel === level.id ? colors.primary : colors.surface,
-                borderColor: selectedLevel === level.id ? colors.primary : colors.border,
-              },
-            ]}
-            onPress={() => setSelectedLevel(level.id)}
-          >
-            <Text
-              style={[
-                styles.levelName,
-                { 
-                  color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.primary,
-                },
-              ]}
-            >
-              {level.name}
-            </Text>
-            <Text
-              style={[
-                styles.levelDescription,
-                { 
-                  color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.secondary,
-                },
-              ]}
-            >
-              {translations.stats.levels[level.translationKey]}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-        </View>
+            shadowOpacity: 0.1,
+            shadowRadius: 3,
+            elevation: 3,
+          }
+        ]}>
+          <View style={styles.contentContainer}>
+            <View style={styles.levelScrollWrapper}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                style={styles.levelScroll}
+                contentContainerStyle={styles.levelScrollContent}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.levelButton,
+                    { 
+                      backgroundColor: selectedLevel === 'all' ? colors.primary : colors.surface,
+                      borderColor: selectedLevel === 'all' ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={() => setSelectedLevel('all')}
+                >
+                  <Text
+                    style={[
+                      styles.levelName,
+                      { 
+                        color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.primary,
+                      },
+                    ]}
+                  >
+                    {translations.stats.levels.all}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.levelDescription,
+                      { 
+                        color: selectedLevel === 'all' ? colors.text.onPrimary : colors.text.secondary,
+                      },
+                    ]}
+                  >
+                    {translations.stats.levels.allDescription}
+                  </Text>
+                </TouchableOpacity>
+                {LEVELS.map((level) => (
+                  <TouchableOpacity
+                    key={level.id}
+                    style={[
+                      styles.levelButton,
+                      { 
+                        backgroundColor: selectedLevel === level.id ? colors.primary : colors.surface,
+                        borderColor: selectedLevel === level.id ? colors.primary : colors.border,
+                      },
+                    ]}
+                    onPress={() => setSelectedLevel(level.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.levelName,
+                        { 
+                          color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.primary,
+                        },
+                      ]}
+                    >
+                      {level.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.levelDescription,
+                        { 
+                          color: selectedLevel === level.id ? colors.text.onPrimary : colors.text.secondary,
+                        },
+                      ]}
+                    >
+                      {translations.stats.levels[level.translationKey]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
-        <View style={[styles.levelSeparator, { backgroundColor: colors.border }]} />
+            <TextInput
+              ref={searchInputRef}
+              style={[
+                styles.searchInput,
+                { 
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  color: colors.text.primary,
+                }
+              ]}
+              placeholder={translations.dictionaryScreen?.searchPlaceholder || 'Kelime ara...'}
+              placeholderTextColor={colors.text.secondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+        </Animated.View>
 
         <View style={styles.learnedWordsContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-              {translations.stats.learnedWords} ({totalWords})
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowInfoModal(true)}
-              style={styles.infoButton}
-            >
-              <MaterialIcons 
-                name="error-outline" 
-                size={24} 
-                color={colors.text.secondary}
-              />
-            </TouchableOpacity>
-          </View>
-
           {loading ? (
             <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : words.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -533,9 +663,11 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.emptyIcon}
               />
               <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-                {selectedLevel === 'all' 
-                  ? translations.stats.noWords?.allLevels || 'Henüz öğrenilen kelime yok'
-                  : translations.stats.noWords?.specificLevel || 'Bu seviyede öğrenilen kelime yok'}
+                {searchQuery.trim() 
+                  ? translations.dictionaryScreen?.noResults || 'Sonuç bulunamadı'
+                  : selectedLevel === 'all' 
+                    ? translations.stats.noWords?.allLevels || 'Henüz öğrenilen kelime yok'
+                    : translations.stats.noWords?.specificLevel || 'Bu seviyede öğrenilen kelime yok'}
               </Text>
               <Text style={[styles.emptySubtext, { color: colors.text.secondary }]}>
                 {translations.stats.noWords?.subtext || 'Kelime öğrenmeye başlamak için egzersizleri tamamlayın'}
@@ -548,11 +680,13 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
                 renderItem={renderWordItem}
                 keyExtractor={(item) => item.word}
                 style={[styles.wordList, selectedWords.length >= 2 && styles.wordListWithButton]}
-                contentContainerStyle={{ paddingBottom: selectedWords.length >= 2 ? 80 : 0 }}
+                contentContainerStyle={{ paddingTop: 162, paddingBottom: selectedWords.length >= 2 ? 80 : 0 }}
                 showsVerticalScrollIndicator={false}
                 onEndReached={loadMoreWords}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={renderFooter}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
               />
 
               {selectedWords.length >= 2 && selectedWords.length <= 5 && (
@@ -725,7 +859,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   levelScrollWrapper: {
-    paddingTop: 12,
+    paddingTop: 0,
     paddingBottom: 8,
   },
   levelSectionTitle: {
@@ -739,7 +873,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   levelScrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
   },
   levelButton: {
     paddingHorizontal: 12,
@@ -989,5 +1123,91 @@ const styles = StyleSheet.create({
     right: 12,
     bottom: 12,
     padding: 8,
+  },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 16,
+  },
+  contentContainer: {
+    paddingHorizontal: 16,
+  },
+  searchInput: {
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  wordItemContainer: {
+    marginBottom: 8,
+    padding: 1,
+  },
+  selectedWordItemContainer: {
+    padding: 0,
+  },
+  wordItem: {
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  levelTagContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 1,
+  },
+  wordMain: {
+    flex: 1,
+    paddingRight: 30,
+  },
+  wordWithSpeech: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  speakButton: {
+    padding: 2,
+    marginLeft: 6,
+  },
+  wordActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  addToListButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+  },
+  addToListButtonText: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginLeft: 3,
+  },
+  selectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  selectButtonText: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginLeft: 3,
+  },
+  examplePrefix: {
+    fontWeight: '500',
+    fontStyle: 'normal',
   },
 });
