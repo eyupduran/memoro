@@ -114,6 +114,7 @@ const ExerciseQuestionScreen: React.FC = () => {
   const [questionDetails, setQuestionDetails] = useState<QuestionDetail[]>([]);
 
   const [isDictionaryModalVisible, setIsDictionaryModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Önceki sayfadan gelen soru detaylarını yükle
   useEffect(() => {
@@ -1187,7 +1188,11 @@ const ExerciseQuestionScreen: React.FC = () => {
               <Text> </Text>
             </View>
           </View>
-          <DictionaryScreen isModal={true} />
+          <DictionaryScreen 
+            isModal={true} 
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+          />
         </View>
       </View>
     </Modal>
