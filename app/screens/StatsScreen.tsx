@@ -733,7 +733,12 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
             styles.tabButton,
             selectedTab === 'learnedWords' && [styles.activeTab, { borderBottomColor: colors.primary }]
           ]}
-          onPress={() => setSelectedTab('learnedWords')}
+          onPress={() => {
+            setSelectedTab('learnedWords');
+            // Reset header visibility when switching to learned words tab
+            headerTranslateY.setValue(0);
+            setIsHeaderVisible(true);
+          }}
         >
           <MaterialIcons
             name="school"
