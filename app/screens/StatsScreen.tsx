@@ -294,7 +294,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
 
     if (hasScrolledEnough) {
       Animated.timing(headerTranslateY, {
-        toValue: isScrollingDown ? -100 : 0,
+        toValue: isScrollingDown ? -200 : 0,
         duration: 200,
         useNativeDriver: true,
       }).start();
