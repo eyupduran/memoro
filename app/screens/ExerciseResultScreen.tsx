@@ -194,6 +194,16 @@ const ExerciseResultScreen: React.FC = () => {
     });
   };
   
+  const handleReturnToExercises = () => {
+    // Navigation stack'i sıfırla ve LevelSelection ve Exercise ekranlarını ekle
+    navigation.reset({
+      index: 1,
+      routes: [
+        { name: 'LevelSelection' },
+        { name: 'Exercise' }
+      ],
+    });
+  };
   // Sadece sonuç bölümünü içeren basit bir bileşen
   const ResultCard = () => (
     <View 
@@ -283,7 +293,7 @@ const ExerciseResultScreen: React.FC = () => {
                 borderWidth: 1,
               },
             ]}
-            onPress={() => navigation.replace('Exercise')}
+            onPress={handleReturnToExercises}
           >
             <Text style={[styles.buttonText, { color: colors.text.primary }]}>
               {translations.exercise.result.backToExercises}
