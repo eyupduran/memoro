@@ -679,16 +679,25 @@ const ExerciseQuestionScreen: React.FC = () => {
         questionDetails: questionDetails // Soru detaylarını bir sonraki soruya aktar
       });
     } else {
-      navigation.replace('ExerciseResult', {
-        score: currentScore,
-        totalQuestions,
-        exerciseType,
-        wordSource,
-        level,
-        wordListId,
-        wordListName,
-        languagePair: currentLanguagePair,
-        questionDetails: questionDetails // Soru detaylarını sonuç ekranına aktar
+      // Sonuç sayfasına geçerken navigation stack'i temizle
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: 'ExerciseResult',
+            params: {
+              score: currentScore,
+              totalQuestions,
+              exerciseType,
+              wordSource,
+              level,
+              wordListId,
+              wordListName,
+              languagePair: currentLanguagePair,
+              questionDetails: questionDetails
+            }
+          }
+        ]
       });
     }
   };
