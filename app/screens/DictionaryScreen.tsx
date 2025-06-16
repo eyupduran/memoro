@@ -189,7 +189,7 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
         word: word.word,
         meaning: word.meaning,
         example: word.example || '',
-        level: word.level || 'custom',
+        level: word.level || '',
         learnedAt: now
       }));
       
@@ -198,13 +198,13 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ isModal = false }) 
       
       // Görüntü seçim ekranına git
       navigation.navigate('ImageSelection', {
-        level: 'custom',
         wordCount: selectedWords.length,
         selectedWords: selectedWords.map(w => ({
           id: w.id,
           word: w.word,
           meaning: w.meaning,
-          example: w.example
+          example: w.example,
+          level: w.level
         })),
       });
     }

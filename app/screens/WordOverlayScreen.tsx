@@ -6,14 +6,10 @@ import {
   ImageBackground,
   TouchableOpacity,
   ScrollView,
-  ImageSourcePropType,
   Alert,
   Dimensions,
-  PixelRatio,
   Image,
-  Modal,
   Platform,
-  PanResponder,
   Animated,
   Linking,
 } from 'react-native';
@@ -43,8 +39,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
   const viewShotRef = useRef<ViewShot>(null);
-  const [hasPermission, setHasPermission] = useState(false);
-  const { selectedImage, selectedWords, level } = route.params;
+  const { selectedImage, selectedWords } = route.params;
   const windowWidth = Dimensions.get('window').width;
 
   const styles = useMemo(() => StyleSheet.create({
@@ -564,7 +559,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         word: word.word,
         meaning: word.meaning,
         example: word.example || '',
-        level: level || 'custom',
+        level: word.level || 'custom',
         learnedAt: new Date().toISOString()
       }));
 
@@ -580,7 +575,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const requestPermission = async () => {
     const { status } = await MediaLibrary.requestPermissionsAsync();
-    setHasPermission(status === 'granted');
     return status === 'granted';
   };
 

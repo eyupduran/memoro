@@ -16,13 +16,11 @@ export type RootStackParamList = {
     wordCount: number;
   };
   ImageSelection: {
-    level: string;
     wordCount: number;
     selectedWords: Word[];
     isReinforcement?: boolean;
   };
   WordOverlay: {
-    level: string;
     wordCount: number;
     selectedWords: Word[];
     selectedImage: string;

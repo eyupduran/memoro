@@ -84,7 +84,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
         word: word.word,
         meaning: word.meaning,
         example: word.example || '',
-        level: word.level || 'A1',
+        level: word.level,
         learnedAt: word.learnedAt || new Date().toISOString()
       }));
       
@@ -192,7 +192,6 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
   const handleReinforce = () => {
     if (selectedWords.length >= 2 && selectedWords.length <= 5) {
       navigation.navigate('ImageSelection', {
-        level: 'custom',
         wordCount: selectedWords.length,
         selectedWords: selectedWords.map(w => ({
           id: w.word,
@@ -212,6 +211,23 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
     });
   };
   
+  const handleDeleteWord = async (word: LearnedWord) => {
+    try {
+      // Get current learned words
+      const currentWords = await dbService.getLearnedWords(currentLanguagePair);
+      // Filter out the word to be deleted
+      const updatedWords = currentWords.filter(w => w.word !== word.word);
+      // Save the updated list
+      await dbService.saveLearnedWords(updatedWords, currentLanguagePair);
+      // Update the local state
+      setAllWords(updatedWords);
+      setWords(updatedWords.slice(0, ITEMS_PER_PAGE));
+      setTotalWords(updatedWords.length);
+    } catch (error) {
+      console.error('Error deleting word:', error);
+    }
+  };
+
   // Kelime kartını render et
   const renderWordItem = ({ item }: { item: LearnedWord }) => {
     const isSelected = selectedWords.some(w => w.word === item.word);
@@ -253,6 +269,16 @@ export const StatsScreen: React.FC<Props> = ({ navigation }) => {
             {item.example}
           </Text>
         )}
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDeleteWord(item)}
+        >
+          <MaterialIcons
+            name="delete-outline"
+            size={24}
+            color={colors.error}
+          />
+        </TouchableOpacity>
       </TouchableOpacity>
     );
   };
@@ -957,5 +983,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  deleteButton: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+    padding: 8,
   },
 });

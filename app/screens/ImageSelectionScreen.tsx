@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
-  ScrollView,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -16,9 +15,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { storageService } from '../services/storage';
 import { dbService } from '../services/database';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
-import type { Word } from '../types/words';
 
 const { width } = Dimensions.get('window');
 // Kenar boşluklarını dikkate alarak hesaplama yapalım
@@ -43,7 +40,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ImageSelection'>;
 export const ImageSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
   const { colors } = useTheme();
   const { translations } = useLanguage();
-  const { selectedWords, level, wordCount } = route.params;
+  const { selectedWords, wordCount } = route.params;
   const [backgrounds, setBackgrounds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -162,7 +159,6 @@ export const ImageSelectionScreen: React.FC<Props> = ({ navigation, route }) => 
     navigation.navigate('WordOverlay', {
       selectedWords,
       selectedImage: imageUrl,
-      level,
       wordCount,
       isReinforcement: route.params.isReinforcement
     });
