@@ -342,7 +342,7 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
           scrollEventThrottle={16}
         />
       )}
-
+      {selectedWords.length > 0 && (
       <View style={styles.bottomContainer}>
         {showMaxWordsMessage && (
           <Animated.View style={[
@@ -385,6 +385,7 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
           </Text>
         </TouchableOpacity>
       </View>
+      )}
     </View>
   );
 };
