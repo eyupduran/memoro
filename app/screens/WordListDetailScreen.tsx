@@ -474,8 +474,8 @@ const styles = StyleSheet.create({
   },
   streakIconContainer: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: 24,
+    right: 0,
     zIndex: 2,
     padding: 2,
     borderRadius: 12,
