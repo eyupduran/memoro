@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text, Modal } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text, Modal, Alert, BackHandler } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -7,7 +7,7 @@ import { RootStackParamList } from '../types/navigation';
 import { GrammarLevelModal } from '../components/GrammarLevelModal';
 import WebView from 'react-native-webview';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import DictionaryScreen from './DictionaryScreen';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Grammar'>;
@@ -23,6 +23,46 @@ export const GrammarScreen: React.FC<Props> = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const webViewRef = useRef<WebView>(null);
   const navigation = useNavigation();
+
+  // Geri tuşu için uyarı
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Eğer seviye seçimi modalı açıksa, normal geri tuşu davranışını engelleme
+        if (isLevelModalVisible) return false;
+        
+        // Kullanıcıya gramer sayfasından çıkış uyarısı göster
+        Alert.alert(
+          translations.grammar.exitWarning.title,
+          translations.grammar.exitWarning.message,
+          [
+            {
+              text: translations.grammar.exitWarning.cancel,
+              onPress: () => {},
+              style: 'cancel',
+            },
+            {
+              text: translations.grammar.exitWarning.confirm,
+              onPress: () => {
+                navigation.goBack();
+              },
+              style: 'destructive',
+            },
+          ],
+          { cancelable: true }
+        );
+        
+        // Geri tuşunun varsayılan davranışını engelle
+        return true;
+      };
+
+      // Android geri tuşu için event listener ekle
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup function
+      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [isLevelModalVisible, translations.grammar.exitWarning, navigation])
+  );
 
   const handleLevelSelect = (url: string) => {
     setSelectedUrl(url);

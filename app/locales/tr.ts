@@ -440,6 +440,12 @@ export default {
     subtitle: 'Dil bilgisi kurallarını öğrenin',
     comingSoon: 'Yakında...',
     selectLevel: 'Seviye Seçin',
+    exitWarning: {
+      title: 'Emin misiniz?',
+      message: 'Gramer sayfasından çıkmak istediğinizden emin misiniz?',
+      cancel: 'İptal',
+      confirm: 'Çık'
+    },
   },
   dictionary: {
     title: 'Sözlük',

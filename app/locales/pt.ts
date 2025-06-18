@@ -439,7 +439,13 @@ export default {
     title: 'Gramática',
     subtitle: 'Aprenda as regras gramaticais',
     comingSoon: 'Em breve...',
-    selectLevel: 'Escolha o Nível'
+    selectLevel: 'Escolha o Nível',
+    exitWarning: {
+      title: 'Tem certeza?',
+      message: 'Tem certeza que deseja sair da página de gramática?',
+      cancel: 'Cancelar',
+      confirm: 'Sair'
+    },
   },
   dictionary: {
     title: 'Dicionário',
