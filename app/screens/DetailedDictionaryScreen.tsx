@@ -8,9 +8,11 @@ import WebView from 'react-native-webview';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'DetailedDictionary'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'DetailedDictionary'> & {
+  isModal?: boolean;
+};
 
-export const DetailedDictionaryScreen: React.FC<Props> = ({ route }) => {
+export const DetailedDictionaryScreen: React.FC<Props> = ({ route, isModal = false }) => {
   const { colors } = useTheme();
   const { translations } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +27,11 @@ export const DetailedDictionaryScreen: React.FC<Props> = ({ route }) => {
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
+        // Modal modunda ise, geri tuşu davranışını engelle
+        if (isModal) {
+          return true; // Modal'ın kendi kapatma mekanizması kullanılacak
+        }
+        
         // Doğrudan çıkış yap, uyarı gösterme
         navigation.goBack();
         return true;
@@ -35,7 +42,7 @@ export const DetailedDictionaryScreen: React.FC<Props> = ({ route }) => {
 
       // Cleanup function
       return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, [navigation])
+    }, [navigation, isModal])
   );
 
   return (

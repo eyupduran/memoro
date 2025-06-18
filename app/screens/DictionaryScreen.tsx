@@ -23,6 +23,7 @@ import { storageService } from '../services/storage';
 import { WordListModal } from '../components/WordListModal';
 import * as Speech from 'expo-speech';
 import { MaterialIcons } from '@expo/vector-icons';
+import { DetailedDictionaryScreen } from './DetailedDictionaryScreen';
 
 type DictionaryScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -30,12 +31,14 @@ type DictionaryScreenProps = {
   isModal?: boolean;
   searchQuery?: string;
   onSearchQueryChange?: (query: string) => void;
+  openDetailedAsModal?: boolean;
 };
 
 const DictionaryScreen: React.FC<DictionaryScreenProps> = ({ 
   isModal = false,
   searchQuery: externalSearchQuery,
-  onSearchQueryChange
+  onSearchQueryChange,
+  openDetailedAsModal
 }) => {
   const navigation = useNavigation<DictionaryScreenNavigationProp>();
   const { colors } = useTheme();
@@ -59,6 +62,10 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({
   const [selectedWordForList, setSelectedWordForList] = useState<Word | null>(null);
   const searchInputRef = useRef<TextInput>(null);
   const activeSearchId = useRef(0);
+  
+  // State for detailed dictionary modal
+  const [isDetailedDictionaryModalVisible, setIsDetailedDictionaryModalVisible] = useState(false);
+  const [selectedWordForDetail, setSelectedWordForDetail] = useState<string>('');
   
   const ITEMS_PER_PAGE = 50;
   const LEVELS: Level[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -304,7 +311,12 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({
                 style={[styles.detailButton, { backgroundColor: colors.primary + '15' }]}
                 onPress={(e) => {
                   e.stopPropagation();
-                  navigation.navigate('DetailedDictionary', { wordName: item.word });
+                  if (openDetailedAsModal) {
+                    setSelectedWordForDetail(item.word);
+                    setIsDetailedDictionaryModalVisible(true);
+                  } else {
+                    navigation.navigate('DetailedDictionary', { wordName: item.word });
+                  }
                 }}
               >
                 <MaterialIcons name="info" size={16} color={colors.primary} />
@@ -610,6 +622,33 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({
         onClose={() => setSelectedWordForList(null)}
         word={selectedWordForList!}
       />
+
+      {/* Detailed Dictionary Modal */}
+      {isDetailedDictionaryModalVisible && selectedWordForDetail && (
+        <View style={[styles.detailedDictionaryModal, { backgroundColor: colors.background }]}>
+          <View style={[styles.detailedDictionaryModalHeader, { borderBottomColor: colors.border }]}>
+            <TouchableOpacity 
+              onPress={() => setIsDetailedDictionaryModalVisible(false)}
+              style={styles.closeDetailedDictionaryButton}
+            >
+              <MaterialIcons name="close" size={24} color={colors.text.primary} />
+            </TouchableOpacity>
+            <Text style={[styles.detailedDictionaryModalTitle, { color: colors.text.primary }]}>
+              {selectedWordForDetail}
+            </Text>
+            <View style={{ width: 24 }}>
+              <Text> </Text>
+            </View>
+          </View>
+          <View style={{ flex: 1 }}>
+            <DetailedDictionaryScreen 
+              route={{ params: { wordName: selectedWordForDetail } } as any}
+              navigation={navigation as any}
+              isModal={true}
+            />
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -800,45 +839,68 @@ const styles = StyleSheet.create({
   footer: {
     padding: 16,
     alignItems: 'center',
-    justifyContent: 'center',
     flexDirection: 'row',
+    justifyContent: 'center',
   },
   footerText: {
-    fontSize: 14,
     marginLeft: 8,
+    fontSize: 14,
   },
   levelSelectorContainer: {
     marginBottom: 16,
   },
-  levelButtonsContainer: {
-    paddingRight: 16,
-  },
-  levelButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  levelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   label: {
     fontSize: 16,
-    marginBottom: 12,
     fontWeight: '600',
+    marginBottom: 8,
+  },
+  levelButtonsContainer: {
+    paddingHorizontal: 0,
+  },
+  levelButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  levelButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 40,
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   emptyText: {
     fontSize: 16,
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  detailedDictionaryModal: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'white',
+    zIndex: 1000,
+  },
+  detailedDictionaryModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  detailedDictionaryModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  closeDetailedDictionaryButton: {
+    padding: 4,
   },
 });
 

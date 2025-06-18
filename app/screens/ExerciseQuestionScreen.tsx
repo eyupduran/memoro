@@ -1337,6 +1337,7 @@ const ExerciseQuestionScreen: React.FC = () => {
             isModal={true} 
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
+            openDetailedAsModal={true}
           />
         </View>
       </View>

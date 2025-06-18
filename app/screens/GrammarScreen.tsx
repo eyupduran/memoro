@@ -183,6 +183,7 @@ export const GrammarScreen: React.FC<Props> = () => {
               isModal={true} 
               searchQuery={searchQuery}
               onSearchQueryChange={setSearchQuery}
+              openDetailedAsModal={true}
             />
           </View>
         </View>
