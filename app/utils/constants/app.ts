@@ -1,7 +1,7 @@
 // App-wide constants
 export const APP_CONSTANTS = {
   // Streak threshold for showing tick icon on words
-  STREAK_THRESHOLD: 2, // Words with streak >= 3 will show a tick icon
+  STREAK_THRESHOLD: 4, // Words with streak >= 3 will show a tick icon
   
   // Word selection limits
   MIN_WORDS: 2,
