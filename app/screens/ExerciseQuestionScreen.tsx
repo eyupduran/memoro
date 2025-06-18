@@ -83,7 +83,8 @@ const ExerciseQuestionScreen: React.FC = () => {
     level = null, // Varsayılan olarak tüm seviyeler
     wordListId = 0,
     wordListName = '', // Liste adı
-    questionDetails: previousQuestionDetails = [] // Önceki sorular
+    questionDetails: previousQuestionDetails = [], // Önceki sorular
+    customWords = [] // Özel kelime listesi
   } = route.params;
   
   const [words, setWords] = useState<(LearnedWord | Word)[]>([]);
@@ -301,21 +302,31 @@ const ExerciseQuestionScreen: React.FC = () => {
     setLoading(true);
     try {
       let loadedWords: (LearnedWord | Word)[] = [];
-      // Kelime kaynağına göre yükleme yap
-      if (wordSource === 'learned') {
-        // Öğrenilen kelimeleri yükle
-        loadedWords = await storageService.getLearnedWords(currentLanguagePair);
-      } else if (wordSource === 'wordlist' && wordListId) {
-        // Kelime listesinden kelimeleri yükle
-        loadedWords = await dbService.getWordsFromList(wordListId);
+      
+      // Eğer customWords varsa, bunları kullan
+      if (wordSource === 'custom' && customWords.length > 0) {
+        loadedWords = customWords.map(word => ({
+          ...word,
+          streak: word.streak || 0,
+          level: word.level || 'A1'
+        }));
       } else {
-        // Sözlükteki kelimeleri yükle
-        if (level) {
-          // Belirli bir seviyedeki kelimeleri yükle
-          loadedWords = await dbService.getWords(level, currentLanguagePair);
+        // Kelime kaynağına göre yükleme yap
+        if (wordSource === 'learned') {
+          // Öğrenilen kelimeleri yükle
+          loadedWords = await storageService.getLearnedWords(currentLanguagePair);
+        } else if (wordSource === 'wordlist' && wordListId) {
+          // Kelime listesinden kelimeleri yükle
+          loadedWords = await dbService.getWordsFromList(wordListId);
         } else {
-          // Tüm seviyelerdeki kelimeleri yükle (limit 100)
-          loadedWords = await dbService.getAllWords(currentLanguagePair, 100);
+          // Sözlükteki kelimeleri yükle
+          if (level) {
+            // Belirli bir seviyedeki kelimeleri yükle
+            loadedWords = await dbService.getWords(level, currentLanguagePair);
+          } else {
+            // Tüm seviyelerdeki kelimeleri yükle (limit 100)
+            loadedWords = await dbService.getAllWords(currentLanguagePair, 100);
+          }
         }
       }
       
@@ -325,23 +336,29 @@ const ExerciseQuestionScreen: React.FC = () => {
         return;
       }
 
-      // Kelimeleri streak değerleriyle birlikte yükle
-      const wordsWithStreaks = await Promise.all(
-        loadedWords.map(async (word) => {
-          try {
-            // Get the word with streak from the main words table
-            const wordWithStreak = await dbService.getFirstAsync<Word>(
-              'SELECT word, meaning, example, level, streak FROM words WHERE word = ? AND level = ? AND language_pair = ?',
-              [word.word, word.level || 'A1', currentLanguagePair]
-            );
-            
-            return wordWithStreak || { ...word, streak: 0 };
-          } catch (error) {
-            console.error('Error getting word streak:', error);
-            return { ...word, streak: 0 };
-          }
-        })
-      );
+      // Kelimeleri streak değerleriyle birlikte yükle (customWords için gerekli değil)
+      let wordsWithStreaks: (LearnedWord | Word)[] = [];
+      
+      if (wordSource === 'custom') {
+        wordsWithStreaks = loadedWords;
+      } else {
+        wordsWithStreaks = await Promise.all(
+          loadedWords.map(async (word) => {
+            try {
+              // Get the word with streak from the main words table
+              const wordWithStreak = await dbService.getFirstAsync<Word>(
+                'SELECT word, meaning, example, level, streak FROM words WHERE word = ? AND level = ? AND language_pair = ?',
+                [word.word, word.level || 'A1', currentLanguagePair]
+              );
+              
+              return wordWithStreak || { ...word, streak: 0 };
+            } catch (error) {
+              console.error('Error getting word streak:', error);
+              return { ...word, streak: 0 };
+            }
+          })
+        );
+      }
 
       // Kelimeleri öncelik sırasına göre sırala
       const prioritizedWords = prioritizeWordsByStreak(wordsWithStreaks);
@@ -510,12 +527,14 @@ const ExerciseQuestionScreen: React.FC = () => {
         
         // Şıklarda doğru cevap olarak cümlede geçen kelime formunu kullan
         const otherWords = allWords
-          .filter(w => w.word !== question.word)
+          .filter(w => w.word !== question.word && w.word && w.word.trim() !== '')
           .sort(() => Math.random() - 0.5)
           .slice(0, 3)
           .map(w => w.word);
         
-        const allOptions = [actualWordInSentence, ...otherWords].sort(() => Math.random() - 0.5);
+        const allOptions = [actualWordInSentence, ...otherWords]
+          .filter(word => word && word.trim() !== '') // Boş word değerlerini filtrele
+          .sort(() => Math.random() - 0.5);
         setOptions(allOptions);
       } else {
         // Eğer kelime bulunamazsa, normal işleme devam et
@@ -525,12 +544,14 @@ const ExerciseQuestionScreen: React.FC = () => {
         setMissingWordIndex(parts.length - 1);
         
         const otherWords = allWords
-          .filter(w => w.word !== question.word)
+          .filter(w => w.word !== question.word && w.word && w.word.trim() !== '')
           .sort(() => Math.random() - 0.5)
           .slice(0, 3)
           .map(w => w.word);
         
-        const allOptions = [question.word, ...otherWords].sort(() => Math.random() - 0.5);
+        const allOptions = [question.word, ...otherWords]
+          .filter(word => word && word.trim() !== '') // Boş word değerlerini filtrele
+          .sort(() => Math.random() - 0.5);
         setOptions(allOptions);
       }
     } else {
@@ -538,23 +559,26 @@ const ExerciseQuestionScreen: React.FC = () => {
       setMissingWordIndex(1);
       
       const otherWords = allWords
-        .filter(w => w.word !== question.word)
+        .filter(w => w.word !== question.word && w.word && w.word.trim() !== '')
         .sort(() => Math.random() - 0.5)
         .slice(0, 3)
         .map(w => w.word);
       
-      const allOptions = [question.word, ...otherWords].sort(() => Math.random() - 0.5);
+      const allOptions = [question.word, ...otherWords]
+        .filter(word => word && word.trim() !== '') // Boş word değerlerini filtrele
+        .sort(() => Math.random() - 0.5);
       setOptions(allOptions);
     }
   };
 
   const prepareWordMatchQuestion = (question: LearnedWord | Word, allWords: (LearnedWord | Word)[]) => {
     const otherWords = allWords
-      .filter(w => w.word !== question.word)
+      .filter(w => w.word !== question.word && w.meaning && w.meaning.trim() !== '')
       .sort(() => Math.random() - 0.5)
       .slice(0, 3);
     
     const allOptions = [question.meaning, ...otherWords.map(w => w.meaning)]
+      .filter(meaning => meaning && meaning.trim() !== '') // Boş meaning değerlerini filtrele
       .sort(() => Math.random() - 0.5);
     
     setOptions(allOptions);
@@ -574,6 +598,7 @@ const ExerciseQuestionScreen: React.FC = () => {
         .filter(w => 
             w.word !== question.word && 
             w.example && 
+            w.example.trim() !== '' &&
             w.example !== correctAnswerSentence &&
             w.example.length > 10 && // Ensure distractor sentences are also decent
             !w.example.toLowerCase().includes(question.word.toLowerCase()) // Ensure distractor doesn't contain target word
@@ -582,8 +607,9 @@ const ExerciseQuestionScreen: React.FC = () => {
         .slice(0, 3)
         .map(w => w.example!);
 
-    let allOptions = [correctAnswerSentence, ...otherSentences];
-    
+    let allOptions = [correctAnswerSentence, ...otherSentences]
+        .filter(example => example && example.trim() !== ''); // Boş example değerlerini filtrele
+
     // If not enough options (e.g. less than 2), fallback to wordMatch for this question
     if (allOptions.length < 2) {
         console.warn("Not enough distinct example sentences for SentenceMatch, falling back to WordMatch for this question.");
@@ -773,7 +799,8 @@ const ExerciseQuestionScreen: React.FC = () => {
         level,
         wordListId,
         wordListName,
-        questionDetails: questionDetails // Soru detaylarını bir sonraki soruya aktar
+        questionDetails: questionDetails, // Soru detaylarını bir sonraki soruya aktar
+        customWords // Özel kelime listesini de geçir
       });
     } else {
       // Sonuç sayfasına geçerken navigation stack'i temizle
@@ -842,7 +869,7 @@ const ExerciseQuestionScreen: React.FC = () => {
         </View>
         
         <View style={styles.optionsContainer}>
-          {options.map((option) => {
+          {options.map((option, index) => {
             // Seçenek doğru cevap mı?
             const isCorrectOption = option === correctAnswer;
             // Yanlış cevap verildiğinde doğru cevabı göster
@@ -854,7 +881,7 @@ const ExerciseQuestionScreen: React.FC = () => {
             
             return (
               <TouchableOpacity
-                key={option}
+                key={`${option}-${index}`}
                 style={[
                   styles.optionButton,
                   { 
@@ -942,7 +969,7 @@ const ExerciseQuestionScreen: React.FC = () => {
         </View>
         
         <View style={styles.optionsContainer}>
-          {options.map((option) => {
+          {options.map((option, index) => {
             // Seçenek doğru cevap mı?
             const isCorrectOption = option === correctAnswer;
             // Yanlış cevap verildiğinde doğru cevabı göster
@@ -950,7 +977,7 @@ const ExerciseQuestionScreen: React.FC = () => {
             
             return (
               <TouchableOpacity
-                key={option}
+                key={`${option}-${index}`}
                 style={[
                   styles.optionButton,
                   { 
@@ -1029,7 +1056,7 @@ const ExerciseQuestionScreen: React.FC = () => {
             
             return (
               <TouchableOpacity
-                key={`${option}-${index}`} // Sentences can be long, ensure key is unique
+                key={`${option}-${index}`}
                 style={[
                   styles.optionButton,
                   styles.sentenceOptionButton, // Specific styles for sentence options

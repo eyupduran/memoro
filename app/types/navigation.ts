@@ -2,7 +2,7 @@ import type { Word } from './words';
 import type { ImageSourcePropType } from 'react-native';
 import { QuestionDetail } from '../screens/ExerciseQuestionScreen';
 
-export type WordSource = 'learned' | 'dictionary' | 'wordlist';
+export type WordSource = 'learned' | 'dictionary' | 'wordlist' | 'custom';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -50,6 +50,7 @@ export type RootStackParamList = {
     wordListId?: number;
     wordListName?: string;
     questionDetails?: QuestionDetail[];
+    customWords?: any[];
   };
   ExerciseResult: {
     score: number;

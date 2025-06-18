@@ -400,7 +400,8 @@ export default {
       tryAgain: 'Yeni Egzersiz Yap',
       backToExercises: 'Egzersizlere Dön',
       date: 'Tarih: {0}',
-      viewDetails: 'Detayları Görüntüle'
+      viewDetails: 'Detayları Görüntüle',
+      repeatWithSameWords: 'Aynı Kelimelerle Tekrarla'
     },
     egsersizeHistory: {
       title: 'Egzersiz Geçmişi',

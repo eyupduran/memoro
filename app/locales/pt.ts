@@ -400,7 +400,8 @@ export default {
       tryAgain: 'Fazer novo exercício',
       backToExercises: 'Voltar aos Exercícios',
       date: 'Data: {0}',
-      viewDetails: 'Ver Detalhes'
+      viewDetails: 'Ver Detalhes',
+      repeatWithSameWords: 'Repetir com as Mesmas Palavras'
     },
     egsersizeHistory: {
       title: 'Histórico de Exercícios',

@@ -204,6 +204,70 @@ const ExerciseResultScreen: React.FC = () => {
       ],
     });
   };
+
+  // Aynı kelimelerle egzersizi tekrarla
+  const handleRepeatWithSameWords = () => {
+    // Önceki egzersizde kullanılan kelimeleri questionDetails'den çıkar
+    // Her soru için doğru cevabı ve soru metnini kullanarak kelime bilgilerini oluştur
+    const usedWords = questionDetails.map(detail => {
+      // Soru tipine göre kelime bilgilerini çıkar
+      if (detail.questionType === 'wordMatch') {
+        // wordMatch için soru metni kelime, doğru cevap anlamı
+        return {
+          word: detail.question,
+          meaning: detail.correctAnswer,
+          level: level || 'A1',
+          // Diğer gerekli alanları varsayılan değerlerle doldur
+          example: '',
+          pronunciation: '',
+          partOfSpeech: 'noun',
+          difficulty: 1,
+          id: detail.question // Geçici ID olarak kelimeyi kullan
+        };
+      } else if (detail.questionType === 'fillInTheBlank') {
+        // fillInTheBlank için doğru cevabı kelime olarak kullan
+        return {
+          word: detail.correctAnswer,
+          meaning: '', // Bu bilgi mevcut değil
+          level: level || 'A1',
+          example: detail.question, // Soru metni örnek cümle olabilir
+          pronunciation: '',
+          partOfSpeech: 'noun',
+          difficulty: 1,
+          id: detail.correctAnswer
+        };
+      } else {
+        // sentenceMatch için doğru cevabı kelime olarak kullan
+        return {
+          word: detail.correctAnswer,
+          meaning: detail.question, // Soru metni anlam olabilir
+          level: level || 'A1',
+          example: '',
+          pronunciation: '',
+          partOfSpeech: 'noun',
+          difficulty: 1,
+          id: detail.correctAnswer
+        };
+      }
+    });
+
+    // Eğer yeterli kelime varsa, aynı kelimelerle yeni egzersiz başlat
+    if (usedWords.length > 0) {
+      navigation.navigate('ExerciseQuestion', {
+        exerciseType: 'mixed',
+        questionIndex: 0,
+        totalQuestions: Math.min(usedWords.length, totalQuestions), // Kelime sayısına göre ayarla
+        score: 0,
+        askedWords: [],
+        previousType: undefined,
+        wordSource: 'custom', // Özel kelime listesi
+        level,
+        wordListId: route.params.wordListId,
+        customWords: usedWords, // Özel kelime listesi
+      });
+    }
+  };
+
   // Sadece sonuç bölümünü içeren basit bir bileşen
   const ResultCard = () => (
     <View 
@@ -261,6 +325,18 @@ const ExerciseResultScreen: React.FC = () => {
             >
               <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>
                 {translations.exercise.result.viewDetails || 'Detayları Görüntüle'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          
+          {/* Aynı kelimelerle tekrarla butonu */}
+          {questionDetails.length > 0 && (
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: colors.secondary || '#6C757D', marginBottom: 12 }]}
+              onPress={handleRepeatWithSameWords}
+            >
+              <Text style={[styles.buttonText, { color: colors.text.onPrimary || '#FFFFFF' }]}>
+                {translations.exercise.result.repeatWithSameWords || 'Aynı Kelimelerle Tekrarla'}
               </Text>
             </TouchableOpacity>
           )}
