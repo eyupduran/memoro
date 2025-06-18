@@ -694,14 +694,14 @@ const ExerciseQuestionScreen: React.FC = () => {
     // Doğru/yanlış sesini çal
     if (correct) {
       playCorrectSound();
-      // Doğru cevap verildiğinde streak değerini artır
-      if (currentQuestion) {
+      // Streak değerini sadece kelime listesi ile çalışırken artır
+      if (currentQuestion && wordSource === 'wordlist') {
         incrementWordStreak(currentQuestion);
       }
     } else {
       playWrongSound();
-      // Yanlış cevap verildiğinde streak değerini azalt
-      if (currentQuestion) {
+      // Streak değerini sadece kelime listesi ile çalışırken azalt
+      if (currentQuestion && wordSource === 'wordlist') {
         decrementWordStreak(currentQuestion);
       }
     }
