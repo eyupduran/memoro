@@ -435,6 +435,16 @@ export default {
   more: {
     title: 'Daha Fazla',
   },
+  games: {
+    title: 'Oyunlar',
+    subtitle: 'İngilizce öğrenmek için eğlenceli oyunlar',
+    exitWarning: {
+      title: 'Emin misiniz?',
+      message: 'Oyun sayfasından çıkmak istediğinizden emin misiniz?',
+      cancel: 'İptal',
+      confirm: 'Çık'
+    },
+  },
   grammar: {
     title: 'Gramer',
     subtitle: 'Dil bilgisi kurallarını öğrenin',

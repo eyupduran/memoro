@@ -435,6 +435,16 @@ export default {
   more: {
     title: 'Mais'
   },
+  games: {
+    title: 'Jogos',
+    subtitle: 'Jogos divertidos para aprender inglês',
+    exitWarning: {
+      title: 'Tem certeza?',
+      message: 'Tem certeza que deseja sair da página de jogos?',
+      cancel: 'Cancelar',
+      confirm: 'Sair'
+    },
+  },
   grammar: {
     title: 'Gramática',
     subtitle: 'Aprenda as regras gramaticais',
