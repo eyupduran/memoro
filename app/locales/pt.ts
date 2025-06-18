@@ -74,8 +74,11 @@ export default {
     deleteWordConfirm: 'Sim, Excluir',
     success: 'Sucesso',
     deleteWordSuccess: 'Palavra excluída com sucesso',
+    wordDeletedSuccessfully: 'Palavra excluída com sucesso',
     error: 'Erro',
-    deleteWordError: 'Ocorreu um erro ao excluir a palavra'
+    deleteWordError: 'Ocorreu um erro ao excluir a palavra',
+    errorDeletingWord: 'Ocorreu um erro ao excluir a palavra',
+    ok: 'Ok'
   },
   languageSelector: {
     title: 'Seleção de Idioma',

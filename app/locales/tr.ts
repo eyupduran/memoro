@@ -74,8 +74,11 @@ export default {
     deleteWordConfirm: 'Evet, Sil',
     success: 'Başarılı',
     deleteWordSuccess: 'Kelime başarıyla silindi',
+    wordDeletedSuccessfully: 'Kelime başarıyla silindi',
     error: 'Hata',
-    deleteWordError: 'Kelime silinirken bir hata oluştu'
+    deleteWordError: 'Kelime silinirken bir hata oluştu',
+    errorDeletingWord: 'Kelime silinirken bir hata oluştu',
+    ok: 'Tamam'
   },
   languageSelector: {
     title: 'Dil Seçimi',
