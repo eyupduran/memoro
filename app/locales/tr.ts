@@ -465,6 +465,14 @@ export default {
     title: 'Sözlük',
     close: 'Kapat'
   },
+  detailedDictionary: {
+    exitWarning: {
+      title: 'Çıkış Uyarısı',
+      message: 'Detaylı sözlük sayfasından çıkmak istediğinizden emin misiniz?',
+      cancel: 'İptal',
+      confirm: 'Çık'
+    }
+  },
   words: {
     newWords: 'Yeni Kelimeler',
   },

@@ -32,6 +32,9 @@ export type RootStackParamList = {
   Grammar: undefined;
   Games: undefined;
   Exercise: undefined;
+  DetailedDictionary: {
+    wordName: string;
+  };
   WordListDetail: {
     listId: string;
     level?: string;

@@ -286,18 +286,33 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({
           </View>
 
           <View style={styles.wordActions}>
-            <TouchableOpacity
-              style={[styles.addToListButton, { backgroundColor: colors.primary + '15' }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                setSelectedWordForList(item);
-              }}
-            >
-              <MaterialIcons name="playlist-add" size={16} color={colors.primary} />
-              <Text style={[styles.addToListButtonText, { color: colors.primary }]}>
-                {translations.wordListModal?.addToList || 'Listeye Ekle'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={[styles.addToListButton, { backgroundColor: colors.primary + '15' }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setSelectedWordForList(item);
+                }}
+              >
+                <MaterialIcons name="playlist-add" size={16} color={colors.primary} />
+                <Text style={[styles.addToListButtonText, { color: colors.primary }]}>
+                  {translations.wordListModal?.addToList || 'Listeye Ekle'}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.detailButton, { backgroundColor: colors.primary + '15' }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  navigation.navigate('DetailedDictionary', { wordName: item.word });
+                }}
+              >
+                <MaterialIcons name="info" size={16} color={colors.primary} />
+                <Text style={[styles.detailButtonText, { color: colors.primary }]}>
+                  Detay
+                </Text>
+              </TouchableOpacity>
+            </View>
             
             {!isModal && (
               <TouchableOpacity
@@ -700,14 +715,32 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.05)',
   },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   addToListButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 16,
+    marginRight: 8,
   },
   addToListButtonText: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginLeft: 3,
+  },
+  detailButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+  },
+  detailButtonText: {
     fontSize: 11,
     fontWeight: '500',
     marginLeft: 3,
@@ -719,6 +752,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 16,
     borderWidth: 1,
+    justifyContent: 'center',
   },
   selectButtonText: {
     fontSize: 11,

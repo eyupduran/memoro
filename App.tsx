@@ -13,6 +13,7 @@ import { WordOverlayScreen } from './app/screens/WordOverlayScreen';
 import { StatsScreen } from './app/screens/StatsScreen';
 import { SettingsScreen } from './app/screens/SettingsScreen';
 import { GrammarScreen } from './app/screens/GrammarScreen';
+import { DetailedDictionaryScreen } from './app/screens/DetailedDictionaryScreen';
 import DictionaryScreen from './app/screens/DictionaryScreen';
 import ExerciseScreen from './app/screens/ExerciseScreen';
 import ExerciseQuestionScreen from './app/screens/ExerciseQuestionScreen';
@@ -209,6 +210,11 @@ const AppNavigator = () => {
         <Stack.Screen
           name="WordListDetail"
           component={WordListDetailScreen}
+        />
+        <Stack.Screen
+          name="DetailedDictionary"
+          component={DetailedDictionaryScreen}
+          options={{ title: 'Cambridge Dictionary' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

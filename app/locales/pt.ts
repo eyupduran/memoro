@@ -465,6 +465,14 @@ export default {
     title: 'Dicionário',
     close: 'Fechar'
   },
+  detailedDictionary: {
+    exitWarning: {
+      title: 'Aviso de Saída',
+      message: 'Tem certeza que deseja sair da página do dicionário detalhado?',
+      cancel: 'Cancelar',
+      confirm: 'Sair'
+    }
+  },
   words: {
     newWords: 'Novas Palavras',
   }
