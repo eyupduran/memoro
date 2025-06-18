@@ -209,61 +209,30 @@ const ExerciseResultScreen: React.FC = () => {
   const handleRepeatWithSameWords = () => {
     // Önceki egzersizde kullanılan kelimeleri questionDetails'den çıkar
     // Her soru için doğru cevabı ve soru metnini kullanarak kelime bilgilerini oluştur
-    const usedWords = questionDetails.map(detail => {
-      // Soru tipine göre kelime bilgilerini çıkar
-      if (detail.questionType === 'wordMatch') {
-        // wordMatch için soru metni kelime, doğru cevap anlamı
-        return {
-          word: detail.question,
-          meaning: detail.correctAnswer,
-          level: level || 'A1',
-          // Diğer gerekli alanları varsayılan değerlerle doldur
-          example: '',
-          pronunciation: '',
-          partOfSpeech: 'noun',
-          difficulty: 1,
-          id: detail.question // Geçici ID olarak kelimeyi kullan
-        };
-      } else if (detail.questionType === 'fillInTheBlank') {
-        // fillInTheBlank için doğru cevabı kelime olarak kullan
-        return {
-          word: detail.correctAnswer,
-          meaning: '', // Bu bilgi mevcut değil
-          level: level || 'A1',
-          example: detail.question, // Soru metni örnek cümle olabilir
-          pronunciation: '',
-          partOfSpeech: 'noun',
-          difficulty: 1,
-          id: detail.correctAnswer
-        };
-      } else {
-        // sentenceMatch için doğru cevabı kelime olarak kullan
-        return {
-          word: detail.correctAnswer,
-          meaning: detail.question, // Soru metni anlam olabilir
-          level: level || 'A1',
-          example: '',
-          pronunciation: '',
-          partOfSpeech: 'noun',
-          difficulty: 1,
-          id: detail.correctAnswer
-        };
-      }
-    });
+    const usedWords = questionDetails.map(detail => ({
+      word: detail.word || detail.question || detail.correctAnswer,
+      meaning: detail.meaning || detail.correctAnswer || '',
+      level: detail.level || level || 'A1',
+      example: detail.example || detail.question || '',
+      pronunciation: detail.pronunciation || '',
+      partOfSpeech: detail.partOfSpeech || '',
+      difficulty: detail.difficulty || 1,
+      id: detail.id || detail.word || detail.question || detail.correctAnswer,
+      streak: detail.streak || 0
+    }));
 
-    // Eğer yeterli kelime varsa, aynı kelimelerle yeni egzersiz başlat
     if (usedWords.length > 0) {
       navigation.navigate('ExerciseQuestion', {
         exerciseType: 'mixed',
         questionIndex: 0,
-        totalQuestions: Math.min(usedWords.length, totalQuestions), // Kelime sayısına göre ayarla
+        totalQuestions: Math.min(usedWords.length, totalQuestions),
         score: 0,
         askedWords: [],
         previousType: undefined,
-        wordSource: 'custom', // Özel kelime listesi
+        wordSource: 'custom',
         level,
         wordListId: route.params.wordListId,
-        customWords: usedWords, // Özel kelime listesi
+        customWords: usedWords
       });
     }
   };

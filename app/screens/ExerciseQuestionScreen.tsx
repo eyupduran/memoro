@@ -38,6 +38,16 @@ export type QuestionDetail = {
   correctAnswer: string;
   userAnswer: string | null;
   isCorrect: boolean | null;
+  // Tam kelime bilgileri
+  word: string;
+  meaning: string;
+  example: string;
+  level: string;
+  pronunciation?: string;
+  partOfSpeech?: string;
+  difficulty?: number;
+  id?: string;
+  streak?: number;
 };
 
 // Yarım kalan egzersiz için tip tanımı
@@ -751,7 +761,16 @@ const ExerciseQuestionScreen: React.FC = () => {
         options: options,
         correctAnswer: correctAnswer,
         userAnswer: option,
-        isCorrect: correct
+        isCorrect: correct,
+        word: currentQuestion.word,
+        meaning: currentQuestion.meaning,
+        example: currentQuestion.example || '',
+        level: currentQuestion.level || 'A1',
+        pronunciation: (currentQuestion as any)?.pronunciation,
+        partOfSpeech: (currentQuestion as any)?.partOfSpeech,
+        difficulty: (currentQuestion as any)?.difficulty,
+        id: currentQuestion.id,
+        streak: currentQuestion.streak
       };
       
       // Mevcut soru detaylarına ekle
