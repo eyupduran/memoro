@@ -25,6 +25,7 @@ import { storageService } from '../services/storage';
 import { dbService } from '../services/database';
 import type { LearnedWord, Word, WordSource } from '../types/words';
 import DictionaryScreen from './DictionaryScreen';
+import { APP_CONSTANTS } from '../utils/constants/app';
 
 type ExerciseQuestionScreenProps = NativeStackScreenProps<RootStackParamList, 'ExerciseQuestion'>;
 type ExerciseQuestionScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -323,10 +324,31 @@ const ExerciseQuestionScreen: React.FC = () => {
         navigation.replace('Exercise'); // Geri dön
         return;
       }
+
+      // Kelimeleri streak değerleriyle birlikte yükle
+      const wordsWithStreaks = await Promise.all(
+        loadedWords.map(async (word) => {
+          try {
+            // Get the word with streak from the main words table
+            const wordWithStreak = await dbService.getFirstAsync<Word>(
+              'SELECT word, meaning, example, level, streak FROM words WHERE word = ? AND level = ? AND language_pair = ?',
+              [word.word, word.level || 'A1', currentLanguagePair]
+            );
+            
+            return wordWithStreak || { ...word, streak: 0 };
+          } catch (error) {
+            console.error('Error getting word streak:', error);
+            return { ...word, streak: 0 };
+          }
+        })
+      );
+
+      // Kelimeleri öncelik sırasına göre sırala
+      const prioritizedWords = prioritizeWordsByStreak(wordsWithStreaks);
       
-      setWords(loadedWords);
+      setWords(prioritizedWords);
       // Pass the initial askedWords list from params (likely empty for the first question)
-      prepareQuestion(loadedWords, askedWordsFromPreviousQuestion || [], previousTypeOfQuestion);
+      prepareQuestion(prioritizedWords, askedWordsFromPreviousQuestion || [], previousTypeOfQuestion);
     } catch (error) {
       console.error('Error loading words:', error);
       navigation.replace('Exercise');
@@ -335,21 +357,56 @@ const ExerciseQuestionScreen: React.FC = () => {
     }
   };
 
+  // Kelimeleri streak değerlerine göre öncelik sırasına koy
+  const prioritizeWordsByStreak = (words: (LearnedWord | Word)[]): (LearnedWord | Word)[] => {
+    // Streak değeri threshold'un altında olan kelimeleri önce al
+    const belowThreshold = words.filter(word => (word.streak || 0) < APP_CONSTANTS.STREAK_THRESHOLD);
+    const aboveThreshold = words.filter(word => (word.streak || 0) >= APP_CONSTANTS.STREAK_THRESHOLD);
+    
+    // Threshold'un altındaki kelimeleri karıştır
+    const shuffledBelowThreshold = [...belowThreshold].sort(() => Math.random() - 0.5);
+    
+    // Threshold'un üstündeki kelimeleri karıştır
+    const shuffledAboveThreshold = [...aboveThreshold].sort(() => Math.random() - 0.5);
+    
+    // Önce threshold'un altındaki kelimeleri, sonra üstündekileri ekle
+    return [...shuffledBelowThreshold, ...shuffledAboveThreshold];
+  };
+
   const prepareQuestion = (
     allWords: (LearnedWord | Word)[], 
     sessionAskedWords: string[],
     previousQuestionType?: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch'
   ) => {
     let newSessionAskedWords = [...sessionAskedWords];
-    // Kelime listesi modunda sadece liste kelimelerini kullan
-    let selectableWords = wordSource === 'wordlist' 
-      ? allWords.filter(w => !newSessionAskedWords.includes(w.word))
-      : allWords.filter(w => !newSessionAskedWords.includes(w.word));
+    
+    // Kelimeleri streak değerlerine göre kategorize et
+    const belowThreshold = allWords.filter(w => 
+      !newSessionAskedWords.includes(w.word) && 
+      (w.streak || 0) < APP_CONSTANTS.STREAK_THRESHOLD
+    );
+    const aboveThreshold = allWords.filter(w => 
+      !newSessionAskedWords.includes(w.word) && 
+      (w.streak || 0) >= APP_CONSTANTS.STREAK_THRESHOLD
+    );
 
-    if (selectableWords.length === 0 && allWords.length > 0) {
-      // All unique words have been asked in this cycle, reset for repetition
-      selectableWords = allWords;
-      newSessionAskedWords = []; // Reset the list for the next cycle
+    let selectableWords: (LearnedWord | Word)[] = [];
+
+    // Öncelik sırası: threshold'un altındaki kelimeler
+    if (belowThreshold.length > 0) {
+      selectableWords = belowThreshold;
+    } else if (aboveThreshold.length > 0) {
+      // Eğer threshold'un altında kelime kalmadıysa, üstündekileri kullan
+      selectableWords = aboveThreshold;
+    } else {
+      // Eğer hiç kelime kalmadıysa, tüm kelimeleri yeniden kullan
+      selectableWords = allWords.filter(w => !newSessionAskedWords.includes(w.word));
+      
+      if (selectableWords.length === 0 && allWords.length > 0) {
+        // All unique words have been asked in this cycle, reset for repetition
+        selectableWords = allWords;
+        newSessionAskedWords = []; // Reset the list for the next cycle
+      }
     }
     
     if (selectableWords.length === 0) {
@@ -416,11 +473,11 @@ const ExerciseQuestionScreen: React.FC = () => {
 
     // Prepare question based on the determined type
     if (finalQuestionType === 'fillInTheBlank') {
-      prepareFillInTheBlankQuestion(question, wordSource === 'wordlist' ? allWords : allWords);
+      prepareFillInTheBlankQuestion(question, allWords);
     } else if (finalQuestionType === 'sentenceMatch') {
-      prepareSentenceMatchQuestion(question, wordSource === 'wordlist' ? allWords : allWords);
+      prepareSentenceMatchQuestion(question, allWords);
     } else { // wordMatch
-      prepareWordMatchQuestion(question, wordSource === 'wordlist' ? allWords : allWords);
+      prepareWordMatchQuestion(question, allWords);
     }
     
     Animated.parallel([
