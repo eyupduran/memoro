@@ -611,8 +611,16 @@ const ExerciseQuestionScreen: React.FC = () => {
     // Doğru/yanlış sesini çal
     if (correct) {
       playCorrectSound();
+      // Doğru cevap verildiğinde streak değerini artır
+      if (currentQuestion) {
+        incrementWordStreak(currentQuestion);
+      }
     } else {
       playWrongSound();
+      // Yanlış cevap verildiğinde streak değerini azalt
+      if (currentQuestion) {
+        decrementWordStreak(currentQuestion);
+      }
     }
 
     // Soru tipine göre cevaptan sonra okuma yap
@@ -655,6 +663,37 @@ const ExerciseQuestionScreen: React.FC = () => {
       // Mevcut soru detaylarına ekle
       const updatedQuestionDetails = [...questionDetails, questionDetail];
       setQuestionDetails(updatedQuestionDetails);
+    }
+  };
+
+  // Kelime streak değerini artır
+  const incrementWordStreak = async (word: LearnedWord | Word) => {
+    try {
+      const level = word.level || 'A1';
+      const success = await dbService.incrementWordStreak(word.word, level, currentLanguagePair);
+      
+      if (success) {
+        console.log(`Streak incremented for word: ${word.word}`);
+      } else {
+        console.warn(`Failed to increment streak for word: ${word.word}`);
+      }
+    } catch (error) {
+      console.error('Error incrementing word streak:', error);
+    }
+  };
+
+  const decrementWordStreak = async (word: LearnedWord | Word) => {
+    try {
+      const level = word.level || 'A1';
+      const success = await dbService.decrementWordStreak(word.word, level, currentLanguagePair);
+      
+      if (success) {
+        console.log(`Streak decremented for word: ${word.word}`);
+      } else {
+        console.warn(`Failed to decrement streak for word: ${word.word}`);
+      }
+    } catch (error) {
+      console.error('Error decrementing word streak:', error);
     }
   };
 

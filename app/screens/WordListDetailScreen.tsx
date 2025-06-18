@@ -17,15 +17,16 @@ import { dbService } from '../services/database';
 import type { Word } from '../types/words';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import { APP_CONSTANTS } from '../utils/constants/app';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WordListDetail'>;
 
-const MIN_WORDS = 2;
-const MAX_WORDS = 5;
+const MIN_WORDS = APP_CONSTANTS.MIN_WORDS;
+const MAX_WORDS = APP_CONSTANTS.MAX_WORDS;
 
 export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): React.ReactElement => {
   const { colors } = useTheme();
-  const { translations } = useLanguage();
+  const { translations, currentLanguagePair } = useLanguage();
   const { listId, listName } = route.params;
   const [words, setWords] = useState<Word[]>([]);
   const [filteredWords, setFilteredWords] = useState<Word[]>([]);
@@ -69,9 +70,29 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
   const loadWords = async () => {
     try {
       setLoading(true);
+      // Get words with their streak values from the main words table
       const listWords = await dbService.getWordsFromList(Number(listId));
-      setWords(listWords);
-      setFilteredWords(listWords);
+      
+      // For each word in the list, get its streak value from the main words table
+      const wordsWithStreaks = await Promise.all(
+        listWords.map(async (word) => {
+          try {
+            // Get the word with streak from the main words table
+            const wordWithStreak = await dbService.getFirstAsync<Word>(
+              'SELECT word, meaning, example, level, streak FROM words WHERE word = ? AND level = ? AND language_pair = ?',
+              [word.word, word.level || 'A1', currentLanguagePair]
+            );
+            
+            return wordWithStreak || { ...word, streak: 0 };
+          } catch (error) {
+            console.error('Error getting word streak:', error);
+            return { ...word, streak: 0 };
+          }
+        })
+      );
+      
+      setWords(wordsWithStreaks);
+      setFilteredWords(wordsWithStreaks);
     } catch (error) {
       console.error('Error loading word list items:', error);
       setWords([]);
@@ -183,6 +204,8 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
 
   const renderWordItem = ({ item }: { item: Word }) => {
     const isSelected = selectedWords.some(w => w.word === item.word);
+    const hasHighStreak = (item.streak || 0) >= APP_CONSTANTS.STREAK_THRESHOLD;
+    
     return (
       <TouchableOpacity
         style={[
@@ -206,6 +229,11 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
             }]}>
               {item.level}
             </Text>
+            {hasHighStreak && (
+              <View style={[styles.streakIconContainer, { backgroundColor: colors.success + '20' }]}>
+                <MaterialIcons name="check-circle" size={16} color={colors.success} />
+              </View>
+            )}
           </View>
           
           <View style={styles.wordMain}>
@@ -225,6 +253,11 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
             {item.example && (
               <Text style={[styles.exampleText, { color: colors.text.secondary }]}>
                 <Text style={styles.examplePrefix}>{translations.dictionaryScreen?.examplePrefix || 'Örnek:'}</Text> {item.example}
+              </Text>
+            )}
+            {hasHighStreak && (
+              <Text style={[styles.streakText, { color: colors.success }]}>
+                Streak: {item.streak}
               </Text>
             )}
           </View>
@@ -438,6 +471,20 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     fontSize: 10,
     fontWeight: '600',
+  },
+  streakIconContainer: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    zIndex: 2,
+    padding: 2,
+    borderRadius: 12,
+  },
+  streakText: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   wordMain: {
     flex: 1,

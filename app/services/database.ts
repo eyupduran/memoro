@@ -464,6 +464,23 @@ class DatabaseService {
     }
   }
 
+  // Kelime yanlış cevaplandığında streak sayısını azalt (minimum 0)
+  async decrementWordStreak(word: string, level: string, languagePair: string): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const result = await this.db.runAsync(
+        'UPDATE words SET streak = MAX(0, streak - 1) WHERE word = ? AND level = ? AND language_pair = ?',
+        [word, level, languagePair]
+      );
+      
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error decrementing word streak:', error);
+      return false;
+    }
+  }
+
   // Belirli bir seviye ve dil çifti için kelimeleri streak sayılarıyla birlikte getir
   async getWordsWithStreaks(level: string, languagePair: string): Promise<Word[]> {
     try {
