@@ -336,13 +336,10 @@ const ExerciseQuestionScreen: React.FC = () => {
         return;
       }
 
-      // Kelimeleri streak değerleriyle birlikte yükle (customWords için gerekli değil)
-      let wordsWithStreaks: (LearnedWord | Word)[] = [];
-      
-      if (wordSource === 'custom') {
-        wordsWithStreaks = loadedWords;
-      } else {
-        wordsWithStreaks = await Promise.all(
+      // Streak öncelik sistemi sadece wordlist kaynağı için aktif
+      if (wordSource === 'wordlist') {
+        // Kelimeleri streak değerleriyle birlikte yükle
+        const wordsWithStreaks = await Promise.all(
           loadedWords.map(async (word) => {
             try {
               // Get the word with streak from the main words table
@@ -358,14 +355,16 @@ const ExerciseQuestionScreen: React.FC = () => {
             }
           })
         );
-      }
 
-      // Kelimeleri öncelik sırasına göre sırala
-      const prioritizedWords = prioritizeWordsByStreak(wordsWithStreaks);
-      
-      setWords(prioritizedWords);
-      // Pass the initial askedWords list from params (likely empty for the first question)
-      prepareQuestion(prioritizedWords, askedWordsFromPreviousQuestion || [], previousTypeOfQuestion);
+        // Kelimeleri öncelik sırasına göre sırala
+        const prioritizedWords = prioritizeWordsByStreak(wordsWithStreaks);
+        setWords(prioritizedWords);
+        prepareQuestion(prioritizedWords, askedWordsFromPreviousQuestion || [], previousTypeOfQuestion);
+      } else {
+        // Diğer kaynaklar için normal davranış (custom, learned, dictionary)
+        setWords(loadedWords);
+        prepareQuestion(loadedWords, askedWordsFromPreviousQuestion || [], previousTypeOfQuestion);
+      }
     } catch (error) {
       console.error('Error loading words:', error);
       navigation.replace('Exercise');
@@ -397,26 +396,38 @@ const ExerciseQuestionScreen: React.FC = () => {
   ) => {
     let newSessionAskedWords = [...sessionAskedWords];
     
-    // Kelimeleri streak değerlerine göre kategorize et
-    const belowThreshold = allWords.filter(w => 
-      !newSessionAskedWords.includes(w.word) && 
-      (w.streak || 0) < APP_CONSTANTS.STREAK_THRESHOLD
-    );
-    const aboveThreshold = allWords.filter(w => 
-      !newSessionAskedWords.includes(w.word) && 
-      (w.streak || 0) >= APP_CONSTANTS.STREAK_THRESHOLD
-    );
-
     let selectableWords: (LearnedWord | Word)[] = [];
 
-    // Öncelik sırası: threshold'un altındaki kelimeler
-    if (belowThreshold.length > 0) {
-      selectableWords = belowThreshold;
-    } else if (aboveThreshold.length > 0) {
-      // Eğer threshold'un altında kelime kalmadıysa, üstündekileri kullan
-      selectableWords = aboveThreshold;
+    // Streak öncelik sistemi sadece wordlist kaynağı için aktif
+    if (wordSource === 'wordlist') {
+      // Kelimeleri streak değerlerine göre kategorize et
+      const belowThreshold = allWords.filter(w => 
+        !newSessionAskedWords.includes(w.word) && 
+        (w.streak || 0) < APP_CONSTANTS.STREAK_THRESHOLD
+      );
+      const aboveThreshold = allWords.filter(w => 
+        !newSessionAskedWords.includes(w.word) && 
+        (w.streak || 0) >= APP_CONSTANTS.STREAK_THRESHOLD
+      );
+
+      // Öncelik sırası: threshold'un altındaki kelimeler
+      if (belowThreshold.length > 0) {
+        selectableWords = belowThreshold;
+      } else if (aboveThreshold.length > 0) {
+        // Eğer threshold'un altında kelime kalmadıysa, üstündekileri kullan
+        selectableWords = aboveThreshold;
+      } else {
+        // Eğer hiç kelime kalmadıysa, tüm kelimeleri yeniden kullan
+        selectableWords = allWords.filter(w => !newSessionAskedWords.includes(w.word));
+        
+        if (selectableWords.length === 0 && allWords.length > 0) {
+          // All unique words have been asked in this cycle, reset for repetition
+          selectableWords = allWords;
+          newSessionAskedWords = []; // Reset the list for the next cycle
+        }
+      }
     } else {
-      // Eğer hiç kelime kalmadıysa, tüm kelimeleri yeniden kullan
+      // Diğer kaynaklar için normal davranış (custom, learned, dictionary)
       selectableWords = allWords.filter(w => !newSessionAskedWords.includes(w.word));
       
       if (selectableWords.length === 0 && allWords.length > 0) {
@@ -694,14 +705,14 @@ const ExerciseQuestionScreen: React.FC = () => {
     // Doğru/yanlış sesini çal
     if (correct) {
       playCorrectSound();
-      // Streak değerini sadece kelime listesi ile çalışırken artır
-      if (currentQuestion && wordSource === 'wordlist') {
+      // Doğru cevap verildiğinde streak değerini artır (wordlist ve custom için)
+      if (currentQuestion && (wordSource === 'wordlist' || wordSource === 'custom')) {
         incrementWordStreak(currentQuestion);
       }
     } else {
       playWrongSound();
-      // Streak değerini sadece kelime listesi ile çalışırken azalt
-      if (currentQuestion && wordSource === 'wordlist') {
+      // Yanlış cevap verildiğinde streak değerini azalt (wordlist ve custom için)
+      if (currentQuestion && (wordSource === 'wordlist' || wordSource === 'custom')) {
         decrementWordStreak(currentQuestion);
       }
     }
@@ -751,30 +762,22 @@ const ExerciseQuestionScreen: React.FC = () => {
 
   // Kelime streak değerini artır
   const incrementWordStreak = async (word: LearnedWord | Word) => {
+    // Streak artırma sadece wordlist kaynağı için aktif
+    if (wordSource !== 'wordlist') return;
+    
     try {
-      const level = word.level || 'A1';
-      const success = await dbService.incrementWordStreak(word.word, level, currentLanguagePair);
-      
-      if (success) {
-        console.log(`Streak incremented for word: ${word.word}`);
-      } else {
-        console.warn(`Failed to increment streak for word: ${word.word}`);
-      }
+      await dbService.incrementWordStreak(word.word, word.level || 'A1', currentLanguagePair);
     } catch (error) {
       console.error('Error incrementing word streak:', error);
     }
   };
 
   const decrementWordStreak = async (word: LearnedWord | Word) => {
+    // Streak azaltma sadece wordlist kaynağı için aktif
+    if (wordSource !== 'wordlist') return;
+    
     try {
-      const level = word.level || 'A1';
-      const success = await dbService.decrementWordStreak(word.word, level, currentLanguagePair);
-      
-      if (success) {
-        console.log(`Streak decremented for word: ${word.word}`);
-      } else {
-        console.warn(`Failed to decrement streak for word: ${word.word}`);
-      }
+      await dbService.decrementWordStreak(word.word, word.level || 'A1', currentLanguagePair);
     } catch (error) {
       console.error('Error decrementing word streak:', error);
     }
