@@ -123,7 +123,6 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
         learnedAt: word.learnedAt || new Date().toISOString()
       }));
       
-      console.log('Formatted words:', formattedWords);
       setAllWords(formattedWords);
       setTotalWords(formattedWords.length);
       setWords(formattedWords.slice(0, ITEMS_PER_PAGE));
