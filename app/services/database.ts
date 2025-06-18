@@ -72,6 +72,7 @@ class DatabaseService {
           example TEXT,
           level TEXT NOT NULL,
           language_pair TEXT NOT NULL,
+          streak INTEGER DEFAULT 0,
           UNIQUE(word, level, language_pair)
         );
 
@@ -206,6 +207,22 @@ class DatabaseService {
         console.log("exercise_results tablosu güncellendi, yeni sütunlar eklendi.");
       }
       
+      // words tablosunu kontrol et ve streak sütununu ekle
+      const wordsTableInfo = await this.db.getAllAsync<{ name: string }>(
+        "PRAGMA table_info(words)"
+      );
+      
+      const hasStreak = wordsTableInfo.some(column => column.name === 'streak');
+      
+      if (!hasStreak) {
+        // streak sütununu ekle
+        await this.db.execAsync(`
+          ALTER TABLE words ADD COLUMN streak INTEGER DEFAULT 0;
+        `);
+        
+        console.log("words tablosu güncellendi, streak sütunu eklendi.");
+      }
+      
       // İndeks oluştur
       await this.db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_words_level_lang ON words(level, language_pair);
@@ -281,7 +298,7 @@ class DatabaseService {
       if (!this.initialized) await this.initDatabase();
       
       const result = await this.db.getAllAsync<Word>(
-        'SELECT word, meaning, example, level FROM words WHERE level = ? AND language_pair = ?',
+        'SELECT word, meaning, example, level, streak FROM words WHERE level = ? AND language_pair = ?',
         [level, languagePair]
       );
       return result;
@@ -313,7 +330,7 @@ class DatabaseService {
       // Her seviyeden kelime al
       for (const levelObj of levels) {
         const levelWords = await this.db.getAllAsync<Word>(
-          `SELECT word, meaning, example, level FROM words 
+          `SELECT word, meaning, example, level, streak FROM words 
            WHERE language_pair = ? AND level = ? 
            ORDER BY RANDOM() 
            LIMIT ?`,
@@ -340,7 +357,7 @@ class DatabaseService {
       if (!this.initialized) await this.initDatabase();
       
       const result = await this.db.getAllAsync<Word>(
-        `SELECT word, meaning, example, level FROM words 
+        `SELECT word, meaning, example, level, streak FROM words 
          WHERE language_pair = ? AND (word LIKE ? OR meaning LIKE ?) 
          ORDER BY level, word
          LIMIT ? OFFSET ?`,
@@ -362,13 +379,13 @@ class DatabaseService {
       let params: any[];
       
       if (level) {
-        query = `SELECT word, meaning, example, level FROM words 
+        query = `SELECT word, meaning, example, level, streak FROM words 
                 WHERE language_pair = ? AND level = ? 
                 ORDER BY word
                 LIMIT ? OFFSET ?`;
         params = [languagePair, level, limit, offset];
       } else {
-        query = `SELECT word, meaning, example, level FROM words 
+        query = `SELECT word, meaning, example, level, streak FROM words 
                 WHERE language_pair = ? 
                 ORDER BY level, word
                 LIMIT ? OFFSET ?`;
@@ -392,13 +409,13 @@ class DatabaseService {
       let params: any[];
       
       if (level) {
-        sqlQuery = `SELECT word, meaning, example, level FROM words 
+        sqlQuery = `SELECT word, meaning, example, level, streak FROM words 
                    WHERE language_pair = ? AND level = ? AND (word LIKE ? OR meaning LIKE ?) 
                    ORDER BY word
                    LIMIT ? OFFSET ?`;
         params = [languagePair, level, `%${query}%`, `%${query}%`, limit, offset];
       } else {
-        sqlQuery = `SELECT word, meaning, example, level FROM words 
+        sqlQuery = `SELECT word, meaning, example, level, streak FROM words 
                    WHERE language_pair = ? AND (word LIKE ? OR meaning LIKE ?) 
                    ORDER BY level, word
                    LIMIT ? OFFSET ?`;
@@ -427,6 +444,98 @@ class DatabaseService {
     } catch (error) {
       console.error('Error deleting learned word:', error);
       return false;
+    }
+  }
+
+  // Kelime doğru cevaplandığında streak sayısını artır
+  async incrementWordStreak(word: string, level: string, languagePair: string): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const result = await this.db.runAsync(
+        'UPDATE words SET streak = streak + 1 WHERE word = ? AND level = ? AND language_pair = ?',
+        [word, level, languagePair]
+      );
+      
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error incrementing word streak:', error);
+      return false;
+    }
+  }
+
+  // Belirli bir seviye ve dil çifti için kelimeleri streak sayılarıyla birlikte getir
+  async getWordsWithStreaks(level: string, languagePair: string): Promise<Word[]> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const result = await this.db.getAllAsync<Word>(
+        'SELECT word, meaning, example, level, streak FROM words WHERE level = ? AND language_pair = ? ORDER BY streak DESC, word',
+        [level, languagePair]
+      );
+      return result;
+    } catch (error) {
+      console.error('Error getting words with streaks from SQLite:', error);
+      return [];
+    }
+  }
+
+  // Kelime streak sayısını sıfırla
+  async resetWordStreak(word: string, level: string, languagePair: string): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      const result = await this.db.runAsync(
+        'UPDATE words SET streak = 0 WHERE word = ? AND level = ? AND language_pair = ?',
+        [word, level, languagePair]
+      );
+      
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error resetting word streak:', error);
+      return false;
+    }
+  }
+
+  // Dil çifti için streak istatistiklerini getir
+  async getStreakStatistics(languagePair: string): Promise<{
+    totalWords: number;
+    averageStreak: number;
+    streakDistribution: { streak: number; count: number }[];
+  }> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      // Toplam kelime sayısı
+      const totalResult = await this.db.getFirstAsync<{count: number}>(
+        'SELECT COUNT(*) as count FROM words WHERE language_pair = ?',
+        [languagePair]
+      );
+      
+      // Ortalama streak
+      const avgResult = await this.db.getFirstAsync<{avg: number}>(
+        'SELECT AVG(streak) as avg FROM words WHERE language_pair = ?',
+        [languagePair]
+      );
+      
+      // Streak dağılımı
+      const distributionResult = await this.db.getAllAsync<{streak: number; count: number}>(
+        'SELECT streak, COUNT(*) as count FROM words WHERE language_pair = ? GROUP BY streak ORDER BY streak',
+        [languagePair]
+      );
+      
+      return {
+        totalWords: totalResult?.count || 0,
+        averageStreak: avgResult?.avg || 0,
+        streakDistribution: distributionResult
+      };
+    } catch (error) {
+      console.error('Error getting streak statistics:', error);
+      return {
+        totalWords: 0,
+        averageStreak: 0,
+        streakDistribution: []
+      };
     }
   }
 

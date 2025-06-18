@@ -4,6 +4,7 @@ export interface Word {
   meaning: string;
   example?: string;
   level?: string;
+  streak?: number;
 }
 
 export interface LearnedWord extends Word {
