@@ -67,6 +67,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
   const [loadingMore, setLoadingMore] = useState(false);
   const [allWords, setAllWords] = useState<LearnedWord[]>([]);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [newWordListName, setNewWordListName] = useState('');
 
   useEffect(() => {
     loadAllWords();
@@ -487,6 +488,46 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
     );
   };
 
+  // Yeni kelime listesi oluştur
+  const handleCreateWordList = async () => {
+    if (!newWordListName.trim()) {
+      Alert.alert(
+        translations.wordListModal?.error || 'Hata',
+        translations.wordListModal?.emptyListName || 'Liste adı gereklidir',
+        [{ text: 'Tamam' }]
+      );
+      return;
+    }
+
+    try {
+      const success = await dbService.createWordList(newWordListName.trim(), currentLanguagePair);
+      
+      if (success) {
+        // Input'u temizle
+        setNewWordListName('');
+        // Listeleri yeniden yükle
+        loadWordLists();
+        // Başarı mesajı göster
+        Alert.alert(
+          translations.wordListModal?.success || 'Başarılı',
+          translations.wordListModal?.addSuccess || 'Liste başarıyla oluşturuldu'
+        );
+      } else {
+        // Hata mesajı göster
+        Alert.alert(
+          translations.wordListModal?.error || 'Hata',
+          translations.wordListModal?.createError || 'Liste oluşturulurken bir hata oluştu'
+        );
+      }
+    } catch (error) {
+      console.error('Error creating word list:', error);
+      Alert.alert(
+        translations.wordListModal?.error || 'Hata',
+        translations.wordListModal?.createError || 'Liste oluşturulurken bir hata oluştu'
+      );
+    }
+  };
+
   // Kelime listesi kartını render et
   const renderWordListItem = ({ item }: { item: { id: number; name: string; created_at: string } }) => (
     <TouchableOpacity
@@ -549,6 +590,50 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
   const renderWordListsTab = () => {
   return (
       <View style={styles.tabContent}>
+        {/* Yeni liste oluşturma bölümü */}
+        <View style={[styles.createListContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <TextInput
+            style={[
+              styles.createListInput,
+              { 
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                color: colors.text.primary,
+              }
+            ]}
+            placeholder={translations.wordListModal?.newListPlaceholder || 'Yeni liste adı...'}
+            placeholderTextColor={colors.text.secondary}
+            value={newWordListName}
+            onChangeText={setNewWordListName}
+            onSubmitEditing={handleCreateWordList}
+          />
+          <TouchableOpacity
+            style={[
+              styles.createListButton,
+              { 
+                backgroundColor: newWordListName.trim() ? colors.primary : colors.surface,
+                borderColor: colors.border,
+              }
+            ]}
+            onPress={handleCreateWordList}
+            disabled={!newWordListName.trim()}
+          >
+            <MaterialIcons 
+              name="add" 
+              size={20} 
+              color={newWordListName.trim() ? colors.text.onPrimary : colors.text.secondary} 
+            />
+            <Text style={[
+              styles.createListButtonText,
+              { 
+                color: newWordListName.trim() ? colors.text.onPrimary : colors.text.secondary,
+              }
+            ]}>
+              {translations.wordListModal?.create || 'Oluştur'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {loadingLists ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -1289,5 +1374,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  createListContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  createListInput: {
+    flex: 1,
+    height: 44,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 16,
+  },
+  createListButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+  },
+  createListButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
