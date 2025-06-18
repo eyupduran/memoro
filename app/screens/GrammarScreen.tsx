@@ -24,6 +24,47 @@ export const GrammarScreen: React.FC<Props> = () => {
   const webViewRef = useRef<WebView>(null);
   const navigation = useNavigation();
 
+  // Navigation header'ındaki geri tuşunu özelleştir
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity 
+          onPress={() => handleBackPress()}
+          style={{ marginLeft: 10 }}
+        >
+          <MaterialIcons name="arrow-back" size={24} color={colors.text.primary} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, colors.text.primary, isLevelModalVisible, translations.grammar.exitWarning]);
+
+  // Geri tuşu için uyarı fonksiyonu
+  const handleBackPress = () => {
+    // Eğer seviye seçimi modalı açıksa, normal geri tuşu davranışını engelleme
+    if (isLevelModalVisible) return;
+    
+    // Kullanıcıya gramer sayfasından çıkış uyarısı göster
+    Alert.alert(
+      translations.grammar.exitWarning.title,
+      translations.grammar.exitWarning.message,
+      [
+        {
+          text: translations.grammar.exitWarning.cancel,
+          onPress: () => {},
+          style: 'cancel',
+        },
+        {
+          text: translations.grammar.exitWarning.confirm,
+          onPress: () => {
+            navigation.goBack();
+          },
+          style: 'destructive',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   // Geri tuşu için uyarı
   useFocusEffect(
     React.useCallback(() => {
