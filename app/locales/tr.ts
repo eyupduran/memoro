@@ -383,6 +383,8 @@ export default {
       finish: 'Bitir',
       listenSentence: 'Cümleyi Dinle',
       listenWord: 'Kelimeyi Dinle',
+      sentenceOrdering: 'Cümle Sıralama',
+      check: 'Kontrol Et',
     },
     exercises: {
       fillInTheBlank: 'Boşluk Doldurma',

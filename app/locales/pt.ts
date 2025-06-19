@@ -383,6 +383,8 @@ export default {
       finish: 'Finalizar',
       listenSentence: 'Ouvir a Frase',
       listenWord: 'Ouvir a Palavra',
+      sentenceOrdering: 'Ordenar Frase',
+      check: 'Verificar',
     },
     exercises: {
       fillInTheBlank: 'Preencher Lacunas',

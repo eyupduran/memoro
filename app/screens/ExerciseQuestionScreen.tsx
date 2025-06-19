@@ -32,7 +32,7 @@ type ExerciseQuestionScreenNavigationProp = NativeStackNavigationProp<RootStackP
 
 // Soru detayları için tip tanımı
 export type QuestionDetail = {
-  questionType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch';
+  questionType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'sentenceOrdering';
   question: string;
   options: string[];
   correctAnswer: string;
@@ -52,12 +52,12 @@ export type QuestionDetail = {
 
 // Yarım kalan egzersiz için tip tanımı
 export type UnfinishedExercise = {
-  exerciseType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'mixed';
+  exerciseType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'mixed' | 'sentenceOrdering';
   questionIndex: number;
   totalQuestions: number;
   score: number;
   askedWords: string[];
-  previousType?: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch';
+  previousType?: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'sentenceOrdering';
   wordSource?: WordSource;
   level?: string | null;
   wordListId?: number;
@@ -106,7 +106,7 @@ const ExerciseQuestionScreen: React.FC = () => {
   const [answerShown, setAnswerShown] = useState(false);
   const [missingWordIndex, setMissingWordIndex] = useState(-1);
   const [sentence, setSentence] = useState<string[]>([]);
-  const [currentQuestionType, setCurrentQuestionType] = useState<'fillInTheBlank' | 'wordMatch' | 'sentenceMatch'>('fillInTheBlank');
+  const [currentQuestionType, setCurrentQuestionType] = useState<'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'sentenceOrdering'>('fillInTheBlank');
   // İlerleme çubuğu animasyonu için ref
   const progressAnimValue = useRef(new Animated.Value(0)).current;
   const progressBlinkAnim = useRef(new Animated.Value(1)).current;
@@ -127,6 +127,9 @@ const ExerciseQuestionScreen: React.FC = () => {
 
   const [isDictionaryModalVisible, setIsDictionaryModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [orderingOptions, setOrderingOptions] = useState<string[]>([]); // sentenceOrdering için
+  const [orderingSelected, setOrderingSelected] = useState<string[]>([]); // sentenceOrdering için
 
   // Önceki sayfadan gelen soru detaylarını yükle
   useEffect(() => {
@@ -402,7 +405,7 @@ const ExerciseQuestionScreen: React.FC = () => {
   const prepareQuestion = (
     allWords: (LearnedWord | Word)[], 
     sessionAskedWords: string[],
-    previousQuestionType?: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch'
+    previousQuestionType?: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'sentenceOrdering'
   ) => {
     let newSessionAskedWords = [...sessionAskedWords];
     
@@ -471,18 +474,18 @@ const ExerciseQuestionScreen: React.FC = () => {
     setAskedWordsForNextQuestion(updatedAskedWordsForSession);
 
     // Determine question type
-    let finalQuestionType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch';
+    let finalQuestionType: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'sentenceOrdering';
 
     if (exerciseType === 'mixed') {
-      let typeChoices: Array<'fillInTheBlank' | 'wordMatch' | 'sentenceMatch'> = [];
+      let typeChoices: Array<'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'sentenceOrdering'> = [];
       if (question.example && question.example.toLowerCase().includes(question.word.toLowerCase()) && question.example !== question.word) {
         typeChoices.push('fillInTheBlank');
       }
-      // Ensure sentenceMatch is only added if there's a valid example sentence.
       if (question.example && question.example.length > 10 && question.example !== question.word) { 
         typeChoices.push('sentenceMatch');
+        typeChoices.push('sentenceOrdering'); // sentenceOrdering ekle
       }
-      typeChoices.push('wordMatch'); // wordMatch is always an option
+      typeChoices.push('wordMatch');
 
       if (previousQuestionType && typeChoices.length > 1) {
         const filteredChoices = typeChoices.filter(t => t !== previousQuestionType);
@@ -493,6 +496,12 @@ const ExerciseQuestionScreen: React.FC = () => {
         }
       } else {
         finalQuestionType = typeChoices[Math.floor(Math.random() * typeChoices.length)];
+      }
+    } else if (exerciseType === 'sentenceOrdering') {
+      if (!question.example || question.example.length <= 10 || question.example === question.word) {
+        finalQuestionType = 'wordMatch';
+      } else {
+        finalQuestionType = 'sentenceOrdering';
       }
     } else {
       // For specific exercise types, force that type, but validate if possible
@@ -514,7 +523,9 @@ const ExerciseQuestionScreen: React.FC = () => {
       prepareFillInTheBlankQuestion(question, allWords);
     } else if (finalQuestionType === 'sentenceMatch') {
       prepareSentenceMatchQuestion(question, allWords);
-    } else { // wordMatch
+    } else if (finalQuestionType === 'sentenceOrdering') {
+      prepareSentenceOrderingQuestion(question);
+    } else {
       prepareWordMatchQuestion(question, allWords);
     }
     
@@ -647,6 +658,18 @@ const ExerciseQuestionScreen: React.FC = () => {
     setOptions(allOptions.sort(() => Math.random() - 0.5));
   };
 
+  const prepareSentenceOrderingQuestion = (question: LearnedWord | Word) => {
+    if (!question.example) {
+      setOrderingOptions([]);
+      setOrderingSelected([]);
+      return;
+    }
+    const words = question.example.trim().split(/\s+/);
+    const shuffled = [...words].sort(() => Math.random() - 0.5);
+    setOrderingOptions(shuffled);
+    setOrderingSelected([]);
+  };
+
   // İlerleme çubuğu animasyonunu başlat
   useEffect(() => {
     // Sayfa yüklendiğinde, ilerleme çubuğunu mevcut konumuna getir
@@ -690,6 +713,7 @@ const ExerciseQuestionScreen: React.FC = () => {
 
   const handleOptionSelect = (option: string) => {
     if (answerShown) return;
+    if (currentQuestionType === 'sentenceOrdering') return; // sentenceOrdering için farklı handler var
     
     setSelectedOption(option);
     
@@ -751,6 +775,8 @@ const ExerciseQuestionScreen: React.FC = () => {
         correctAnswer = currentQuestion.meaning;
       } else if (currentQuestionType === 'sentenceMatch') {
         correctAnswer = currentQuestion.example || '';
+      } else if (currentQuestionType === 'sentenceOrdering') {
+        correctAnswer = currentQuestion.example || '';
       }
       
       const questionDetail: QuestionDetail = {
@@ -777,6 +803,54 @@ const ExerciseQuestionScreen: React.FC = () => {
       const updatedQuestionDetails = [...questionDetails, questionDetail];
       setQuestionDetails(updatedQuestionDetails);
     }
+  };
+
+  const handleOrderingSelect = (word: string) => {
+    if (answerShown) return;
+    if (orderingSelected.includes(word)) return;
+    setOrderingSelected([...orderingSelected, word]);
+  };
+
+  const handleOrderingRemove = (index: number) => {
+    if (answerShown) return;
+    setOrderingSelected(orderingSelected.filter((_, i) => i !== index));
+  };
+
+  const handleOrderingSubmit = () => {
+    if (answerShown || !currentQuestion) return;
+    const correct = orderingSelected.join(' ') === currentQuestion.example?.trim();
+    setIsCorrect(correct);
+    setAnswerShown(true);
+    if (correct) {
+      playCorrectSound();
+      if (currentQuestion && (wordSource === 'wordlist' || wordSource === 'custom')) {
+        incrementWordStreak(currentQuestion);
+      }
+    } else {
+      playWrongSound();
+      if (currentQuestion && (wordSource === 'wordlist' || wordSource === 'custom')) {
+        decrementWordStreak(currentQuestion);
+      }
+    }
+    // Soru detaylarını kaydet
+    const questionDetail: QuestionDetail = {
+      questionType: 'sentenceOrdering',
+      question: currentQuestion.meaning,
+      options: orderingOptions,
+      correctAnswer: currentQuestion.example || '',
+      userAnswer: orderingSelected.join(' '),
+      isCorrect: correct,
+      word: currentQuestion.word,
+      meaning: currentQuestion.meaning,
+      example: currentQuestion.example || '',
+      level: currentQuestion.level || 'A1',
+      pronunciation: (currentQuestion as any)?.pronunciation,
+      partOfSpeech: (currentQuestion as any)?.partOfSpeech,
+      difficulty: (currentQuestion as any)?.difficulty,
+      id: currentQuestion.id,
+      streak: currentQuestion.streak
+    };
+    setQuestionDetails([...questionDetails, questionDetail]);
   };
 
   // Kelime streak değerini artır
@@ -816,7 +890,7 @@ const ExerciseQuestionScreen: React.FC = () => {
         totalQuestions,
         score: currentScore,
         askedWords: askedWordsForNextQuestion,
-        previousType: currentQuestionType,
+        previousType: currentQuestionType as 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'sentenceOrdering',
         wordSource,
         level,
         wordListId,
@@ -1126,6 +1200,56 @@ const ExerciseQuestionScreen: React.FC = () => {
     );
   };
 
+  const renderSentenceOrderingQuestion = () => {
+    if (!currentQuestion || !currentQuestion.example) {
+      return (
+        <View style={styles.questionContainer}>
+          <Text style={[styles.questionLabel, { color: colors.text.secondary }]}>
+            {translations.exercise.question.sentenceOrdering || 'Cümle Sıralama'}
+          </Text>
+          <Text style={[styles.wordText, { color: colors.text.primary }]}>Loading question...</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.questionContainer}>
+        <Text style={[styles.questionLabel, { color: colors.text.secondary }]}>
+          {translations.exercise.question.sentenceOrdering || 'Cümle Sıralama'}
+        </Text>
+        <View style={styles.wordContainer}>
+          <Text style={[styles.wordText, { color: colors.text.primary, fontSize: 20, marginBottom: 10, fontStyle: 'italic' }]}>"{currentQuestion.meaning}"</Text>
+        </View>
+        <View style={styles.sentenceContainer}>
+          {orderingSelected.map((word, idx) => (
+            <TouchableOpacity key={idx} style={[styles.selectedWord, { backgroundColor: colors.primary + '30' }]} onPress={() => handleOrderingRemove(idx)}>
+              <Text style={{ color: colors.text.primary }}>{word}</Text>
+              <MaterialIcons name="close" size={16} color={colors.primary} />
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.optionsContainer}>
+          {orderingOptions.map((word, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={[styles.orderingOption, {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: orderingSelected.includes(word) ? 0.5 : 1
+              }]}
+              onPress={() => handleOrderingSelect(word)}
+              disabled={orderingSelected.includes(word) || answerShown}
+            >
+              <Text style={{ color: colors.text.primary }}>{word}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity style={[styles.nextButton, { backgroundColor: colors.primary, marginTop: 10, opacity: orderingSelected.length === orderingOptions.length ? 1 : 0.5 }]} onPress={handleOrderingSubmit} disabled={orderingSelected.length !== orderingOptions.length || answerShown}>
+          <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>{translations.exercise.question.check || 'Kontrol Et'}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   useEffect(() => {
     const loadWordLists = async () => {
       try {
@@ -1245,6 +1369,8 @@ const ExerciseQuestionScreen: React.FC = () => {
         correctAnswer = currentQuestion.meaning; // Çevirisi
       } else if (currentQuestionType === 'sentenceMatch') {
         correctAnswer = currentQuestion.example || '';
+      } else if (currentQuestionType === 'sentenceOrdering') {
+        correctAnswer = currentQuestion.example || '';
       }
     }
 
@@ -1278,7 +1404,7 @@ const ExerciseQuestionScreen: React.FC = () => {
           </Text>
           {!isCorrect && currentQuestion && (
             <Text style={[styles.correctAnswer, { color: colors.text.primary }]}>
-              {translations.exercise.question.correctAnswer}: {correctAnswer}
+              {translations.exercise.question.correctAnswer}: {currentQuestionType === 'sentenceOrdering' ? (currentQuestion.example || '') : correctAnswer}
             </Text>
           )}
         </View>
@@ -1445,9 +1571,9 @@ const ExerciseQuestionScreen: React.FC = () => {
         >
           {currentQuestionType === 'fillInTheBlank' ? renderFillInTheBlankQuestion() :
            currentQuestionType === 'wordMatch' ? renderWordMatchQuestion() :
-           currentQuestionType === 'sentenceMatch' ? renderSentenceMatchQuestion() : 
-           renderWordMatchQuestion() // Fallback
-          }
+           currentQuestionType === 'sentenceMatch' ? renderSentenceMatchQuestion() :
+           currentQuestionType === 'sentenceOrdering' ? renderSentenceOrderingQuestion() :
+           renderWordMatchQuestion()}
         </Animated.View>
       </ScrollView>
 
@@ -1780,6 +1906,24 @@ const styles = StyleSheet.create({
   },
   closeDictionaryButton: {
     padding: 4,
+  },
+  selectedWord: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  orderingOption: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    margin: 4,
+    minWidth: 40,
+    alignItems: 'center',
   },
 });
 

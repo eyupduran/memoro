@@ -106,7 +106,6 @@ export const WordListScreen: React.FC<Props> = ({ route, navigation }) => {
     if (selectedWords.length === wordCount) {
       navigation.navigate('ImageSelection', {
         selectedWords,
-        level,
         wordCount,
       });
     }
