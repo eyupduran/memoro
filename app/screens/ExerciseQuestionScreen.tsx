@@ -664,7 +664,15 @@ const ExerciseQuestionScreen: React.FC = () => {
       setOrderingSelected([]);
       return;
     }
-    const words = question.example.trim().split(/\s+/);
+    let words = question.example.trim().split(/\s+/);
+    // İlk kelimenin baş harfini küçült
+    if (words.length > 0) {
+      words[0] = words[0].charAt(0).toLocaleLowerCase() + words[0].slice(1);
+    }
+    // Son kelimenin sonundaki noktalama işaretini kaldır
+    if (words.length > 0) {
+      words[words.length - 1] = words[words.length - 1].replace(/[.!?]+$/, '');
+    }
     const shuffled = [...words].sort(() => Math.random() - 0.5);
     setOrderingOptions(shuffled);
     setOrderingSelected([]);
