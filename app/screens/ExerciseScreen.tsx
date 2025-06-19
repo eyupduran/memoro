@@ -747,9 +747,6 @@ const ExerciseScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text.primary }]}>
-          {translations.exercise.title}
-        </Text>
         <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
           {translations.exercise.subtitle}
         </Text>

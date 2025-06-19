@@ -299,7 +299,7 @@ const ExerciseResultScreen: React.FC = () => {
           )}
           
           {/* Aynı kelimelerle tekrarla butonu */}
-          {questionDetails.length > 0 && (
+          {questionDetails.length > 0 && (wordSource === 'dictionary' || wordSource === 'custom') && (
             <TouchableOpacity
               style={[styles.button, { backgroundColor: colors.secondary || '#6C757D', marginBottom: 12 }]}
               onPress={handleRepeatWithSameWords}
