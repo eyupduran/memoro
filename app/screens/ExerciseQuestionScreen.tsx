@@ -1216,16 +1216,15 @@ const ExerciseQuestionScreen: React.FC = () => {
         <Text style={[styles.questionLabel, { color: colors.text.secondary }]}>
           {translations.exercise.question.sentenceOrdering || 'Cümle Sıralama'}
         </Text>
-        <View style={styles.wordContainer}>
-          <Text style={[styles.wordText, { color: colors.text.primary, fontSize: 20, marginBottom: 10, fontStyle: 'italic' }]}>"{currentQuestion.meaning}"</Text>
-        </View>
-        <View style={styles.sentenceContainer}>
-          {orderingSelected.map((word, idx) => (
-            <TouchableOpacity key={idx} style={[styles.selectedWord, { backgroundColor: colors.primary + '30' }]} onPress={() => handleOrderingRemove(idx)}>
-              <Text style={{ color: colors.text.primary }}>{word}</Text>
-              <MaterialIcons name="close" size={16} color={colors.primary} />
-            </TouchableOpacity>
-          ))}
+        <View style={[styles.sentenceContainer, { height: 68, maxHeight: 68, marginBottom: 16, paddingRight: 4 }]}> 
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start' }} showsVerticalScrollIndicator={false}>
+            {orderingSelected.map((word, idx) => (
+              <TouchableOpacity key={idx} style={[styles.selectedWord, { backgroundColor: colors.primary + '30' }]} onPress={() => handleOrderingRemove(idx)}>
+                <Text style={{ color: colors.text.primary }}>{word}</Text>
+                <MaterialIcons name="close" size={16} color={colors.primary} />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
         <View style={styles.optionsContainer}>
           {orderingOptions.map((word, idx) => (
