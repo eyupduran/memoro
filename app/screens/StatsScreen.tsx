@@ -60,6 +60,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
   const lastScrollY = useRef(0);
   const searchInputRef = useRef<TextInput>(null);
   const activeSearchId = useRef(0);
+  const [wordListStreaks, setWordListStreaks] = useState<{ [key: number]: boolean }>({});
   
   // Pagination için state'ler
   const [page, setPage] = useState(0);
@@ -143,6 +144,14 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
       setLoadingLists(true);
       const lists = await dbService.getWordLists(currentLanguagePair);
       setWordLists(lists);
+
+      // Her liste için streak durumunu kontrol et
+      const streaks: { [key: number]: boolean } = {};
+      for (const list of lists) {
+        const hasStreak = await dbService.checkWordListStreak(list.id, currentLanguagePair);
+        streaks[list.id] = hasStreak;
+      }
+      setWordListStreaks(streaks);
     } catch (error) {
       console.error('Error loading word lists:', error);
       setWordLists([]);
@@ -541,9 +550,19 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
     >
       <View style={styles.wordListHeader}>
         <View style={styles.wordListInfo}>
-          <Text style={[styles.wordListName, { color: colors.text.primary }]}>
-            {item.name}
-          </Text>
+          <View style={styles.wordListNameContainer}>
+            <Text style={[styles.wordListName, { color: colors.text.primary }]}>
+              {item.name}
+            </Text>
+            {wordListStreaks[item.id] && (
+              <MaterialIcons
+                name="check-circle"
+                size={16}
+                color={colors.primary}
+                style={styles.streakIcon}
+              />
+            )}
+          </View>
           <Text style={[styles.wordListDate, { color: colors.text.secondary }]}>
             {formatDate(item.created_at)}
           </Text>
@@ -552,7 +571,7 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
           <TouchableOpacity
             style={[styles.deleteListButton, { backgroundColor: `${colors.error}15` }]}
             onPress={(e) => {
-              e.stopPropagation(); // Listeye tıklamayı engelle
+              e.stopPropagation();
               handleDeleteWordList(item.id, item.name);
             }}
           >
@@ -1071,10 +1090,18 @@ const styles = StyleSheet.create({
   wordListInfo: {
     flex: 1,
   },
+  wordListNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   wordListName: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+  },
+  streakIcon: {
+    marginLeft: 4,
   },
   wordListDate: {
     fontSize: 12,

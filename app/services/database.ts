@@ -1056,32 +1056,61 @@ class DatabaseService {
     try {
       if (!this.initialized) await this.initDatabase();
       
-      const result = await this.db.getAllAsync<{
-        id: number;
-        word: string;
-        meaning: string;
-        example: string | null;
-        level: string | null;
-        added_at: string;
-      }>(
-        `SELECT w.*, cwli.added_at 
-         FROM custom_word_list_items cwli
-         JOIN words w ON w.id = cwli.word_id
-         WHERE cwli.list_id = ?
-         ORDER BY cwli.added_at DESC`,
-        [listId]
-      );
+      const query = `
+        SELECT 
+          word,
+          meaning,
+          example,
+          level,
+          added_at
+        FROM custom_word_list_items
+        WHERE list_id = ?
+      `;
       
-      return result.map(row => ({
-        id: row.id.toString(),
-        word: row.word,
-        meaning: row.meaning,
-        example: row.example || undefined,
-        level: row.level || undefined
-      }));
+      const result = await this.db.getAllAsync<Word>(query, [listId]);
+      return result;
     } catch (error) {
       console.error('Error getting word list items:', error);
       return [];
+    }
+  }
+
+  // Kelime listesinin streak durumunu kontrol et
+  async checkWordListStreak(listId: number, languagePair: string): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      
+      // Listedeki tüm kelimeleri al
+      const words = await this.getWordListItems(listId.toString());
+      
+      // Her kelime için egzersiz sonuçlarını kontrol et
+      for (const word of words) {
+        const query = `
+          SELECT COUNT(*) as count
+          FROM exercise_results er
+          JOIN exercise_details ed ON er.id = ed.exercise_id
+          WHERE er.language_pair = ?
+          AND er.score = er.total_questions
+          AND ed.details LIKE ?
+          AND er.word_list_id = ?
+        `;
+        
+        const result = await this.getFirstAsync<{ count: number }>(
+          query,
+          [languagePair, `%${word.word}%`, listId]
+        );
+        
+        // Eğer kelime için başarılı bir egzersiz sonucu yoksa false döndür
+        if (!result || result.count === 0) {
+          return false;
+        }
+      }
+      
+      // Tüm kelimeler için başarılı egzersiz sonucu varsa true döndür
+      return true;
+    } catch (error) {
+      console.error('Error checking word list streak:', error);
+      return false;
     }
   }
 
