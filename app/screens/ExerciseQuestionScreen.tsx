@@ -128,8 +128,8 @@ const ExerciseQuestionScreen: React.FC = () => {
   const [isDictionaryModalVisible, setIsDictionaryModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [orderingOptions, setOrderingOptions] = useState<string[]>([]); // sentenceOrdering için
-  const [orderingSelected, setOrderingSelected] = useState<string[]>([]); // sentenceOrdering için
+  const [orderingOptions, setOrderingOptions] = useState<Array<{ word: string; index: number }>>([]);
+  const [orderingSelected, setOrderingSelected] = useState<Array<{ word: string; index: number }>>([]);
 
   // Önceki sayfadan gelen soru detaylarını yükle
   useEffect(() => {
@@ -673,7 +673,9 @@ const ExerciseQuestionScreen: React.FC = () => {
     if (words.length > 0) {
       words[words.length - 1] = words[words.length - 1].replace(/[.!?]+$/, '');
     }
-    const shuffled = [...words].sort(() => Math.random() - 0.5);
+    // Her kelimeye bir indeks ekle
+    const wordsWithIndices = words.map((word, index) => ({ word, index }));
+    const shuffled = [...wordsWithIndices].sort(() => Math.random() - 0.5);
     setOrderingOptions(shuffled);
     setOrderingSelected([]);
   };
@@ -813,10 +815,11 @@ const ExerciseQuestionScreen: React.FC = () => {
     }
   };
 
-  const handleOrderingSelect = (word: string) => {
+  const handleOrderingSelect = (wordObj: { word: string; index: number }) => {
     if (answerShown) return;
-    if (orderingSelected.includes(word)) return;
-    setOrderingSelected([...orderingSelected, word]);
+    // Aynı indekse sahip kelime seçilmiş mi diye kontrol et
+    if (orderingSelected.some(selected => selected.index === wordObj.index)) return;
+    setOrderingSelected([...orderingSelected, wordObj]);
   };
 
   const handleOrderingRemove = (index: number) => {
@@ -826,7 +829,20 @@ const ExerciseQuestionScreen: React.FC = () => {
 
   const handleOrderingSubmit = () => {
     if (answerShown || !currentQuestion) return;
-    const correct = orderingSelected.join(' ') === currentQuestion.example?.trim();
+
+    // Normalize both the example sentence and user's answer for comparison
+    const normalizeText = (text: string) => {
+      return text.trim()
+        .toLowerCase()
+        .replace(/[.!?]+$/, '') // Remove ending punctuation
+        .split(/\s+/) // Split into words
+        .join(' '); // Join back with single spaces
+    };
+
+    const normalizedExample = normalizeText(currentQuestion.example || '');
+    const normalizedAnswer = normalizeText(orderingSelected.map(item => item.word).join(' '));
+    
+    const correct = normalizedExample === normalizedAnswer;
     setIsCorrect(correct);
     setAnswerShown(true);
     if (correct) {
@@ -844,9 +860,9 @@ const ExerciseQuestionScreen: React.FC = () => {
     const questionDetail: QuestionDetail = {
       questionType: 'sentenceOrdering',
       question: currentQuestion.meaning,
-      options: orderingOptions,
+      options: orderingOptions.map(opt => opt.word),
       correctAnswer: currentQuestion.example || '',
-      userAnswer: orderingSelected.join(' '),
+      userAnswer: orderingSelected.map(item => item.word).join(' '),
       isCorrect: correct,
       word: currentQuestion.word,
       meaning: currentQuestion.meaning,
@@ -1226,27 +1242,27 @@ const ExerciseQuestionScreen: React.FC = () => {
         </Text>
         <View style={[styles.sentenceContainer, { height: 68, maxHeight: 68, marginBottom: 16, paddingRight: 4 }]}> 
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start' }} showsVerticalScrollIndicator={false}>
-            {orderingSelected.map((word, idx) => (
+            {orderingSelected.map((wordObj, idx) => (
               <TouchableOpacity key={idx} style={[styles.selectedWord, { backgroundColor: colors.primary + '30' }]} onPress={() => handleOrderingRemove(idx)}>
-                <Text style={{ color: colors.text.primary }}>{word}</Text>
+                <Text style={{ color: colors.text.primary }}>{wordObj.word}</Text>
                 <MaterialIcons name="close" size={16} color={colors.primary} />
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
         <View style={styles.optionsContainer}>
-          {orderingOptions.map((word, idx) => (
+          {orderingOptions.map((wordObj, idx) => (
             <TouchableOpacity
-              key={idx}
+              key={`${wordObj.word}-${wordObj.index}`}
               style={[styles.orderingOption, {
                 backgroundColor: colors.surface,
                 borderColor: colors.border,
-                opacity: orderingSelected.includes(word) ? 0.5 : 1
+                opacity: orderingSelected.some(selected => selected.index === wordObj.index) ? 0.5 : 1
               }]}
-              onPress={() => handleOrderingSelect(word)}
-              disabled={orderingSelected.includes(word) || answerShown}
+              onPress={() => handleOrderingSelect(wordObj)}
+              disabled={orderingSelected.some(selected => selected.index === wordObj.index) || answerShown}
             >
-              <Text style={{ color: colors.text.primary }}>{word}</Text>
+              <Text style={{ color: colors.text.primary }}>{wordObj.word}</Text>
             </TouchableOpacity>
           ))}
         </View>
