@@ -43,7 +43,7 @@ type TabType = 'learnedWords' | 'wordLists';
 export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
-  const [selectedTab, setSelectedTab] = useState<TabType>('learnedWords');
+  const [selectedTab, setSelectedTab] = useState<TabType>('wordLists');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [words, setWords] = useState<LearnedWord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -863,6 +863,29 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
         <TouchableOpacity
           style={[
             styles.tabButton,
+            selectedTab === 'wordLists' && [styles.activeTab, { borderBottomColor: colors.primary }]
+          ]}
+          onPress={() => setSelectedTab('wordLists')}
+        >
+          <MaterialIcons
+            name="list"
+            size={24}
+            color={selectedTab === 'wordLists' ? colors.primary : colors.text.secondary}
+            style={styles.tabIcon}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              { color: selectedTab === 'wordLists' ? colors.primary : colors.text.secondary }
+            ]}
+          >
+            {translations.stats.wordLists || 'Kelime Listeleri'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.tabButton,
             selectedTab === 'learnedWords' && [styles.activeTab, { borderBottomColor: colors.primary }]
           ]}
           onPress={() => {
@@ -884,37 +907,14 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
               { color: selectedTab === 'learnedWords' ? colors.primary : colors.text.secondary }
             ]}
           >
-            {translations.stats.learnedWords || 'Öğrenilen Kelimeler'}
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            selectedTab === 'wordLists' && [styles.activeTab, { borderBottomColor: colors.primary }]
-          ]}
-          onPress={() => setSelectedTab('wordLists')}
-        >
-          <MaterialIcons
-            name="list"
-            size={24}
-            color={selectedTab === 'wordLists' ? colors.primary : colors.text.secondary}
-            style={styles.tabIcon}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              { color: selectedTab === 'wordLists' ? colors.primary : colors.text.secondary }
-            ]}
-          >
-            {translations.stats.wordLists || 'Kelime Listeleri'}
+            {translations.stats.learnedWords || 'Görsel Kelimelerim'}
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Tab Content */}
       <View style={styles.content}>
-        {selectedTab === 'learnedWords' ? renderLearnedWordsTab() : renderWordListsTab()}
+        {selectedTab === 'wordLists' ? renderWordListsTab() : renderLearnedWordsTab()}
       </View>
 
       {/* Modal */}

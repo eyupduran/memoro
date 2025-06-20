@@ -48,7 +48,7 @@ export default {
     title: 'İstatistikler',
     totalWords: 'Toplam {0} kelime öğrenildi',
     wordLists: 'Kelime Listeleri',
-    learnedWords: 'Öğrenilen Kelimeler',
+    learnedWords: 'Görsel Kelimelerim',
     levels: {
       all: 'Tümü',
       allDescription: 'Tüm Kelimeler',

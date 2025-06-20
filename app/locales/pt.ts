@@ -48,7 +48,7 @@ export default {
     title: 'Estats',
     totalWords: 'Total de {0} palavras aprendidas',
     wordLists: 'Listas de Palavras',
-    learnedWords: 'Palavras Aprendidas',
+    learnedWords: 'Minhas Palavras Visuais',
     levels: {
       all: 'Todos',
       allDescription: 'Todas as Palavras',
