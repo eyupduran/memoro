@@ -32,7 +32,7 @@ import PredefinedWordListsScreen from './app/screens/PredefinedWordListsScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
   const { colors, theme } = useTheme();
   const { translations } = useLanguage();
 
