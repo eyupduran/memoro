@@ -291,6 +291,11 @@ const ExerciseScreen: React.FC = () => {
       return translations.exercise.dictionaryAllSource || 'Tüm Kelimeler Karışık';
     }
     
+    // Egzersiz tipine göre özel başlıklar
+    if (type === 'sentenceOrdering') {
+      return translations.exercise.exercises.sentenceOrdering || 'Kelime Sıralama';
+    }
+    
     // Varsayılan olarak sadece egzersiz tipini döndür
     return translations.exercise.exercises[type as keyof typeof translations.exercise.exercises] || type;
   };

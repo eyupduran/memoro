@@ -379,25 +379,22 @@ export default {
     question: {
       title: 'Soru {0}',
       screenTitle: 'Egzersiz',
-      fillInTheBlank: 'Boşluğu Doldur',
-      wordMatch: 'Kelime Eşleştirme',
-      sentenceMatchQuestionPrompt: 'Bu kelime hangi cümleye ait?',
+      fillInTheBlank: 'Boşluğa uygun kelimeyi seçin',
+      wordMatch: 'Kelimenin anlamını seçin',
+      sentenceMatchQuestionPrompt: 'Cümlenin çevirisini seçin',
+      sentenceOrderingPrompt: 'Cümleyi doğru sıralayın',
       correct: 'Doğru!',
       incorrect: 'Yanlış!',
-      wrong: 'Yanlış!',
-      correctAnswer: 'Doğru Cevap',
-      next: 'Sonraki',
-      finish: 'Bitir',
-      listenSentence: 'Cümleyi Dinle',
-      listenWord: 'Kelimeyi Dinle',
-      sentenceOrdering: 'Cümle Sıralama',
-      check: 'Kontrol Et',
+      wrong: 'Yanlış cevap!',
+      correctAnswer: 'Doğru cevap: {0}',
+      check: 'Kontrol Et'
     },
     exercises: {
       fillInTheBlank: 'Boşluk Doldurma',
       wordMatch: 'Kelime Eşleştirme',
       mixed: 'Karışık',
       sentenceMatch: 'Cümle Eşleştirme',
+      sentenceOrdering: 'Kelime Sıralama'
     },
     result: {
       title: 'Egzersiz Sonucu',
@@ -423,20 +420,22 @@ export default {
     },
     detail: {
       title: 'Egzersiz Detayı',
-      date: 'Tarih: {0}',
-      score: 'Puan: {0}/{1}',
-      type: 'Tür: {0}',
-      source: 'Kaynak: {0}',
+      date: 'Tarih',
+      score: '{0}/{1} Doğru',
+      type: 'Tip',
+      source: 'Kaynak',
       questionTitle: 'Soru {0}',
-      yourAnswer: 'Cevabınız: {0}',
-      correctAnswer: 'Doğru Cevap: {0}',
+      yourAnswer: 'Sizin cevabınız',
+      correctAnswer: 'Doğru cevap',
+      correctOrder: 'Doğru sıralama',
       backToResults: 'Sonuçlara Dön',
       backToExercises: 'Egzersizlere Dön',
       questionsTitle: 'Sorular',
       questionType: {
         fillInTheBlank: 'Boşluk Doldurma',
         wordMatch: 'Kelime Eşleştirme',
-        sentenceMatch: 'Cümle Eşleştirme'
+        sentenceMatch: 'Cümle Eşleştirme',
+        sentenceOrdering: 'Kelime Sıralama'
       }
     },
     tabs: {

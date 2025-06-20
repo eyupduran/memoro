@@ -117,7 +117,18 @@ const ExerciseDetailScreen: React.FC = () => {
   };
   
   const getQuestionTypeName = (type: string) => {
-    return translations.exercise.detail.questionType[type as keyof typeof translations.exercise.detail.questionType] || type;
+    switch (type) {
+      case 'fillInTheBlank':
+        return translations.exercise.exercises.fillInTheBlank || 'Boşluk Doldurma';
+      case 'wordMatch':
+        return translations.exercise.exercises.wordMatch || 'Kelime Eşleştirme';
+      case 'sentenceMatch':
+        return translations.exercise.exercises.sentenceMatch || 'Cümle Eşleştirme';
+      case 'sentenceOrdering':
+        return translations.exercise.exercises.sentenceOrdering || 'Kelime Sıralama';
+      default:
+        return type;
+    }
   };
 
   // Kelime listesine ekleme
@@ -244,6 +255,39 @@ const ExerciseDetailScreen: React.FC = () => {
     );
   };
 
+  // SentenceOrdering türü sorular için soru ve seçenekleri hazırlama
+  const renderSentenceOrderingContent = (detail: QuestionDetail) => {
+    return (
+      <View>
+        <Text style={[styles.questionLabel, { color: colors.text.primary, textAlign: 'center' }]}>
+          {translations.exercise.question.sentenceOrderingPrompt || 'Cümleyi doğru sıralayın'}
+        </Text>
+        
+        <View style={styles.wordContainer}>
+          <Text style={[styles.wordText, { color: colors.text.primary }]}>
+            {detail.question}
+          </Text>
+        </View>
+
+        <View style={styles.orderingResultContainer}>
+          <Text style={[styles.orderingLabel, { color: colors.text.secondary }]}>
+            {translations.exercise.detail.yourAnswer || 'Sizin cevabınız:'}
+          </Text>
+          <Text style={[styles.orderingText, { color: colors.text.primary }]}>
+            {detail.userAnswer}
+          </Text>
+
+          <Text style={[styles.orderingLabel, { color: colors.text.secondary, marginTop: 12 }]}>
+            {translations.exercise.detail.correctAnswer || 'Doğru cevap:'}
+          </Text>
+          <Text style={[styles.orderingText, { color: colors.success }]}>
+            {detail.correctAnswer}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   const renderQuestionItem = (detail: QuestionDetail) => {
     const isCorrect = detail.isCorrect;
     
@@ -289,6 +333,8 @@ const ExerciseDetailScreen: React.FC = () => {
             ? renderFillInTheBlankContent(detail)
             : detail.questionType === 'wordMatch' 
               ? renderWordMatchContent(detail)
+            : detail.questionType === 'sentenceOrdering'
+              ? renderSentenceOrderingContent(detail)
               : renderSentenceMatchContent(detail)
           }
         </View>
@@ -827,6 +873,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 16,
+  },
+  orderingResultContainer: {
+    marginTop: 16,
+    width: '100%',
+  },
+  orderingLabel: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  orderingText: {
+    fontSize: 16,
+    fontWeight: '500',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
 });
 

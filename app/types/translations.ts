@@ -210,6 +210,7 @@ export interface Translations {
       wordMatch: string;
       mixed: string;
       sentenceMatch: string;
+      sentenceOrdering: string;
     };
     question: {
       title: string;
@@ -217,11 +218,12 @@ export interface Translations {
       fillInTheBlank: string;
       wordMatch: string;
       sentenceMatchQuestionPrompt: string;
+      sentenceOrderingPrompt: string;
       correct: string;
       incorrect: string;
+      wrong: string;
       correctAnswer: string;
-      next: string;
-      finish: string;
+      check: string;
     };
     result: {
       title: string;
@@ -242,6 +244,26 @@ export interface Translations {
     };
     tabs: {
       exercise: string;
+    };
+    detail: {
+      title: string;
+      date: string;
+      score: string;
+      type: string;
+      source: string;
+      questionTitle: string;
+      yourAnswer: string;
+      correctAnswer: string;
+      correctOrder: string;
+      backToResults: string;
+      backToExercises: string;
+      questionsTitle: string;
+      questionType: {
+        fillInTheBlank: string;
+        wordMatch: string;
+        sentenceMatch: string;
+        sentenceOrdering: string;
+      };
     };
   };
   more: {
