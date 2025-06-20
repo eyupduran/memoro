@@ -13,6 +13,7 @@ import { DataLoader } from '../components/DataLoader';
 import { checkWordDataExists } from '../utils/database';
 import { BackupRestoreSection } from '../components/BackupRestoreSection';
 import { translations as allTranslations, NativeLanguage } from '../contexts/LanguageContext';
+import WordListDownloadModal from '../components/WordListDownloadModal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -23,6 +24,7 @@ export const SettingsScreen: React.FC<Props> = (props) => {
   const [hasDownloadedData, setHasDownloadedData] = useState(false);
   const [showDataLoader, setShowDataLoader] = useState(false);
   const isInitialMount = useRef(true);
+  const [showWordListModal, setShowWordListModal] = useState(false);
 
   useEffect(() => {
     // Odaklanma olayını dinle
@@ -389,6 +391,16 @@ export const SettingsScreen: React.FC<Props> = (props) => {
             </Text>
           )}
         </View>
+
+        {/* Word List Download Section */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={[styles.updateButton, { backgroundColor: colors.primary }]}
+            onPress={() => setShowWordListModal(true)}
+          >
+            <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>Kelime Listesi İndir</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {showDataLoader && (
@@ -401,6 +413,11 @@ export const SettingsScreen: React.FC<Props> = (props) => {
           />
         </View>
       )}
+
+      <WordListDownloadModal
+        visible={showWordListModal}
+        onClose={() => setShowWordListModal(false)}
+      />
     </>
   );
 };

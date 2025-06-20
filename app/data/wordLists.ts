@@ -154,4 +154,18 @@ export const forceUpdateWordLists = {
     await loadWordsToDatabase(languagePair);
     return fetchWordList('C2');
   },
+};
+
+// API'den kategorili kelime listesini çeken fonksiyon
+export const fetchCategorizedWordLists = async (languagePair: string): Promise<any | null> => {
+  try {
+    const url = `${await getBaseUrl()}/categorized_vocab_by_level.json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Kelime listesi alınamadı');
+    const data = await res.json();
+    return data;
+  } catch (e) {
+    console.error('Kelime listesi alınamadı:', e);
+    return null;
+  }
 }; 
