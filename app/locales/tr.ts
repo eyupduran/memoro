@@ -16,9 +16,12 @@ export default {
     trackProgressDescription: 'Öğrendiğiniz kelimeleri kaydedin ve gelişiminizi görün.',
     exerciseTitle: 'Egzersizlerle Pekiştirin',
     exerciseDescription: 'Öğrendiğiniz veya seviyenize uygun kelimelerle pratik yaparak bilginizi test edin.',
+    predefinedLists: 'Hazır Kelime Listeleri',
+    predefinedListsDescription: 'Kategorilere ayrılmış hazır kelime listeleriyle öğrenmeye başlayın.',
     back: 'Geri',
     next: 'İleri',
-    start: 'Başla'
+    start: 'Başla',
+    skip: 'Atla'
   },
   languages: {
     tr: 'Türkçe',
@@ -244,7 +247,7 @@ export default {
       languageChangedMessage: 'Veri yedeklemeniz farklı bir dil çifti içeriyor. Uygulama ayarlarınız güncellendi ve ilgili kelime verileri şimdi indirilecek.'
     },
     predefinedWordListsTitle: 'Hazır Kelime Listeleri',
-    predefinedWordListsDescription: 'Burada uygulamada hazır bulunan kelime listelerini kendi özel listelerinize ekleyebilirsiniz. Seviye ve kategoriye göre seçim yapabilir veya tüm listeleri ekleyebilirsiniz.',
+    predefinedWordListsDescription: 'Kategorilere ayrılmış hazır kelime listeleriyle öğrenmeye başlayın.',
     addSelected: 'Seçilenleri Ekle',
     downloadAll: 'Tümünü Ekle',
   },

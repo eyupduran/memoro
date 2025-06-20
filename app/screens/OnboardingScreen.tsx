@@ -16,6 +16,14 @@ const { width, height } = Dimensions.get('window');
 
 type OnboardingScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 
+type OnboardingItem = {
+  title: string;
+  description: string;
+  icon: string;
+  component?: React.ComponentType;
+  navigateTo?: keyof RootStackParamList;
+};
+
 export const OnboardingScreen = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -26,10 +34,10 @@ export const OnboardingScreen = () => {
   const [isUpdatingDataForNewLanguage, setIsUpdatingDataForNewLanguage] = useState(false);
   const [newLanguagePair, setNewLanguagePair] = useState<string | null>(null);
 
-  const onboardingData = [
+  const onboardingData: OnboardingItem[] = [
     {
-      title: 'Welcome to Memoro',
-      description: 'Are you ready to learn English vocabulary with Memoro?',
+      title: translations.onboarding.welcome,
+      description: translations.onboarding.welcomeDescription,
       icon: 'school',
     },
     {
@@ -63,6 +71,12 @@ export const OnboardingScreen = () => {
       description: translations.onboarding.exerciseDescription,
       icon: 'fitness-center',
     },
+    {
+      title: translations.onboarding.predefinedLists,
+      description: translations.onboarding.predefinedListsDescription,
+      icon: 'library-books',
+      navigateTo: 'PredefinedWordLists'
+    },
   ];
 
   const handleBack = () => {
@@ -72,8 +86,16 @@ export const OnboardingScreen = () => {
   };
 
   const handleNext = () => {
+    const currentItem = onboardingData[activeIndex];
+    
     if (activeIndex === onboardingData.length - 1) {
-      finishOnboarding();
+      if (currentItem.navigateTo) {
+        AsyncStorage.setItem('hasSeenOnboarding', 'true').then(() => {
+          navigation.replace(currentItem.navigateTo!, { fromOnboarding: true });
+        });
+      } else {
+        finishOnboarding();
+      }
     } else {
       setActiveIndex(activeIndex + 1);
     }

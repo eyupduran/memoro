@@ -8,17 +8,19 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors as appColors } from '../theme/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Ekran propsları
 type Props = NativeStackScreenProps<RootStackParamList, 'PredefinedWordLists'>;
 
-const PredefinedWordListsScreen: React.FC<Props> = ({ navigation }) => {
+const PredefinedWordListsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
   const [selected, setSelected] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [wordData, setWordData] = useState<any>(null);
+  const isFromOnboarding = route.params?.fromOnboarding;
 
   useEffect(() => {
     setFetching(true);
@@ -81,28 +83,52 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation }) => {
         setLoading(false);
         return;
       }
+
       for (const key of selectedKeys) {
         const [level, category] = key.split('-');
         const levelData = wordData[level];
         const catObj = levelData.find((c: any) => c.name === category);
         if (!catObj) continue;
-        const listName = `${level.toLowerCase()}-${category}`;
-        const listId = await dbService.createWordList(listName, currentLanguagePair);
-        if (listId) {
-          for (const word of catObj.words) {
-            await dbService.addWordToList(listId, {
-              id: word.word,
-              word: word.word,
-              meaning: word.meaning,
-              example: word.example,
-              level,
-            });
+
+        const timestamp = new Date().getTime();
+        const listName = `${level.toLowerCase()}-${category}-${timestamp}`;
+        
+        try {
+          const listId = await dbService.createWordList(listName, currentLanguagePair);
+          if (listId) {
+            for (const word of catObj.words) {
+              await dbService.addWordToList(listId, {
+                id: word.word,
+                word: word.word,
+                meaning: word.meaning,
+                example: word.example,
+                level,
+              });
+            }
           }
+        } catch (error) {
+          console.error('Error creating word list:', error);
+          continue;
         }
       }
-      Alert.alert(translations.alerts.success, 'Seçilen kelime listeleri eklendi!');
+
       setSelected({});
-      navigation.goBack();
+      
+      // Onboarding'den geldiysek direkt yönlendir, değilse başarılı mesajı göster
+      if (isFromOnboarding) {
+        navigation.replace('LevelSelection');
+      } else {
+        Alert.alert(
+          translations.alerts.success, 
+          'Seçilen kelime listeleri eklendi!',
+          [
+            {
+              text: translations.alerts.okay,
+              onPress: () => navigation.goBack()
+            }
+          ]
+        );
+      }
     } catch (e) {
       Alert.alert(translations.alerts.error, 'Bir hata oluştu.');
     } finally {
@@ -120,10 +146,14 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation }) => {
 
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
+  const handleSkip = async () => {
+    navigation.replace('LevelSelection');
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}> 
       <ScrollView 
-        contentContainerStyle={{ paddingBottom: 24 }} 
+        contentContainerStyle={{ paddingBottom: 80 }} 
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[]}
       >
@@ -218,20 +248,40 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation }) => {
           </>
         ) : null}
       </ScrollView>
-      <View style={[styles.buttonRow, { 
-        backgroundColor: colors.card?.background || colors.surface,
-        borderTopColor: colors.border
-      }]}>
-        <TouchableOpacity 
-          style={[styles.downloadButton, { backgroundColor: colors.primary }]} 
-          onPress={handleDownload} 
-          disabled={loading || fetching}
-        >
-          <MaterialIcons name="add-task" size={20} color="#fff" style={{ marginRight: 6 }} />
-          <Text style={styles.downloadButtonText}>
-            {loading ? translations.dataLoader.loading : translations.settings?.addSelected}
-          </Text>
-        </TouchableOpacity>
+      
+      {/* Bottom fixed container */}
+      <View style={[styles.bottomContainer, { backgroundColor: colors.card?.background || colors.surface, borderTopColor: colors.border }]}>
+        <View style={styles.buttonGroup}>
+          {isFromOnboarding && (
+            <TouchableOpacity
+              style={[styles.skipButton, { backgroundColor: colors.card?.background || colors.surface, borderColor: colors.border }]}
+              onPress={handleSkip}
+            >
+              <Text style={[styles.skipButtonText, { color: colors.text.primary }]}>
+                {translations.onboarding.skip}
+              </Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[
+              styles.downloadButton,
+              { backgroundColor: colors.primary },
+              loading && { opacity: 0.7 },
+              isFromOnboarding && { flex: 2 }
+            ]}
+            onPress={handleDownload}
+            disabled={loading || selectedCount === 0}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
+            ) : (
+              <MaterialIcons name="file-download" size={24} color="#fff" style={{ marginRight: 8 }} />
+            )}
+            <Text style={styles.downloadButtonText}>
+              {loading ? translations.dataLoader.loading : translations.settings?.addSelected}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -240,7 +290,6 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 0,
   },
   card: {
     margin: 16,
@@ -350,25 +399,46 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 15,
   },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingVertical: 16,
+  bottomContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
-    backgroundColor: '#fff',
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: 12,
   },
   downloadButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
     paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 8,
+    flex: 1,
   },
   downloadButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  skipButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+  },
+  skipButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

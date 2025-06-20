@@ -18,7 +18,10 @@ export default {
     exerciseDescription: 'Teste seus conhecimentos com exercícios baseados nas palavras aprendidas ou adequadas ao seu nível.',
     back: 'Voltar',
     next: 'Avançar',
-    start: 'Começar'
+    start: 'Começar',
+    predefinedLists: 'Listas de Palavras Predefinidas',
+    predefinedListsDescription: 'Comece a aprender com listas de palavras predefinidas organizadas por categorias.',
+    skip: 'Pular'
   },
   languages: {
     tr: 'Turco',
