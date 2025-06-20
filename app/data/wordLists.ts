@@ -63,7 +63,7 @@ const loadWordsToDatabase = async (
     // API'den verileri al
     progressCallback?.(10); // Başlangıç ilerleme bildirimi
     
-    const baseUrl = `https://raw.githubusercontent.com/eyupduran/english-words-api/main/languages/${languagePair}`;
+    const baseUrl = await getBaseUrl();
     const response = await fetch(`${baseUrl}/all-words.json`);
     
     if (!response.ok) {
@@ -99,6 +99,9 @@ const loadWordsToDatabase = async (
       }
     }
     
+    // Kategorili kelime listesini çek ve kaydet
+    await fetchAndStoreCategorizedWordLists(languagePair);
+
     progressCallback?.(100); // Tamamlandı bildirimi
     return true;
   } catch (error) {
@@ -157,7 +160,7 @@ export const forceUpdateWordLists = {
 };
 
 // API'den kategorili kelime listesini çeken fonksiyon
-export const fetchCategorizedWordLists = async (languagePair: string): Promise<any | null> => {
+const fetchCategorizedWordLists = async (languagePair: string): Promise<any | null> => {
   try {
     const url = `${await getBaseUrl()}/categorized_vocab_by_level.json`;
     const res = await fetch(url);
@@ -166,6 +169,26 @@ export const fetchCategorizedWordLists = async (languagePair: string): Promise<a
     return data;
   } catch (e) {
     console.error('Kelime listesi alınamadı:', e);
+    return null;
+  }
+};
+
+// Kategorili kelime listesini API'den çekip veritabanına kaydeden fonksiyon
+export const fetchAndStoreCategorizedWordLists = async (languagePair: string): Promise<any | null> => {
+  try {
+    const baseUrl = `https://raw.githubusercontent.com/eyupduran/english-words-api/main/languages/${languagePair}`;
+    const categorizedResponse = await fetch(`${baseUrl}/categorized_vocab_by_level.json`);
+    if (categorizedResponse.ok) {
+      const categorizedData = await categorizedResponse.json();
+      await dbService.setDbInfo(`categorizedWordLists_${languagePair}`, JSON.stringify(categorizedData));
+      console.log(`${languagePair} için kategorili kelime listesi kaydedildi.`);
+      return categorizedData;
+    } else {
+      console.warn(`Kategorili kelime listesi (${languagePair}) çekilemedi: ${categorizedResponse.statusText}`);
+      return null;
+    }
+  } catch (catError) {
+    console.error(`Kategorili kelime listesi (${languagePair}) çekilirken hata oluştu:`, catError);
     return null;
   }
 }; 

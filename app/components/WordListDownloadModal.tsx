@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { dbService } from '../services/database';
 import { useLanguage } from '../contexts/LanguageContext';
-import { fetchCategorizedWordLists } from '../data/wordLists';
+import { fetchAndStoreCategorizedWordLists } from '../data/wordLists';
 
 interface WordListDownloadModalProps {
   visible: boolean;
@@ -16,19 +16,34 @@ const WordListDownloadModal: React.FC<WordListDownloadModalProps> = ({ visible, 
   const [fetching, setFetching] = useState(false);
   const [wordData, setWordData] = useState<any>(null);
 
-  // Modal açıldığında API'den verileri çek
+  // Modal açıldığında API'den veya veritabanından verileri çek
   useEffect(() => {
     if (!visible) return;
     setFetching(true);
     setWordData(null);
     const fetchData = async () => {
-      const data = await fetchCategorizedWordLists(currentLanguagePair);
-      if (data) {
-        setWordData(data);
-      } else {
+      try {
+        // Önce veritabanından çekmeyi dene
+        const cachedData = await dbService.getDbInfo(`categorizedWordLists_${currentLanguagePair}`);
+        if (cachedData) {
+          setWordData(JSON.parse(cachedData));
+          console.log("Kategorili kelime listeleri veritabanından yüklendi.");
+        } else {
+          // Veritabanında yoksa, API'den çek ve kaydet
+          const data = await fetchAndStoreCategorizedWordLists(currentLanguagePair);
+          if (data) {
+            setWordData(data);
+            console.log("Kategorili kelime listeleri API'den çekilip veritabanına kaydedildi.");
+          } else {
+            Alert.alert('Hata', 'Kelime listesi alınamadı.');
+          }
+        }
+      } catch (e) {
         Alert.alert('Hata', 'Kelime listesi alınamadı.');
+        console.error("Error fetching categorized word lists:", e);
+      } finally {
+        setFetching(false);
       }
-      setFetching(false);
     };
     fetchData();
   }, [visible, currentLanguagePair]);
