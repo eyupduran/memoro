@@ -368,9 +368,9 @@ export const SettingsScreen: React.FC<Props> = (props) => {
           </Text>
           <TouchableOpacity
             style={[styles.updateButton, { backgroundColor: colors.primary }]}
-            onPress={() => setShowWordListModal(true)}
+            onPress={() => props.navigation.navigate('PredefinedWordLists')}
           >
-            <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>Kelime Listesi İndir</Text>
+            <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>Hazır Kelime Listesi Ekle</Text>
           </TouchableOpacity>
         </View>
 

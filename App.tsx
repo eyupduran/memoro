@@ -27,6 +27,7 @@ import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { LanguageProvider, useLanguage } from './app/contexts/LanguageContext';
 import ExerciseDetailScreen from './app/screens/ExerciseDetailScreen';
 import GamesScreen from './app/screens/GamesScreen';
+import PredefinedWordListsScreen from './app/screens/PredefinedWordListsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -215,6 +216,11 @@ const AppNavigator = () => {
           name="DetailedDictionary"
           component={DetailedDictionaryScreen}
           options={{ title: 'Cambridge Dictionary' }}
+        />
+        <Stack.Screen
+          name="PredefinedWordLists"
+          component={PredefinedWordListsScreen}
+          options={{ title: translations.settings.predefinedWordListsTitle || 'Hazır Kelime Listeleri' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

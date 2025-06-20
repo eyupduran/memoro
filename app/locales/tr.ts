@@ -242,7 +242,11 @@ export default {
       fileSelected: 'Seçilen dosya: {0}',
       languageChangedTitle: 'Dil Ayarı Değişti',
       languageChangedMessage: 'Veri yedeklemeniz farklı bir dil çifti içeriyor. Uygulama ayarlarınız güncellendi ve ilgili kelime verileri şimdi indirilecek.'
-    }
+    },
+    predefinedWordListsTitle: 'Hazır Kelime Listeleri',
+    predefinedWordListsDescription: 'Burada uygulamada hazır bulunan kelime listelerini kendi özel listelerinize ekleyebilirsiniz. Seviye ve kategoriye göre seçim yapabilir veya tüm listeleri ekleyebilirsiniz.',
+    addSelected: 'Seçilenleri Ekle',
+    downloadAll: 'Tümünü Ekle',
   },
   wordOverlay: {
     preview: 'Ön İzleme',

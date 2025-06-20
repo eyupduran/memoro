@@ -79,4 +79,5 @@ export type RootStackParamList = {
     details: QuestionDetail[];
   };
   WordLists: undefined;
+  PredefinedWordLists: undefined;
 }; 
