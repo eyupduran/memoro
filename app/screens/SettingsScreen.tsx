@@ -358,6 +358,22 @@ export const SettingsScreen: React.FC<Props> = (props) => {
           </View>
         </View>
 
+        {/* Predefined Word Lists Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            Hazır Kelime Listeleri
+          </Text>
+          <Text style={[styles.sectionDescription, { color: colors.text.secondary }]}>
+            Burada uygulamada hazır bulunan kelime listelerini kendi özel listelerinize ekleyebilirsiniz. Seviye ve kategoriye göre seçim yapabilir veya tüm listeleri indirebilirsiniz.
+          </Text>
+          <TouchableOpacity
+            style={[styles.updateButton, { backgroundColor: colors.primary }]}
+            onPress={() => setShowWordListModal(true)}
+          >
+            <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>Kelime Listesi İndir</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Backup and Restore Section */}
         <View style={styles.section}>
           <BackupRestoreSection 
@@ -390,16 +406,6 @@ export const SettingsScreen: React.FC<Props> = (props) => {
               {translations.settings.notificationTime}
             </Text>
           )}
-        </View>
-
-        {/* Word List Download Section */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={[styles.updateButton, { backgroundColor: colors.primary }]}
-            onPress={() => setShowWordListModal(true)}
-          >
-            <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>Kelime Listesi İndir</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
