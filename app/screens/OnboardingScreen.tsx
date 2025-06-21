@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +11,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { DataLoader } from '../components/DataLoader';
 import { backupService } from '../services/backup';
 import { translations as allTranslations, NativeLanguage } from '../contexts/LanguageContext';
+import { OnboardingPredefinedWordListsScreen } from './OnboardingPredefinedWordListsScreen';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,7 +22,6 @@ type OnboardingItem = {
   description: string;
   icon: string;
   component?: React.ComponentType;
-  navigateTo?: keyof RootStackParamList;
 };
 
 export const OnboardingScreen = () => {
@@ -33,6 +33,7 @@ export const OnboardingScreen = () => {
   const [showImportOption, setShowImportOption] = useState(false);
   const [isUpdatingDataForNewLanguage, setIsUpdatingDataForNewLanguage] = useState(false);
   const [newLanguagePair, setNewLanguagePair] = useState<string | null>(null);
+  const [showWordListScreen, setShowWordListScreen] = useState(false);
 
   const onboardingData: OnboardingItem[] = [
     {
@@ -75,7 +76,6 @@ export const OnboardingScreen = () => {
       title: translations.onboarding.predefinedLists,
       description: translations.onboarding.predefinedListsDescription,
       icon: 'library-books',
-      navigateTo: 'PredefinedWordLists'
     },
   ];
 
@@ -86,16 +86,8 @@ export const OnboardingScreen = () => {
   };
 
   const handleNext = () => {
-    const currentItem = onboardingData[activeIndex];
-    
     if (activeIndex === onboardingData.length - 1) {
-      if (currentItem.navigateTo) {
-        AsyncStorage.setItem('hasSeenOnboarding', 'true').then(() => {
-          navigation.replace(currentItem.navigateTo!, { fromOnboarding: true });
-        });
-      } else {
-        finishOnboarding();
-      }
+      setShowWordListScreen(true);
     } else {
       setActiveIndex(activeIndex + 1);
     }
@@ -210,7 +202,22 @@ export const OnboardingScreen = () => {
     completeOnboarding();
   }
 
+  const handleWordListComplete = () => {
+    setShowWordListScreen(false);
+    setShowDataLoader(true);
+  };
+
   const currentItem = onboardingData[activeIndex];
+
+  // Kelime listesi ekranını göster
+  if (showWordListScreen) {
+    return (
+      <OnboardingPredefinedWordListsScreen 
+        onComplete={handleWordListComplete} 
+        onSkip={finishOnboarding}
+      />
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

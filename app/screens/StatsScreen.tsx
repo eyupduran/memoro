@@ -143,11 +143,33 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
     try {
       setLoadingLists(true);
       const lists = await dbService.getWordLists(currentLanguagePair);
-      setWordLists(lists);
+      
+      // Kelime listelerini level sırasına göre sırala
+      const levelOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+      const sortedLists = lists.sort((a, b) => {
+        // Liste adından level bilgisini çıkar
+        const levelA = a.name.match(/^(A1|A2|B1|B2|C1|C2)/)?.[0] || 'ZZ';
+        const levelB = b.name.match(/^(A1|A2|B1|B2|C1|C2)/)?.[0] || 'ZZ';
+        
+        const indexA = levelOrder.indexOf(levelA);
+        const indexB = levelOrder.indexOf(levelB);
+        
+        // Eğer level bulunamazsa en sona koy
+        const finalIndexA = indexA === -1 ? 999 : indexA;
+        const finalIndexB = indexB === -1 ? 999 : indexB;
+        
+        // Level sırasına göre sırala, aynı level'da ise alfabetik sırala
+        if (finalIndexA !== finalIndexB) {
+          return finalIndexA - finalIndexB;
+        }
+        return a.name.localeCompare(b.name);
+      });
+      
+      setWordLists(sortedLists);
 
       // Her liste için streak durumunu kontrol et
       const streaks: { [key: number]: boolean } = {};
-      for (const list of lists) {
+      for (const list of sortedLists) {
         const hasStreak = await dbService.checkWordListStreak(list.id, currentLanguagePair);
         streaks[list.id] = hasStreak;
       }

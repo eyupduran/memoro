@@ -4,23 +4,25 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { dbService } from '../services/database';
 import { fetchAndStoreCategorizedWordLists } from '../data/wordLists';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors as appColors } from '../theme/colors';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DataLoader } from '../components/DataLoader';
 
-// Ekran propsları
-type Props = NativeStackScreenProps<RootStackParamList, 'PredefinedWordLists'>;
+interface OnboardingPredefinedWordListsScreenProps {
+  onComplete: () => void;
+  onSkip: () => void;
+}
 
-const PredefinedWordListsScreen: React.FC<Props> = ({ navigation, route }) => {
+export const OnboardingPredefinedWordListsScreen: React.FC<OnboardingPredefinedWordListsScreenProps> = ({ 
+  onComplete, 
+  onSkip 
+}) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
   const [selected, setSelected] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [wordData, setWordData] = useState<any>(null);
-  const isFromOnboarding = route.params?.fromOnboarding;
+  const [showDataLoader, setShowDataLoader] = useState(false);
 
   useEffect(() => {
     setFetching(true);
@@ -121,25 +123,11 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation, route }) => {
       }
 
       setSelected({});
+      // Kelime listelerini ekledikten sonra DataLoader'ı göster
+      setShowDataLoader(true);
       
-      // Onboarding'den geldiysek direkt yönlendir, değilse başarılı mesajı göster
-      if (isFromOnboarding) {
-        navigation.replace('LevelSelection');
-      } else {
-        Alert.alert(
-          translations.alerts.success, 
-          'Seçilen kelime listeleri eklendi!',
-          [
-            {
-              text: translations.alerts.okay,
-              onPress: () => navigation.goBack()
-            }
-          ]
-        );
-      }
     } catch (e) {
       Alert.alert(translations.alerts.error, 'Bir hata oluştu.');
-    } finally {
       setLoading(false);
     }
   };
@@ -155,142 +143,156 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation, route }) => {
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   const handleSkip = async () => {
-    navigation.replace('LevelSelection');
+    // Atla butonuna basıldığında DataLoader'ı göster
+    setShowDataLoader(true);
+  };
+
+  const onDataLoadComplete = () => {
+    // DataLoader tamamlandığında onComplete callback'ini çağır
+    onComplete();
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}> 
-      <ScrollView 
-        contentContainerStyle={{ paddingBottom: 80 }} 
-        showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[]}
-      >
-        <View style={[styles.card, { backgroundColor: colors.card?.background || colors.surface }]}> 
-          <MaterialIcons name="library-books" size={32} color={colors.primary} style={{ alignSelf: 'center', marginBottom: 4 }} />
-          <Text style={[styles.title, { color: colors.text.primary }]}>
-            {translations.settings?.predefinedWordListsTitle}
-          </Text>
-          <Text style={[styles.description, { color: colors.text.secondary }]}>
-            {translations.settings?.predefinedWordListsDescription}
-          </Text>
-        </View>
-
-        {fetching ? (
-          <View style={{ alignItems: 'center', marginVertical: 20 }}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={{ color: colors.text.secondary }}>
-              {translations.dataLoader.loading}
-            </Text>
-          </View>
-        ) : wordData ? (
-          <>
-            <View style={styles.topActions}>
-              <TouchableOpacity 
-                style={[styles.allButton, { backgroundColor: colors.primary }]} 
-                onPress={handleSelectAll} 
-                disabled={loading}
-              >
-                <MaterialIcons name="done-all" size={20} color="#fff" style={{ marginRight: 6 }} />
-                <Text style={styles.allButtonText}>
-                  {translations.settings?.selectWordsLists}
-                </Text>
-              </TouchableOpacity>
-              <Text style={[styles.selectedCount, { color: colors.text.secondary }]}>
-                {selectedCount > 0 ? `${selectedCount} kategori seçili` : ''}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {showDataLoader ? (
+        <DataLoader 
+          visible={showDataLoader} 
+          onComplete={onDataLoadComplete}
+          languagePair={currentLanguagePair}
+        />
+      ) : (
+        <>
+          <ScrollView 
+            contentContainerStyle={{ paddingBottom: 80 }} 
+            showsVerticalScrollIndicator={false}
+            stickyHeaderIndices={[]}
+          >
+            <View style={[styles.card, { backgroundColor: colors.card?.background || colors.surface }]}> 
+              <MaterialIcons name="library-books" size={32} color={colors.primary} style={{ alignSelf: 'center', marginBottom: 4 }} />
+              <Text style={[styles.title, { color: colors.text.primary }]}>
+                {translations.settings?.predefinedWordListsTitle || "Hazır Kelime Listeleri"}
+              </Text>
+              <Text style={[styles.description, { color: colors.text.secondary }]}>
+                {translations.settings?.predefinedWordListsDescription || "İstediğiniz kategorilerdeki kelime listelerini seçin ve sözlüğünüze ekleyin."}
               </Text>
             </View>
-            {Object.entries(wordData).map(([level, cats]: [string, any]) => (
-              <View key={level} style={[styles.levelBlock, { backgroundColor: colors.card?.background || colors.surface, borderColor: colors.border }]}> 
-                <View style={styles.levelHeader}>
-                  <Text style={[styles.levelTitle, { color: colors.primary }]}>{level}</Text>
+
+            {fetching ? (
+              <View style={{ alignItems: 'center', marginVertical: 20 }}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={{ color: colors.text.secondary }}>
+                  {translations.dataLoader.loading}
+                </Text>
+              </View>
+            ) : wordData ? (
+              <>
+                <View style={styles.topActions}>
                   <TouchableOpacity 
-                    style={[styles.levelAllButton, { backgroundColor: colors.primary }]} 
-                    onPress={() => handleSelectLevel(level)} 
+                    style={[styles.allButton, { backgroundColor: colors.primary }]} 
+                    onPress={handleSelectAll} 
                     disabled={loading}
                   >
-                    <MaterialIcons name="done" size={16} color="#fff" style={{ marginRight: 2 }} />
-                    <Text style={styles.levelAllButtonText}>{level}'i Seç</Text>
+                    <MaterialIcons name="done-all" size={20} color="#fff" style={{ marginRight: 6 }} />
+                    <Text style={styles.allButtonText}>
+                      {translations.settings?.selectWordsLists || "Tümünü Seç"}
+                    </Text>
                   </TouchableOpacity>
+                  <Text style={[styles.selectedCount, { color: colors.text.secondary }]}>
+                    {selectedCount > 0 ? `${selectedCount} kategori seçili` : ''}
+                  </Text>
                 </View>
-                <View style={styles.categoriesColumn}>
-                  {cats.map((cat: any) => {
-                    const key = `${level}-${cat.name}`;
-                    const isSelected = !!selected[key];
-                    return (
-                      <TouchableOpacity
-                        key={key}
-                        style={[
-                          styles.categoryCard,
-                          {
-                            backgroundColor: isSelected ? colors.primary : colors.card?.background || colors.surface,
-                            borderColor: isSelected ? colors.primary : colors.border
-                          }
-                        ]}
-                        onPress={() => toggleSelect(level, cat.name)}
-                        activeOpacity={0.85}
+                {Object.entries(wordData).map(([level, cats]: [string, any]) => (
+                  <View key={level} style={[styles.levelBlock, { backgroundColor: colors.card?.background || colors.surface, borderColor: colors.border }]}> 
+                    <View style={styles.levelHeader}>
+                      <Text style={[styles.levelTitle, { color: colors.primary }]}>{level}</Text>
+                      <TouchableOpacity 
+                        style={[styles.levelAllButton, { backgroundColor: colors.primary }]} 
+                        onPress={() => handleSelectLevel(level)} 
+                        disabled={loading}
                       >
-                        <View style={[
-                          styles.checkbox, 
-                          { 
-                            backgroundColor: colors.card?.background || colors.surface,
-                            borderColor: isSelected ? colors.primary : colors.border 
-                          }
-                        ]}>
-                          {isSelected && <MaterialIcons name="check" size={16} color={colors.primary} />}
-                        </View>
-                        <Text style={[
-                          styles.categoryText, 
-                          { 
-                            color: isSelected ? '#fff' : colors.text.primary,
-                            fontWeight: isSelected ? '600' : '500'
-                          }
-                        ]}>
-                          {cat.name}
-                        </Text>
+                        <MaterialIcons name="done" size={16} color="#fff" style={{ marginRight: 2 }} />
+                        <Text style={styles.levelAllButtonText}>{level}'i Seç</Text>
                       </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
-          </>
-        ) : null}
-      </ScrollView>
-      
-      {/* Bottom fixed container */}
-      <View style={[styles.bottomContainer, { backgroundColor: colors.card?.background || colors.surface, borderTopColor: colors.border }]}>
-        <View style={styles.buttonGroup}>
-          {isFromOnboarding && (
-            <TouchableOpacity
-              style={[styles.skipButton, { backgroundColor: colors.card?.background || colors.surface, borderColor: colors.border }]}
-              onPress={handleSkip}
-            >
-              <Text style={[styles.skipButtonText, { color: colors.text.primary }]}>
-                {translations.onboarding.skip}
-              </Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[
-              styles.downloadButton,
-              { backgroundColor: colors.primary },
-              loading && { opacity: 0.7 },
-              isFromOnboarding && { flex: 2 }
-            ]}
-            onPress={handleDownload}
-            disabled={loading || selectedCount === 0}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
-            ) : (
-              <MaterialIcons name="file-download" size={24} color="#fff" style={{ marginRight: 8 }} />
-            )}
-            <Text style={styles.downloadButtonText}>
-              {loading ? translations.dataLoader.loading : translations.settings?.addSelected}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+                    </View>
+                    <View style={styles.categoriesColumn}>
+                      {cats.map((cat: any) => {
+                        const key = `${level}-${cat.name}`;
+                        const isSelected = !!selected[key];
+                        return (
+                          <TouchableOpacity
+                            key={key}
+                            style={[
+                              styles.categoryCard,
+                              {
+                                backgroundColor: isSelected ? colors.primary : colors.card?.background || colors.surface,
+                                borderColor: isSelected ? colors.primary : colors.border
+                              }
+                            ]}
+                            onPress={() => toggleSelect(level, cat.name)}
+                            activeOpacity={0.85}
+                          >
+                            <View style={[
+                              styles.checkbox, 
+                              { 
+                                backgroundColor: colors.card?.background || colors.surface,
+                                borderColor: isSelected ? colors.primary : colors.border 
+                              }
+                            ]}>
+                              {isSelected && <MaterialIcons name="check" size={16} color={colors.primary} />}
+                            </View>
+                            <Text style={[
+                              styles.categoryText, 
+                              { 
+                                color: isSelected ? '#fff' : colors.text.primary,
+                                fontWeight: isSelected ? '600' : '500'
+                              }
+                            ]}>
+                              {cat.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
+              </>
+            ) : null}
+          </ScrollView>
+          
+          {/* Bottom fixed container */}
+          <View style={[styles.bottomContainer, { backgroundColor: colors.card?.background || colors.surface, borderTopColor: colors.border }]}>
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                style={[styles.skipButton, { backgroundColor: colors.card?.background || colors.surface, borderColor: colors.border }]}
+                onPress={handleSkip}
+              >
+                <Text style={[styles.skipButtonText, { color: colors.text.primary }]}>
+                  {"Atla"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.downloadButton,
+                  { backgroundColor: colors.primary },
+                  loading && { opacity: 0.7 },
+                  { flex: 2 }
+                ]}
+                onPress={handleDownload}
+                disabled={loading || selectedCount === 0}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
+                ) : (
+                  <MaterialIcons name="file-download" size={24} color="#fff" style={{ marginRight: 8 }} />
+                )}
+                <Text style={styles.downloadButtonText}>
+                  {loading ? translations.dataLoader.loading : translations.settings?.addSelected || "Seçilenleri Ekle"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </>
+      )}
     </View>
   );
 };
@@ -448,6 +450,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-});
-
-export default PredefinedWordListsScreen; 
+}); 

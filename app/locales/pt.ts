@@ -4,8 +4,8 @@ export default {
     learningLanguage: 'Idioma que Deseja Aprender',
     nativeLanguage: 'Seu Idioma Nativo',
     continue: 'Continuar',
-    welcome: 'Bem-vindo',
-    welcomeDescription: 'Pronto para aprender vocabulário em inglês com o Memoro?',
+    welcome: 'Welcome to Memoro',
+    welcomeDescription: 'Ready to learn English vocabulary with visual memory techniques?',
     selectLevel: 'Escolha Seu Nível',
     selectLevelDescription: 'Aprenda palavras do nível A1 ao C2.',
     visualize: 'Visualize',
@@ -215,6 +215,7 @@ export default {
     lastUpdated: 'Última atualização:',
     downloadingData: 'Baixando dados...',
     downloadAll: 'Baixar Todos os Dados',
+    selectWordsLists: 'Selecionar Listas de Palavras',
     updateData: 'Atualizar Dados',
     downloadedData: {
       title: 'Dados Baixados',

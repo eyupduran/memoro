@@ -4,8 +4,8 @@ export default {
     learningLanguage: 'Öğrenmek İstediğiniz Dil',
     nativeLanguage: 'Ana Diliniz',
     continue: 'Devam Et',
-    welcome: 'Hoş Geldiniz',
-    welcomeDescription: 'Memoro ile İngilizce kelime öğrenmeye hazır mısınız?',
+    welcome: 'Welcome to Memoro',
+    welcomeDescription: 'Ready to learn English vocabulary with visual memory techniques?',
     selectLevel: 'Seviyenizi Seçin',
     selectLevelDescription: 'A1\'den C2\'ye kadar istediğiniz seviyede kelimeler öğrenin.',
     visualize: 'Görselleştirin',
@@ -215,6 +215,7 @@ export default {
     lastUpdated: 'Son güncelleme:',
     downloadingData: 'Veriler indiriliyor...',
     downloadAll: 'Tüm Verileri İndir',
+    selectWordsLists: 'Tümünü Seç',
     updateData: 'Verileri Güncelle',
     downloadedData: {
       title: 'İndirilen Veriler',
@@ -249,7 +250,6 @@ export default {
     predefinedWordListsTitle: 'Hazır Kelime Listeleri',
     predefinedWordListsDescription: 'Kategorilere ayrılmış hazır kelime listeleriyle öğrenmeye başlayın.',
     addSelected: 'Seçilenleri Ekle',
-    downloadAll: 'Tümünü Ekle',
   },
   wordOverlay: {
     preview: 'Ön İzleme',
