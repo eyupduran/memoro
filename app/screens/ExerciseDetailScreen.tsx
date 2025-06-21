@@ -257,6 +257,18 @@ const ExerciseDetailScreen: React.FC = () => {
 
   // SentenceOrdering türü sorular için soru ve seçenekleri hazırlama
   const renderSentenceOrderingContent = (detail: QuestionDetail) => {
+    // Sentence ordering için metinleri normalize et
+    const normalizeText = (text: string) => {
+      return text.trim()
+        .toLowerCase()
+        .replace(/[.!?]+$/, '') // Sonundaki noktalama işaretlerini kaldır
+        .split(/\s+/) // Kelimelere ayır
+        .join(' '); // Tek boşlukla birleştir
+    };
+
+    const normalizedUserAnswer = detail.userAnswer ? normalizeText(detail.userAnswer) : '';
+    const normalizedCorrectAnswer = detail.correctAnswer ? normalizeText(detail.correctAnswer) : '';
+
     return (
       <View>
         <Text style={[styles.questionLabel, { color: colors.text.primary, textAlign: 'center' }]}>
@@ -274,14 +286,14 @@ const ExerciseDetailScreen: React.FC = () => {
             {translations.exercise.detail.yourAnswer || 'Sizin cevabınız:'}
           </Text>
           <Text style={[styles.orderingText, { color: colors.text.primary }]}>
-            {detail.userAnswer}
+            {normalizedUserAnswer}
           </Text>
 
           <Text style={[styles.orderingLabel, { color: colors.text.secondary, marginTop: 12 }]}>
             {translations.exercise.detail.correctAnswer || 'Doğru cevap:'}
           </Text>
           <Text style={[styles.orderingText, { color: colors.success }]}>
-            {detail.correctAnswer}
+            {normalizedCorrectAnswer}
           </Text>
         </View>
       </View>
@@ -339,70 +351,73 @@ const ExerciseDetailScreen: React.FC = () => {
           }
         </View>
         
-        <View style={styles.optionsContainer}>
-          {detail.options.map((option, optionIndex) => {
-            const isUserAnswer = option === detail.userAnswer;
-            const isCorrectAnswer = option === detail.correctAnswer;
-            
-            return (
-              <View
-                key={optionIndex}
-                style={[
-                  styles.optionItem,
-                  { 
-                    backgroundColor: isUserAnswer 
-                      ? (isCorrectAnswer ? colors.success + '10' : colors.error + '10')
-                      : isCorrectAnswer 
-                        ? colors.success + '10' 
-                        : colors.surface,
-                    borderColor: isUserAnswer 
-                      ? (isCorrectAnswer ? colors.success : colors.error)
-                      : isCorrectAnswer 
-                        ? colors.success 
-                        : colors.border,
-                    borderWidth: (isUserAnswer || isCorrectAnswer) ? 1 : 1,
-                  }
-                ]}
-              >
-                <Text style={[
-                  styles.optionText, 
-                  { 
-                    color: isUserAnswer 
-                      ? (isCorrectAnswer ? colors.success : colors.error)
-                      : isCorrectAnswer 
-                        ? colors.success 
-                        : colors.text.primary,
-                    textAlign: 'center',
-                  }
-                ]}>
-                  {option}
-                </Text>
-                
-                {(isUserAnswer || isCorrectAnswer) && (
-                  <View style={styles.optionIcon}>
-                    {isUserAnswer && (
-                      <MaterialIcons 
-                        name={isCorrectAnswer ? 'check-circle' : 'cancel'} 
-                        size={18} 
-                        color={isCorrectAnswer ? colors.success : colors.error} 
-                      />
-                    )}
-                    {!isUserAnswer && isCorrectAnswer && (
-                      <MaterialIcons 
-                        name="check-circle" 
-                        size={18} 
-                        color={colors.success} 
-                      />
-                    )}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
+        {/* SentenceOrdering dışındaki soru tipleri için seçenekleri göster */}
+        {detail.questionType !== 'sentenceOrdering' && (
+          <View style={styles.optionsContainer}>
+            {detail.options.map((option, optionIndex) => {
+              const isUserAnswer = option === detail.userAnswer;
+              const isCorrectAnswer = option === detail.correctAnswer;
+              
+              return (
+                <View
+                  key={optionIndex}
+                  style={[
+                    styles.optionItem,
+                    { 
+                      backgroundColor: isUserAnswer 
+                        ? (isCorrectAnswer ? colors.success + '10' : colors.error + '10')
+                        : isCorrectAnswer 
+                          ? colors.success + '10' 
+                          : colors.surface,
+                      borderColor: isUserAnswer 
+                        ? (isCorrectAnswer ? colors.success : colors.error)
+                        : isCorrectAnswer 
+                          ? colors.success 
+                          : colors.border,
+                      borderWidth: (isUserAnswer || isCorrectAnswer) ? 1 : 1,
+                    }
+                  ]}
+                >
+                  <Text style={[
+                    styles.optionText, 
+                    { 
+                      color: isUserAnswer 
+                        ? (isCorrectAnswer ? colors.success : colors.error)
+                        : isCorrectAnswer 
+                          ? colors.success 
+                          : colors.text.primary,
+                      textAlign: 'center',
+                    }
+                  ]}>
+                    {option}
+                  </Text>
+                  
+                  {(isUserAnswer || isCorrectAnswer) && (
+                    <View style={styles.optionIcon}>
+                      {isUserAnswer && (
+                        <MaterialIcons 
+                          name={isCorrectAnswer ? 'check-circle' : 'cancel'} 
+                          size={18} 
+                          color={isCorrectAnswer ? colors.success : colors.error} 
+                        />
+                      )}
+                      {!isUserAnswer && isCorrectAnswer && (
+                        <MaterialIcons 
+                          name="check-circle" 
+                          size={18} 
+                          color={colors.success} 
+                        />
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
         
         {/* Sadece yanlış cevaplarda detaylı bilgi göster */}
-        {!isCorrect && (
+        {!isCorrect && detail.questionType !== 'sentenceOrdering' && (
           <View style={styles.answerContainer}>
             <Text style={[styles.answerLabel, { color: colors.text.secondary }]}>
               {formatString(translations.exercise.detail.correctAnswer, detail.correctAnswer)}
@@ -411,7 +426,7 @@ const ExerciseDetailScreen: React.FC = () => {
         )}
 
         {/* Doğru cevaplarda sadece "Cevabınız doğru" göster */}
-        {isCorrect && (
+        {isCorrect && detail.questionType !== 'sentenceOrdering' && (
           <View style={styles.answerContainer}>
             <Text style={[styles.correctAnswerText, { color: colors.success }]}>
               Cevabınız doğru
@@ -419,16 +434,18 @@ const ExerciseDetailScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Listeye Ekle Butonu */}
-        <TouchableOpacity 
-          style={[styles.addToListButton, { backgroundColor: colors.primary + '20' }]}
-          onPress={openWordListModal}
-        >
-          <MaterialIcons name="playlist-add" size={20} color={colors.primary} />
-          <Text style={[styles.addToListText, { color: colors.primary }]}>
-            {translations.wordListModal?.addToList || 'Listeye Ekle'}
-          </Text>
-        </TouchableOpacity>
+        {/* Listeye Ekle Butonu - SentenceOrdering dışındaki soru tipleri için */}
+        {detail.questionType !== 'sentenceOrdering' && (
+          <TouchableOpacity 
+            style={[styles.addToListButton, { backgroundColor: colors.primary + '20' }]}
+            onPress={openWordListModal}
+          >
+            <MaterialIcons name="playlist-add" size={20} color={colors.primary} />
+            <Text style={[styles.addToListText, { color: colors.primary }]}>
+              {translations.wordListModal?.addToList || 'Listeye Ekle'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };

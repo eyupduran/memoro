@@ -102,20 +102,39 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation, route }) => {
         const listName = `${level} - ${category}`;
         
         try {
-          const listId = await dbService.createWordList(listName, currentLanguagePair);
+          // Önce aynı isimde liste var mı kontrol et
+          const existingLists = await dbService.getWordLists(currentLanguagePair);
+          const existingList = existingLists.find(list => list.name === listName);
+          
+          let listId;
+          if (existingList) {
+            // Eğer liste zaten varsa, mevcut listeyi kullan
+            listId = existingList.id;
+            console.log(`Liste zaten mevcut: ${listName}`);
+          } else {
+            // Liste yoksa yeni oluştur
+            listId = await dbService.createWordList(listName, currentLanguagePair);
+          }
+          
           if (listId) {
+            // Kelimeleri ekle (duplicateları otomatik olarak önlenir)
             for (const word of catObj.words) {
-              await dbService.addWordToList(listId, {
-                id: word.word,
-                word: word.word,
-                meaning: word.meaning,
-                example: word.example,
-                level,
-              });
+              try {
+                await dbService.addWordToList(listId, {
+                  id: word.word,
+                  word: word.word,
+                  meaning: word.meaning,
+                  example: word.example,
+                  level,
+                });
+              } catch (wordError) {
+                // Kelime zaten listedeyse hata verebilir, bu normaldir
+                console.log(`Kelime zaten listede: ${word.word}`);
+              }
             }
           }
         } catch (error) {
-          console.error('Error creating word list:', error);
+          console.error('Error creating/updating word list:', error);
           continue;
         }
       }
@@ -128,7 +147,7 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation, route }) => {
       } else {
         Alert.alert(
           translations.alerts.success, 
-          'Seçilen kelime listeleri eklendi!',
+          'Seçilen kelime listeleri eklendi! Mevcut listeler güncellendi.',
           [
             {
               text: translations.alerts.okay,

@@ -856,13 +856,13 @@ const ExerciseQuestionScreen: React.FC = () => {
         decrementWordStreak(currentQuestion);
       }
     }
-    // Soru detaylarını kaydet
+    // Soru detaylarını kaydet (normalize edilmiş versiyonlarla)
     const questionDetail: QuestionDetail = {
       questionType: 'sentenceOrdering',
       question: currentQuestion.meaning,
       options: orderingOptions.map(opt => opt.word),
-      correctAnswer: currentQuestion.example || '',
-      userAnswer: orderingSelected.map(item => item.word).join(' '),
+      correctAnswer: normalizedExample, // Normalize edilmiş doğru cevap
+      userAnswer: normalizedAnswer, // Normalize edilmiş kullanıcı cevabı
       isCorrect: correct,
       word: currentQuestion.word,
       meaning: currentQuestion.meaning,
@@ -1237,37 +1237,119 @@ const ExerciseQuestionScreen: React.FC = () => {
     }
     return (
       <View style={styles.questionContainer}>
-        <Text style={[styles.questionLabel, { color: colors.text.secondary }]}>
-          {translations.exercise.question.sentenceOrdering || 'Cümle Sıralama'}
-        </Text>
-        <View style={[styles.sentenceContainer, { height: 68, maxHeight: 68, marginBottom: 16, paddingRight: 4 }]}> 
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start' }} showsVerticalScrollIndicator={false}>
-            {orderingSelected.map((wordObj, idx) => (
-              <TouchableOpacity key={idx} style={[styles.selectedWord, { backgroundColor: colors.primary + '30' }]} onPress={() => handleOrderingRemove(idx)}>
-                <Text style={{ color: colors.text.primary }}>{wordObj.word}</Text>
-                <MaterialIcons name="close" size={16} color={colors.primary} />
-              </TouchableOpacity>
-            ))}
+        {/* Başlık */}
+        <View style={styles.orderingHeader}>
+          <MaterialIcons name="reorder" size={24} color={colors.primary} />
+          <View style={styles.orderingHeaderText}>
+            <Text style={[styles.orderingTitle, { color: colors.text.primary }]}>
+              {translations.exercise.question.sentenceOrdering || 'Cümle Sıralama'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Cevap Alanı */}
+        <View style={[styles.orderingAnswerArea, { 
+          backgroundColor: colors.surface, 
+          borderColor: orderingSelected.length > 0 ? colors.primary : colors.border 
+        }]}>
+          <View style={styles.orderingAnswerHeader}>
+            <MaterialIcons name="edit" size={16} color={colors.text.secondary} />
+            <Text style={[styles.orderingAnswerLabel, { color: colors.text.secondary }]}>
+              {translations.exercise.question.orderingAnswerLabel} ({orderingSelected.length}/{orderingOptions.length})
+            </Text>
+          </View>
+          <ScrollView 
+            style={styles.orderingAnswerScroll} 
+            contentContainerStyle={styles.orderingAnswerContent}
+            showsVerticalScrollIndicator={false}
+            horizontal={false}
+          >
+            {orderingSelected.length === 0 ? (
+              <Text style={[styles.orderingPlaceholder, { color: colors.text.secondary }]}>
+                {translations.exercise.question.orderingPlaceholder}
+              </Text>
+            ) : (
+              orderingSelected.map((wordObj, idx) => (
+                <TouchableOpacity 
+                  key={idx} 
+                  style={[styles.selectedWordChip, { 
+                    backgroundColor: colors.primary,
+                    shadowColor: colors.primary 
+                  }]} 
+                  onPress={() => handleOrderingRemove(idx)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.selectedWordText, { color: colors.text.onPrimary }]}>
+                    {wordObj.word}
+                  </Text>
+                  <View style={styles.removeIconContainer}>
+                    <MaterialIcons name="close" size={14} color={colors.text.onPrimary} />
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
           </ScrollView>
         </View>
-        <View style={styles.optionsContainer}>
-          {orderingOptions.map((wordObj, idx) => (
-            <TouchableOpacity
-              key={`${wordObj.word}-${wordObj.index}`}
-              style={[styles.orderingOption, {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                opacity: orderingSelected.some(selected => selected.index === wordObj.index) ? 0.5 : 1
-              }]}
-              onPress={() => handleOrderingSelect(wordObj)}
-              disabled={orderingSelected.some(selected => selected.index === wordObj.index) || answerShown}
-            >
-              <Text style={{ color: colors.text.primary }}>{wordObj.word}</Text>
-            </TouchableOpacity>
-          ))}
+
+        {/* Kelime Seçenekleri */}
+        <View style={styles.orderingOptionsSection}>
+          <View style={styles.orderingOptionsHeader}>
+            <MaterialIcons name="apps" size={16} color={colors.text.secondary} />
+            <Text style={[styles.orderingOptionsLabel, { color: colors.text.secondary }]}>
+              {translations.exercise.question.orderingWordsLabel}
+            </Text>
+          </View>
+          <View style={styles.orderingOptionsGrid}>
+            {orderingOptions.map((wordObj, idx) => {
+              const isSelected = orderingSelected.some(selected => selected.index === wordObj.index);
+              return (
+                <TouchableOpacity
+                  key={`${wordObj.word}-${wordObj.index}`}
+                  style={[styles.orderingOptionChip, {
+                    backgroundColor: isSelected ? colors.surface + '60' : colors.surface,
+                    borderColor: isSelected ? colors.border + '60' : colors.primary,
+                    borderWidth: isSelected ? 1 : 2,
+                    opacity: isSelected ? 0.4 : 1,
+                    shadowColor: isSelected ? 'transparent' : colors.primary,
+                  }]}
+                  onPress={() => handleOrderingSelect(wordObj)}
+                  disabled={isSelected || answerShown}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.orderingOptionText, { 
+                    color: isSelected ? colors.text.secondary : colors.primary,
+                    fontWeight: isSelected ? '400' : '600'
+                  }]}>
+                    {wordObj.word}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
-        <TouchableOpacity style={[styles.nextButton, { backgroundColor: colors.primary, marginTop: 10, opacity: orderingSelected.length === orderingOptions.length ? 1 : 0.5 }]} onPress={handleOrderingSubmit} disabled={orderingSelected.length !== orderingOptions.length || answerShown}>
-          <Text style={[styles.buttonText, { color: colors.text.onPrimary }]}>{translations.exercise.question.check || 'Kontrol Et'}</Text>
+
+        {/* Kontrol Butonu */}
+        <TouchableOpacity 
+          style={[styles.orderingSubmitButton, { 
+            backgroundColor: orderingSelected.length === orderingOptions.length ? colors.primary : colors.surface,
+            borderColor: orderingSelected.length === orderingOptions.length ? colors.primary : colors.border,
+            shadowColor: orderingSelected.length === orderingOptions.length ? colors.primary : 'transparent',
+          }]} 
+          onPress={handleOrderingSubmit} 
+          disabled={orderingSelected.length !== orderingOptions.length || answerShown}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons 
+            name="check-circle" 
+            size={20} 
+            color={orderingSelected.length === orderingOptions.length ? colors.text.onPrimary : colors.text.secondary} 
+          />
+          <Text style={[styles.orderingSubmitText, { 
+            color: orderingSelected.length === orderingOptions.length ? colors.text.onPrimary : colors.text.secondary,
+            fontWeight: orderingSelected.length === orderingOptions.length ? '600' : '500'
+          }]}>
+            {translations.exercise.question.check || 'Kontrol Et'}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -1406,8 +1488,8 @@ const ExerciseQuestionScreen: React.FC = () => {
         styles.answerModal, 
         { 
           backgroundColor: isCorrect 
-            ? successColor + '30' // Daha koyu yeşil arka plan
-            : errorColor + '30' // Daha koyu kırmızı arka plan
+            ? successColor + '60' // Daha koyu yeşil arka plan
+            : errorColor + '60' // Daha koyu kırmızı arka plan
         }
       ]}>
         <View style={styles.answerContent}>
@@ -1427,7 +1509,9 @@ const ExerciseQuestionScreen: React.FC = () => {
           </Text>
           {!isCorrect && currentQuestion && (
             <Text style={[styles.correctAnswer, { color: colors.text.primary }]}>
-              {translations.exercise.question.correctAnswer}: {currentQuestionType === 'sentenceOrdering' ? (currentQuestion.example || '') : correctAnswer}
+              {translations.exercise.question.correctAnswer}: {currentQuestionType === 'sentenceOrdering' ? 
+                (currentQuestion.example || '').trim().toLowerCase().replace(/[.!?]+$/, '').split(/\s+/).join(' ') : 
+                correctAnswer}
             </Text>
           )}
         </View>
@@ -1940,6 +2024,13 @@ const styles = StyleSheet.create({
     marginRight: 6,
     marginBottom: 6,
   },
+  orderingOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   orderingOption: {
     padding: 12,
     borderRadius: 8,
@@ -1947,6 +2038,147 @@ const styles = StyleSheet.create({
     margin: 4,
     minWidth: 40,
     alignItems: 'center',
+  },
+  // Yeni sentence ordering stilleri
+  orderingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  orderingHeaderText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  orderingTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  orderingSubtitle: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
+  orderingAnswerArea: {
+    borderRadius: 12,
+    borderWidth: 2,
+    padding: 14,
+    marginBottom: 20,
+    minHeight: 80,
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  orderingAnswerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  orderingAnswerLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  orderingAnswerScroll: {
+    minHeight: 50,
+  },
+  orderingAnswerContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    paddingVertical: 4,
+  },
+  orderingPlaceholder: {
+    fontSize: 15,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+  selectedWordChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  selectedWordText: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginRight: 6,
+  },
+  removeIconContainer: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orderingOptionsSection: {
+    marginBottom: 20,
+  },
+  orderingOptionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  orderingOptionsLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  orderingOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orderingOptionChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 25,
+    margin: 6,
+    minWidth: 60,
+    alignItems: 'center',
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  orderingOptionText: {
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  orderingSubmitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    marginTop: 8,
+    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  orderingSubmitText: {
+    fontSize: 15,
+    marginLeft: 8,
   },
 });
 

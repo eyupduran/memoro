@@ -246,7 +246,10 @@ export default {
       fileSelected: 'Arquivo selecionado: {0}',
       languageChangedTitle: 'Configuração de idioma alterada',
       languageChangedMessage: 'Seu backup de dados contém um par de idiomas diferente. As configurações do seu aplicativo foram atualizadas e os dados de palavras correspondentes serão baixados agora.'
-    }
+    },
+    predefinedWordListsTitle: 'Listas de Palavras Predefinidas',
+    predefinedWordListsDescription: 'Comece a aprender com listas de palavras predefinidas organizadas por categorias.',
+    addSelected: 'Adicionar Selecionados'
   },
   wordOverlay: {
     preview: 'Visualização',
@@ -379,6 +382,7 @@ export default {
       fillInTheBlank: 'Preencha a Lacuna',
       wordMatch: 'Associação de Palavras',
       sentenceMatchQuestionPrompt: 'A que frase pertence esta palavra?',
+      sentenceOrderingPrompt: 'Ordene a frase corretamente:',
       correct: 'Correto!',
       incorrect: 'Incorreto!',
       wrong: 'Errado!',
@@ -389,12 +393,16 @@ export default {
       listenWord: 'Ouvir a Palavra',
       sentenceOrdering: 'Ordenar Frase',
       check: 'Verificar',
+      orderingAnswerLabel: 'Sua resposta',
+      orderingWordsLabel: 'Palavras',
+      orderingPlaceholder: 'Forme a frase com as palavras abaixo...',
     },
     exercises: {
       fillInTheBlank: 'Preencher Lacunas',
       wordMatch: 'Associação de Palavras',
       mixed: 'Misto',
-      sentenceMatch: 'Associação de Frases'
+      sentenceMatch: 'Associação de Frases',
+      sentenceOrdering: 'Ordenar Frase'
     },
     result: {
       title: 'Resultado do Exercício',
