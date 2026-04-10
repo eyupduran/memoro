@@ -182,7 +182,8 @@ export default {
   wordDetail: {
     title: 'Kelime Detayı',
     loading: 'Yükleniyor...',
-    noData: 'Bu kelime için detaylı veri bulunamadı. Aşağıdaki butona basarak detaylı verileri hemen indirebilirsin.',
+    noData: 'Detaylı kelime verileri henüz indirilmemiş. Aşağıdaki butona basarak detaylı verileri hemen indirebilirsin.',
+    wordNotFound: 'Bu kelime için detaylı sözlük verisi bulunmuyor. Detay verileri tüm kelimeleri kapsamayabilir.',
     downloadNow: 'Detaylı Verileri İndir',
     otherExamples: 'Diğer örnekler',
     noExample: 'Örnek yok',

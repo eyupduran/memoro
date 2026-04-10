@@ -60,18 +60,28 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<DictEntry[] | null>(null);
+  // Detay veri seti bu dil çifti için DB'de mevcut mu? Bunu bilmek önemli çünkü
+  // "veri hiç indirilmemiş" ile "veri var ama bu kelime setin dışında" çok farklı
+  // iki durum — mesajları ve indir butonu da buna göre ayrılıyor.
+  const [detailsLoaded, setDetailsLoaded] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showListModal, setShowListModal] = useState(false);
   const [showDetailedLoader, setShowDetailedLoader] = useState(false);
 
+  // Navigator header title olarak kelimenin kendisini göster — "Kelime Detayı"
+  // sabit başlığı yerine, böylece context her zaman ekranın tepesinde görünür.
   useEffect(() => {
-    navigation.setOptions({ title: translations.wordDetail.title });
-  }, [navigation, translations.wordDetail.title]);
+    navigation.setOptions({ title: word });
+  }, [navigation, word]);
 
   // Detayı SQLite'tan yükle. useCallback ile sarılı çünkü hem mount'ta hem de
   // kullanıcı ekran içinden veri indirdikten sonra yeniden çağırılabilmesi gerekiyor.
   const loadDetail = useCallback(async () => {
     setLoading(true);
+    // Önce bu dil çifti için detay verisinin DB'de genel olarak yüklü olup olmadığını öğren.
+    const loadedForPair = await dbService.isWordDetailsLoaded(currentLanguagePair);
+    setDetailsLoaded(loadedForPair);
+
     const data = await dbService.getWordDetail(word, currentLanguagePair);
     if (Array.isArray(data)) {
       setEntries(data as DictEntry[]);
@@ -297,26 +307,41 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   if (!entries || entries.length === 0 || allBoxes.length === 0) {
+    // İki farklı no-data durumu:
+    //   (a) Detay veri seti hiç indirilmemiş → kullanıcıya indir butonu göster
+    //   (b) Veri seti yüklü ama bu kelime sözlük kaynağında yok → sadece bilgilendirme,
+    //       indir butonu gösterme (baskıya basması anlamsız, aynı veri gelir)
+    const showDownloadPrompt = !detailsLoaded;
+    const messageKey = detailsLoaded
+      ? translations.wordDetail.wordNotFound
+      : translations.wordDetail.noData;
+
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.header}>
+        <View style={[styles.headerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.wordTitle, { color: colors.text.primary }]}>{word}</Text>
           <Text style={[styles.meaningSubtitle, { color: colors.text.secondary }]}>{meaning}</Text>
         </View>
         <View style={styles.noDataContainer}>
-          <MaterialIcons name="info-outline" size={48} color={colors.text.secondary} />
+          <MaterialIcons
+            name={detailsLoaded ? 'search-off' : 'info-outline'}
+            size={48}
+            color={colors.text.secondary}
+          />
           <Text style={[styles.noDataText, { color: colors.text.secondary }]}>
-            {translations.wordDetail.noData}
+            {messageKey}
           </Text>
-          <TouchableOpacity
-            style={[styles.downloadButton, { backgroundColor: colors.primary }]}
-            onPress={() => setShowDetailedLoader(true)}
-          >
-            <MaterialIcons name="cloud-download" size={20} color={colors.text.onPrimary} />
-            <Text style={[styles.downloadButtonText, { color: colors.text.onPrimary }]}>
-              {translations.wordDetail.downloadNow}
-            </Text>
-          </TouchableOpacity>
+          {showDownloadPrompt && (
+            <TouchableOpacity
+              style={[styles.downloadButton, { backgroundColor: colors.primary }]}
+              onPress={() => setShowDetailedLoader(true)}
+            >
+              <MaterialIcons name="cloud-download" size={20} color={colors.text.onPrimary} />
+              <Text style={[styles.downloadButtonText, { color: colors.text.onPrimary }]}>
+                {translations.wordDetail.downloadNow}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {showDetailedLoader && (
@@ -343,8 +368,8 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           { paddingBottom: selectedIds.size > 0 ? 160 : 32 },
         ]}
       >
-        {/* Header: kelime + phonetic + speak */}
-        <View style={styles.header}>
+        {/* Header: kelime + phonetic + speak (ortalanmış kart) */}
+        <View style={[styles.headerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.wordTitle, { color: colors.text.primary }]}>{word}</Text>
           <Text style={[styles.meaningSubtitle, { color: colors.text.secondary }]}>{meaning}</Text>
           <View style={styles.phoneticRow}>
@@ -421,22 +446,29 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  header: {
+  headerCard: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    borderWidth: 1,
     marginBottom: 20,
-    paddingBottom: 16,
   },
   wordTitle: {
     fontSize: 32,
     fontWeight: '700',
+    textAlign: 'center',
   },
   meaningSubtitle: {
     fontSize: 16,
-    marginTop: 4,
+    marginTop: 6,
+    textAlign: 'center',
   },
   phoneticRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    justifyContent: 'center',
+    marginTop: 12,
     gap: 10,
   },
   phoneticText: {
