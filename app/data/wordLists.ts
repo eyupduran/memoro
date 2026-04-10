@@ -171,7 +171,7 @@ export const forceUpdateWordLists = {
 // kullanıcının şu anki dil çifti altına kaydediyoruz (Part 2'deki getWordDetail
 // çağrı kontratını korumak için).
 const DETAILED_WORDS_URL =
-  'https://raw.githubusercontent.com/eyupduran/english-words-api/main/word-details.json';
+  'https://raw.githubusercontent.com/eyupduran/english-words-api/main/word-details/word-details.json';
 
 export const loadDetailedWordsForLanguagePair = async (
   languagePair: string,
