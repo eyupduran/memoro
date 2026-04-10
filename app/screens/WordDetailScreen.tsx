@@ -185,27 +185,23 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Seçilen kutuları uygulamanın geri kalanının anladığı `Word` şekline dönüştür.
   //
-  // - `meaning`: seçilen kutunun partOfSpeech + İngilizce tanımı. Kullanıcı listede
-  //   hangi anlamı seçtiğini görmek istiyor. Örnek: "(noun) Direction." Detay sayfası
-  //   header'ında route param'dan gelen ana Türkçe anlam zaten görünüyor; burada
-  //   listede her satır için ayrıştırıcı bilgi gerekiyor.
+  // - `meaning`: seçilen kutunun saf İngilizce tanımı (partOfSpeech etiketi YOK).
+  //   Kullanıcı listede ve egzersizlerde temiz bir açıklama görmek istiyor;
+  //   "(noun)" gibi prefix'ler arayüzü kirletiyordu.
   // - `example`: seçilen kutunun kendi örnek cümlesi (yoksa boş).
   // - `variantKey`: her kutu için benzersiz bir anahtar. Aynı kelimenin birden
-  //   fazla varyantı (ör. noun "Direction" + verb "To aim") listeye eklenince
+  //   fazla varyantı (ör. "Direction" + "To aim") listeye eklenince
   //   custom_word_list_items tablosunda her varyant ayrı satır olarak saklanır.
   const buildWordsFromSelection = (): Word[] => {
     const selected = allBoxes.filter((b) => selectedIds.has(b.id));
-    return selected.map((b) => {
-      const posLabel = b.partOfSpeech && b.partOfSpeech !== '—' ? `(${b.partOfSpeech}) ` : '';
-      return {
-        id: `${word}-${b.id}`,
-        word,
-        meaning: `${posLabel}${b.definition}`,
-        example: b.primaryExample || '',
-        level: level || '',
-        variantKey: b.id,
-      };
-    });
+    return selected.map((b) => ({
+      id: `${word}-${b.id}`,
+      word,
+      meaning: b.definition,
+      example: b.primaryExample || '',
+      level: level || '',
+      variantKey: b.id,
+    }));
   };
 
   const speak = (text: string) => {
@@ -265,7 +261,11 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             </Text>
             {box.primaryExample}
           </Text>
-        ) : null}
+        ) : (
+          <Text style={[styles.exampleText, styles.noExampleText, { color: colors.text.secondary }]}>
+            {translations.wordDetail.noExample}
+          </Text>
+        )}
 
         {box.extraExamples.length > 0 && (
           <View style={[styles.extraExamplesBox, { borderLeftColor: colors.primary }]}>
@@ -515,6 +515,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
     lineHeight: 20,
+  },
+  noExampleText: {
+    opacity: 0.6,
   },
   examplePrefix: {
     fontWeight: '600',

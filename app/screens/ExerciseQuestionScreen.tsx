@@ -351,20 +351,22 @@ const ExerciseQuestionScreen: React.FC = () => {
 
       // Streak öncelik sistemi sadece wordlist kaynağı için aktif
       if (wordSource === 'wordlist') {
-        // Kelimeleri streak değerleriyle birlikte yükle
+        // Kelimeleri streak değerleriyle birlikte yükle.
+        // Kritik: ana `words` tablosundan SADECE streak alıyoruz. Custom kelime
+        // listesi satırlarında (özellikle detay ekranından eklenmiş varyantlarda)
+        // meaning ve example farklı olabiliyor — ana tabloyu üzerine yazarsak
+        // kullanıcının seçtiği varyantın örnek/açıklama verisi kaybolur.
         const wordsWithStreaks = await Promise.all(
-          loadedWords.map(async (word) => {
+          loadedWords.map(async (w) => {
             try {
-              // Get the word with streak from the main words table
-              const wordWithStreak = await dbService.getFirstAsync<Word>(
-                'SELECT word, meaning, example, level, streak FROM words WHERE word = ? AND level = ? AND language_pair = ?',
-                [word.word, word.level || 'A1', currentLanguagePair]
+              const streakRow = await dbService.getFirstAsync<{ streak: number }>(
+                'SELECT streak FROM words WHERE word = ? AND level = ? AND language_pair = ?',
+                [w.word, w.level || 'A1', currentLanguagePair]
               );
-              
-              return wordWithStreak || { ...word, streak: 0 };
+              return { ...w, streak: streakRow?.streak ?? 0 };
             } catch (error) {
               console.error('Error getting word streak:', error);
-              return { ...word, streak: 0 };
+              return { ...w, streak: 0 };
             }
           })
         );
