@@ -319,9 +319,26 @@ const DictionaryScreen: React.FC<DictionaryScreenProps> = ({
                   }
                 }}
               >
-                <MaterialIcons name="info" size={16} color={colors.primary} />
+                <MaterialIcons name="open-in-new" size={16} color={colors.primary} />
                 <Text style={[styles.detailButtonText, { color: colors.primary }]}>
-                  Detay
+                  {translations.dictionaryScreen.cambridgeButton}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.detailButton, { backgroundColor: colors.primary + '15' }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  navigation.navigate('WordDetail', {
+                    word: item.word,
+                    meaning: item.meaning,
+                    level: item.level,
+                  });
+                }}
+              >
+                <MaterialIcons name="menu-book" size={16} color={colors.primary} />
+                <Text style={[styles.detailButtonText, { color: colors.primary }]}>
+                  {translations.dictionaryScreen.detailButton}
                 </Text>
               </TouchableOpacity>
             </View>

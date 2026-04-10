@@ -175,7 +175,23 @@ export default {
     continueWithWords: 'Continuar com {0} palavras',
     maxWordsLimit: 'Você pode selecionar no máximo {0} palavras',
     searchPrompt: 'Digite a palavra que deseja pesquisar',
-    noResults: 'Nenhum resultado encontrado'
+    noResults: 'Nenhum resultado encontrado',
+    cambridgeButton: 'C',
+    detailButton: 'Detalhes'
+  },
+  wordDetail: {
+    title: 'Detalhes da Palavra',
+    loading: 'Carregando...',
+    noData: 'Nenhum dado detalhado encontrado para esta palavra. Você pode baixar os dados usando o botão "Baixar Dados Detalhados" na tela de Configurações.',
+    otherExamples: 'Outros exemplos',
+    noExample: 'Sem exemplo',
+    otherMeanings: 'Outros Significados',
+    selectedCount: '{0} selecionado(s)',
+    addToList: 'Adicionar à Lista',
+    createImage: 'Criar Imagem',
+    startExercise: 'Fazer Exercício',
+    noSelectionError: 'Selecione pelo menos uma caixa primeiro',
+    definitionLabel: 'Definição'
   },
   wordListModal: {
     title: 'Selecionar Lista de Palavras',

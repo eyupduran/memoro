@@ -35,6 +35,11 @@ export type RootStackParamList = {
   DetailedDictionary: {
     wordName: string;
   };
+  WordDetail: {
+    word: string;
+    meaning: string;
+    level?: string;
+  };
   WordListDetail: {
     listId: string;
     level?: string;

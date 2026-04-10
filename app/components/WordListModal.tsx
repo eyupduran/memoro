@@ -18,10 +18,13 @@ import type { Word } from '../types/words';
 interface WordListModalProps {
   visible: boolean;
   onClose: () => void;
-  word: Word;
+  // Tek kelime veya çoklu kelime desteği — `words` verilirse tüm liste eklenir,
+  // aksi halde `word` (eski API) kullanılır. İkisi de boşsa ekleme yapılmaz.
+  word?: Word;
+  words?: Word[];
 }
 
-export const WordListModal: React.FC<WordListModalProps> = ({ visible, onClose, word }) => {
+export const WordListModal: React.FC<WordListModalProps> = ({ visible, onClose, word, words }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
   const [lists, setLists] = useState<{ id: number; name: string; created_at: string }[]>([]);
@@ -67,11 +70,23 @@ export const WordListModal: React.FC<WordListModalProps> = ({ visible, onClose, 
   };
 
   const handleAddToList = async (listId: number) => {
+    // Eklenecek kelime listesini belirle — çoklu mod öncelikli.
+    const wordsToAdd: Word[] = words && words.length > 0 ? words : word ? [word] : [];
+    if (wordsToAdd.length === 0) {
+      return;
+    }
+
     setLoading(true);
-    const success = await dbService.addWordToList(listId, word);
+    let anyFailed = false;
+    for (const w of wordsToAdd) {
+      const ok = await dbService.addWordToList(listId, w);
+      if (!ok) {
+        anyFailed = true;
+      }
+    }
     setLoading(false);
 
-    if (success) {
+    if (!anyFailed) {
       Alert.alert(
         translations.wordListModal?.success,
         translations.wordListModal?.addSuccess

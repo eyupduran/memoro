@@ -175,7 +175,23 @@ export default {
     continueWithWords: '{0} kelime ile devam et',
     maxWordsLimit: 'Maksimum {0} kelime seçebilirsiniz',
     searchPrompt: 'Aramak istediğiniz kelimeyi yazın',
-    noResults: 'Sonuç bulunamadı'
+    noResults: 'Sonuç bulunamadı',
+    cambridgeButton: 'C',
+    detailButton: 'Detay'
+  },
+  wordDetail: {
+    title: 'Kelime Detayı',
+    loading: 'Yükleniyor...',
+    noData: 'Bu kelime için detaylı veri bulunamadı. Ayarlar ekranından "Detaylı Verileri Çek" butonunu kullanarak verileri indirebilirsiniz.',
+    otherExamples: 'Diğer örnekler',
+    noExample: 'Örnek yok',
+    otherMeanings: 'Diğer Anlamlar',
+    selectedCount: '{0} seçili',
+    addToList: 'Listeye Ekle',
+    createImage: 'Görsel Oluştur',
+    startExercise: 'Egzersiz Yap',
+    noSelectionError: 'Önce en az bir kutu seçin',
+    definitionLabel: 'Tanım'
   },
   wordListModal: {
     title: 'Kelime Listesi Seç',
