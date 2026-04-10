@@ -5,6 +5,10 @@ export interface Word {
   example?: string;
   level?: string;
   streak?: number;
+  // Aynı kelimenin listede birden fazla varyant olarak saklanmasını sağlar (detay ekranından
+  // gelen farklı definition/example kombinasyonları için). Boş string veya undefined =
+  // varsayılan tek satırlı davranış.
+  variantKey?: string;
 }
 
 export interface LearnedWord extends Word {

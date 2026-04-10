@@ -134,8 +134,9 @@ class DatabaseService {
           example TEXT,
           level TEXT NOT NULL,
           added_at TEXT NOT NULL,
+          variant_key TEXT NOT NULL DEFAULT '',
           FOREIGN KEY(list_id) REFERENCES custom_word_lists(id) ON DELETE CASCADE,
-          UNIQUE(list_id, word)
+          UNIQUE(list_id, word, variant_key)
         );
 
         CREATE TABLE IF NOT EXISTS word_details (
@@ -220,18 +221,59 @@ class DatabaseService {
       const wordsTableInfo = await this.db.getAllAsync<{ name: string }>(
         "PRAGMA table_info(words)"
       );
-      
+
       const hasStreak = wordsTableInfo.some(column => column.name === 'streak');
-      
+
       if (!hasStreak) {
         // streak sütununu ekle
         await this.db.execAsync(`
           ALTER TABLE words ADD COLUMN streak INTEGER DEFAULT 0;
         `);
-        
+
         console.log("words tablosu güncellendi, streak sütunu eklendi.");
       }
-      
+
+      // custom_word_list_items tablosunu kontrol et ve variant_key sütununu ekle.
+      // variant_key, aynı kelimenin farklı sözlük varyantlarının (detay ekranından gelen
+      // farklı definition/example) ayrı satırlar olarak saklanmasını sağlar.
+      // Eski UNIQUE(list_id, word) kısıtı, UNIQUE(list_id, word, variant_key) ile değiştirilir.
+      // SQLite UNIQUE kısıtını ALTER edemediği için tabloyu yeniden yaratıyoruz.
+      const customWordListItemsInfo = await this.db.getAllAsync<{ name: string }>(
+        "PRAGMA table_info(custom_word_list_items)"
+      );
+
+      const hasVariantKey = customWordListItemsInfo.some(column => column.name === 'variant_key');
+
+      if (customWordListItemsInfo.length > 0 && !hasVariantKey) {
+        await this.db.execAsync(`
+          BEGIN TRANSACTION;
+
+          CREATE TABLE custom_word_list_items_temp (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            list_id INTEGER NOT NULL,
+            word TEXT NOT NULL,
+            meaning TEXT NOT NULL,
+            example TEXT,
+            level TEXT NOT NULL,
+            added_at TEXT NOT NULL,
+            variant_key TEXT NOT NULL DEFAULT '',
+            FOREIGN KEY(list_id) REFERENCES custom_word_lists(id) ON DELETE CASCADE,
+            UNIQUE(list_id, word, variant_key)
+          );
+
+          INSERT INTO custom_word_list_items_temp (id, list_id, word, meaning, example, level, added_at, variant_key)
+          SELECT id, list_id, word, meaning, example, level, added_at, '' FROM custom_word_list_items;
+
+          DROP TABLE custom_word_list_items;
+
+          ALTER TABLE custom_word_list_items_temp RENAME TO custom_word_list_items;
+
+          COMMIT;
+        `);
+
+        console.log("custom_word_list_items tablosu güncellendi, variant_key sütunu eklendi.");
+      }
+
       // İndeks oluştur
       await this.db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_words_level_lang ON words(level, language_pair);
@@ -1054,33 +1096,36 @@ class DatabaseService {
     }
   }
 
-  // Özel kelime listesine kelime ekle
-  async addWordToList(listId: number, word: Word): Promise<boolean> {
+  // Özel kelime listesine kelime ekle.
+  // variantKey:
+  //   - '' (varsayılan) → mevcut davranış: aynı kelime listede zaten varsa üzerine yazılır
+  //   - non-empty → her benzersiz variantKey ayrı satır olarak saklanır (detay ekranı için)
+  async addWordToList(listId: number, word: Word, variantKey: string = ''): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
-      // Önce kelimenin zaten listede olup olmadığını kontrol et
+
+      // Önce aynı (list_id, word, variant_key) üçlüsünün zaten var olup olmadığını kontrol et
       const existingWord = await this.db.getFirstAsync<{id: number}>(
-        'SELECT id FROM custom_word_list_items WHERE list_id = ? AND word = ?',
-        [listId, word.word]
+        'SELECT id FROM custom_word_list_items WHERE list_id = ? AND word = ? AND variant_key = ?',
+        [listId, word.word, variantKey]
       );
-      
+
+      const addedAt = new Date().toISOString();
+
       if (existingWord) {
-        // Kelime zaten var, güncelleme yap
-        const addedAt = new Date().toISOString();
+        // Aynı varyant zaten var, güncelleme yap (example/meaning yenilenmiş olabilir)
         await this.db.runAsync(
-          'UPDATE custom_word_list_items SET meaning = ?, example = ?, level = ?, added_at = ? WHERE list_id = ? AND word = ?',
-          [word.meaning, word.example || '', word.level || 'custom', addedAt, listId, word.word]
+          'UPDATE custom_word_list_items SET meaning = ?, example = ?, level = ?, added_at = ? WHERE list_id = ? AND word = ? AND variant_key = ?',
+          [word.meaning, word.example || '', word.level || 'custom', addedAt, listId, word.word, variantKey]
         );
       } else {
-        // Yeni kelime ekle
-        const addedAt = new Date().toISOString();
+        // Yeni kayıt ekle
         await this.db.runAsync(
-          'INSERT OR IGNORE INTO custom_word_list_items (list_id, word, meaning, example, level, added_at) VALUES (?, ?, ?, ?, ?, ?)',
-          [listId, word.word, word.meaning, word.example || '', word.level || 'custom', addedAt]
+          'INSERT OR IGNORE INTO custom_word_list_items (list_id, word, meaning, example, level, added_at, variant_key) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [listId, word.word, word.meaning, word.example || '', word.level || 'custom', addedAt, variantKey]
         );
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error adding word to list:', error);
@@ -1105,22 +1150,33 @@ class DatabaseService {
     }
   }
 
-  // Özel kelime listesindeki kelimeleri getir
+  // Özel kelime listesindeki kelimeleri getir.
+  // variant_key sütunu da döndürülür — aynı kelimenin farklı varyantlarının (detay ekranından)
+  // ayrı satırlar olarak listelenebilmesi ve tekil silinebilmesi için.
   async getWordsFromList(listId: number): Promise<Word[]> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
-      const words = await this.db.getAllAsync<Word>(
-        'SELECT word, meaning, example, level FROM custom_word_list_items WHERE list_id = ? ORDER BY added_at DESC',
+
+      const rows = await this.db.getAllAsync<{
+        word: string;
+        meaning: string;
+        example?: string;
+        level: string;
+        variant_key: string;
+      }>(
+        'SELECT word, meaning, example, level, variant_key FROM custom_word_list_items WHERE list_id = ? ORDER BY added_at DESC',
         [listId]
       );
-      
-      return words.map(word => ({
-        id: word.word, // word'ü id olarak kullan
-        word: word.word,
-        meaning: word.meaning,
-        example: word.example,
-        level: word.level
+
+      return rows.map(row => ({
+        // id, aynı kelimenin birden fazla varyantı olduğunda React list key çakışmasını önlemek için
+        // word + variant_key birleşimi olarak üretilir. variant_key boşsa eski davranışla aynı.
+        id: row.variant_key ? `${row.word}::${row.variant_key}` : row.word,
+        word: row.word,
+        meaning: row.meaning,
+        example: row.example,
+        level: row.level,
+        variantKey: row.variant_key,
       }));
     } catch (error) {
       console.error('Error getting words from list:', error);
@@ -1141,15 +1197,28 @@ class DatabaseService {
     }
   }
 
-  // Özel kelime listesinden kelime sil
-  async removeWordFromList(listId: number | string, word: string): Promise<boolean> {
+  // Özel kelime listesinden kelime sil.
+  // variantKey verilirse sadece o varyant satırı silinir (detay ekranından eklenen satırlar).
+  // Verilmezse o kelimeye ait tüm varyant satırları silinir (eski davranışla uyumlu).
+  async removeWordFromList(
+    listId: number | string,
+    word: string,
+    variantKey?: string
+  ): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
-      await this.db.runAsync(
-        'DELETE FROM custom_word_list_items WHERE list_id = ? AND word = ?',
-        [listId, word]
-      );
+
+      if (variantKey !== undefined) {
+        await this.db.runAsync(
+          'DELETE FROM custom_word_list_items WHERE list_id = ? AND word = ? AND variant_key = ?',
+          [listId, word, variantKey]
+        );
+      } else {
+        await this.db.runAsync(
+          'DELETE FROM custom_word_list_items WHERE list_id = ? AND word = ?',
+          [listId, word]
+        );
+      }
       return true;
     } catch (error) {
       console.error('Error removing word from list:', error);
@@ -1161,20 +1230,36 @@ class DatabaseService {
   async getWordListItems(listId: string): Promise<Word[]> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
+
       const query = `
-        SELECT 
+        SELECT
           word,
           meaning,
           example,
           level,
-          added_at
+          added_at,
+          variant_key
         FROM custom_word_list_items
         WHERE list_id = ?
       `;
-      
-      const result = await this.db.getAllAsync<Word>(query, [listId]);
-      return result;
+
+      const rows = await this.db.getAllAsync<{
+        word: string;
+        meaning: string;
+        example?: string;
+        level: string;
+        added_at: string;
+        variant_key: string;
+      }>(query, [listId]);
+
+      return rows.map(row => ({
+        id: row.variant_key ? `${row.word}::${row.variant_key}` : row.word,
+        word: row.word,
+        meaning: row.meaning,
+        example: row.example,
+        level: row.level,
+        variantKey: row.variant_key,
+      }));
     } catch (error) {
       console.error('Error getting word list items:', error);
       return [];

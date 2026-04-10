@@ -79,7 +79,9 @@ export const WordListModal: React.FC<WordListModalProps> = ({ visible, onClose, 
     setLoading(true);
     let anyFailed = false;
     for (const w of wordsToAdd) {
-      const ok = await dbService.addWordToList(listId, w);
+      // Her Word kendi variantKey'ini taşır (detay ekranından gelenlerde non-empty).
+      // Boşsa eski davranışla aynı: aynı kelime listede varsa üzerine yazılır.
+      const ok = await dbService.addWordToList(listId, w, w.variantKey || '');
       if (!ok) {
         anyFailed = true;
       }

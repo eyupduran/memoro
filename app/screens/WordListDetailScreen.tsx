@@ -134,9 +134,11 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
     lastScrollY.current = currentScrollY;
   };
 
-  const handleRemoveWord = async (word: string) => {
+  const handleRemoveWord = async (item: Word) => {
     try {
-      await dbService.removeWordFromList(Number(listId), word);
+      // variantKey tanımlıysa sadece o varyant satırı silinir; aksi halde eski davranış
+      // (o kelimenin tüm satırlarını sil) geçerli olur.
+      await dbService.removeWordFromList(Number(listId), item.word, item.variantKey);
       // Refresh the list
       loadWords();
     } catch (error) {
@@ -153,8 +155,11 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
   };
 
   const handleWordSelect = (word: Word) => {
-    if (selectedWords.some(w => w.word === word.word)) {
-      setSelectedWords(selectedWords.filter(w => w.word !== word.word));
+    // Seçim karşılaştırması id üzerinden yapılıyor — aynı kelimenin birden fazla
+    // varyantı (detay ekranından gelen farklı örnek/anlam) listede aynı anda
+    // farklı satırlar olarak bulunabilir.
+    if (selectedWords.some(w => w.id === word.id)) {
+      setSelectedWords(selectedWords.filter(w => w.id !== word.id));
     } else if (selectedWords.length < MAX_WORDS) {
       setSelectedWords([...selectedWords, word]);
     } else {
@@ -203,7 +208,7 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
   };
 
   const renderWordItem = ({ item }: { item: Word }) => {
-    const isSelected = selectedWords.some(w => w.word === item.word);
+    const isSelected = selectedWords.some(w => w.id === item.id);
     const hasHighStreak = (item.streak || 0) >= APP_CONSTANTS.STREAK_THRESHOLD;
     
     return (
@@ -267,7 +272,7 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
               style={[styles.removeButton, { backgroundColor: colors.error + '15' }]}
               onPress={(e) => {
                 e.stopPropagation();
-                handleRemoveWord(item.word);
+                handleRemoveWord(item);
               }}
             >
               <MaterialIcons name="remove-circle-outline" size={16} color={colors.error} />
@@ -368,7 +373,7 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
         <FlatList
           data={filteredWords}
           renderItem={renderWordItem}
-          keyExtractor={(item) => item.word}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.listContent, { paddingTop: 82, paddingBottom: 84 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
