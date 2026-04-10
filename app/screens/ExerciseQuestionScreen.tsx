@@ -74,6 +74,12 @@ const sounds = {
   click: null as Audio.Sound | null,
 };
 
+// Cümle sıralama egzersizinde "oku" butonu sadece cümle bu eşikten uzunsa gösterilir.
+// Kısa cümlelerde kelimeleri karıştırarak doğru sırayı bulmak zaten kolay —
+// her cümlede oku butonu vermek egzersizi aşırı kolaylaştırır.
+// 9 kelime eşiği: A2-B2 örnek cümlelerinin üst yarısını "uzun" olarak işaretler.
+const SENTENCE_ORDERING_READ_ALOUD_MIN_WORDS = 9;
+
 const ExerciseQuestionScreen: React.FC = () => {
   const route = useRoute<ExerciseQuestionScreenProps['route']>();
   const navigation = useNavigation<ExerciseQuestionScreenNavigationProp>();
@@ -1237,6 +1243,12 @@ const ExerciseQuestionScreen: React.FC = () => {
         </View>
       );
     }
+    // Cümle uzun mu? Uzunsa kullanıcıya "oku" butonu göster — kısa cümlelerde
+    // karıştırılmış kelimelerden doğru sırayı bulmak zaten kolay, buton egzersizi
+    // gereksiz yere kolaylaştırır; uzun cümlelerde ise hafıza yükü çok artıyor.
+    const sentenceWordCount = currentQuestion.example.trim().split(/\s+/).length;
+    const showReadAloudButton = sentenceWordCount >= SENTENCE_ORDERING_READ_ALOUD_MIN_WORDS;
+
     return (
       <View style={styles.questionContainer}>
         {/* Başlık */}
@@ -1247,6 +1259,15 @@ const ExerciseQuestionScreen: React.FC = () => {
               {translations.exercise.question.sentenceOrdering || 'Cümle Sıralama'}
             </Text>
           </View>
+          {showReadAloudButton && (
+            <TouchableOpacity
+              style={[styles.orderingReadAloudButton, { backgroundColor: colors.primary + '15' }]}
+              onPress={() => speakText(currentQuestion.example!)}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="volume-up" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Cevap Alanı */}
@@ -2051,6 +2072,14 @@ const styles = StyleSheet.create({
   orderingHeaderText: {
     marginLeft: 12,
     flex: 1,
+  },
+  orderingReadAloudButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
   orderingTitle: {
     fontSize: 18,
