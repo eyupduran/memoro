@@ -10,6 +10,7 @@ import { RootStackParamList } from '../types/navigation';
 import * as Notifications from 'expo-notifications';
 import { LanguageSelectorSettings } from '../components/LanguageSelectorSettings';
 import { DataLoader } from '../components/DataLoader';
+import { DetailedDataLoader } from '../components/DetailedDataLoader';
 import { checkWordDataExists } from '../utils/database';
 import { BackupRestoreSection } from '../components/BackupRestoreSection';
 import { translations as allTranslations, NativeLanguage } from '../contexts/LanguageContext';
@@ -23,6 +24,7 @@ export const SettingsScreen: React.FC<Props> = (props) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [hasDownloadedData, setHasDownloadedData] = useState(false);
   const [showDataLoader, setShowDataLoader] = useState(false);
+  const [showDetailedDataLoader, setShowDetailedDataLoader] = useState(false);
   const isInitialMount = useRef(true);
   const [showWordListModal, setShowWordListModal] = useState(false);
 
@@ -355,6 +357,32 @@ export const SettingsScreen: React.FC<Props> = (props) => {
                 {translations.settings.downloadedData.update}
               </Text>
             </TouchableOpacity>
+
+            <View style={styles.descriptionContainer}>
+              <MaterialIcons
+                name="info-outline"
+                size={20}
+                color={colors.text.secondary}
+                style={styles.infoIcon}
+              />
+              <Text style={[styles.descriptionText, { color: colors.text.secondary, fontSize: 13 }]}>
+                {translations.settings.downloadedData.detailedDescription}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.updateButton, { backgroundColor: colors.primary }]}
+              onPress={() => {
+                if (globalShowDataLoader) {
+                  setGlobalShowDataLoader(false);
+                }
+                setShowDetailedDataLoader(true);
+              }}
+            >
+              <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>
+                {translations.settings.downloadedData.updateDetailed}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -368,7 +396,7 @@ export const SettingsScreen: React.FC<Props> = (props) => {
           </Text>
           <TouchableOpacity
             style={[styles.updateButton, { backgroundColor: colors.primary }]}
-            onPress={() => props.navigation.navigate('PredefinedWordLists')}
+            onPress={() => props.navigation.navigate('PredefinedWordLists', {})}
           >
             <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>Hazır Kelime Listesi Ekle</Text>
           </TouchableOpacity>
@@ -411,11 +439,21 @@ export const SettingsScreen: React.FC<Props> = (props) => {
 
       {showDataLoader && (
         <View style={styles.loaderContainer}>
-          <DataLoader 
-            visible={showDataLoader} 
+          <DataLoader
+            visible={showDataLoader}
             onComplete={onDataLoadComplete}
             languagePair={currentLanguagePair}
             forceUpdate={true}
+          />
+        </View>
+      )}
+
+      {showDetailedDataLoader && (
+        <View style={styles.loaderContainer}>
+          <DetailedDataLoader
+            visible={showDetailedDataLoader}
+            onComplete={() => setShowDetailedDataLoader(false)}
+            languagePair={currentLanguagePair}
           />
         </View>
       )}

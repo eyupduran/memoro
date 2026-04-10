@@ -159,6 +159,98 @@ export const forceUpdateWordLists = {
   },
 };
 
+// Detaylı kelime verisini (DictionaryResponse sözlük yapısı) API'den çekip SQLite'a kaydeden fonksiyon.
+//
+// Kaynak: https://github.com/eyupduran/english-words-api/blob/main/word-details.json
+// Uzak dosya formatı: DictionaryResponseEntry[][]
+//   — Dış dizi: her öğe bir kelimenin tüm sözlük girdilerini içerir
+//   — İç dizi: aynı kelimenin farklı sözlük varyantları (farklı phonetic, meanings vb.)
+//   — Her girdide `word` alanı bulunur; gruplama anahtarı olarak bunu kullanıyoruz
+//
+// Dosya repo kökünde olduğu için dil çiftinden bağımsız; aynı detay verisini
+// kullanıcının şu anki dil çifti altına kaydediyoruz (Part 2'deki getWordDetail
+// çağrı kontratını korumak için).
+const DETAILED_WORDS_URL =
+  'https://raw.githubusercontent.com/eyupduran/english-words-api/main/word-details.json';
+
+export const loadDetailedWordsForLanguagePair = async (
+  languagePair: string,
+  progressCallback?: (progress: number) => void
+): Promise<boolean> => {
+  try {
+    console.log(`Loading detailed word data for language pair: ${languagePair}`);
+    progressCallback?.(10);
+
+    const response = await fetch(DETAILED_WORDS_URL);
+
+    if (!response.ok) {
+      throw new Error(`Detailed words fetch failed: ${response.status} ${response.statusText}`);
+    }
+
+    progressCallback?.(40);
+
+    const rawData = await response.json();
+
+    if (!Array.isArray(rawData)) {
+      throw new Error('Detailed words response is not an array');
+    }
+
+    progressCallback?.(55);
+
+    // Dizi-dizi formatını kelime anahtarlı Record'a dönüştür.
+    // Aynı kelime için birden fazla üst-seviye grup gelirse (olağan değil ama mümkün),
+    // sonrakini öncekinin üzerine yazmak yerine birleştiriyoruz ki hiçbir sözlük girdisi kaybolmasın.
+    const detailsByWord: Record<string, any[]> = {};
+    let skipped = 0;
+
+    for (const group of rawData) {
+      if (!Array.isArray(group) || group.length === 0) {
+        skipped++;
+        continue;
+      }
+      const firstEntry = group[0];
+      const word = firstEntry?.word;
+      if (typeof word !== 'string' || word.length === 0) {
+        skipped++;
+        continue;
+      }
+      if (detailsByWord[word]) {
+        detailsByWord[word] = [...detailsByWord[word], ...group];
+      } else {
+        detailsByWord[word] = group;
+      }
+    }
+
+    if (skipped > 0) {
+      console.warn(`Detailed words: ${skipped} grup atlandı (geçersiz format veya eksik word alanı)`);
+    }
+
+    const wordCount = Object.keys(detailsByWord).length;
+    if (wordCount === 0) {
+      throw new Error('Detailed words response did not contain any usable entries');
+    }
+
+    console.log(`Detaylı kelime verisi: ${wordCount} benzersiz kelime hazırlandı`);
+    progressCallback?.(70);
+
+    const saved = await dbService.saveWordDetails(detailsByWord, languagePair);
+    if (!saved) {
+      throw new Error('Failed to save detailed word data to SQLite');
+    }
+
+    await dbService.setDbInfo(
+      `lastUpdate_details_${languagePair}`,
+      new Date().toISOString()
+    );
+
+    progressCallback?.(100);
+    return true;
+  } catch (error) {
+    console.error('Error loading detailed word data:', error);
+    return false;
+  }
+};
+
 // API'den kategorili kelime listesini çeken fonksiyon
 const fetchCategorizedWordLists = async (languagePair: string): Promise<any | null> => {
   try {

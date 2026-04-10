@@ -138,6 +138,15 @@ class DatabaseService {
           UNIQUE(list_id, word)
         );
 
+        CREATE TABLE IF NOT EXISTS word_details (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          word TEXT NOT NULL,
+          language_pair TEXT NOT NULL,
+          data TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          UNIQUE(word, language_pair)
+        );
+
         CREATE TABLE IF NOT EXISTS unfinished_exercises (
           timestamp REAL PRIMARY KEY,
           language_pair TEXT NOT NULL,
@@ -232,6 +241,7 @@ class DatabaseService {
         CREATE INDEX IF NOT EXISTS idx_custom_word_lists_lang ON custom_word_lists(language_pair);
         CREATE INDEX IF NOT EXISTS idx_custom_word_list_items_list ON custom_word_list_items(list_id);
         CREATE INDEX IF NOT EXISTS idx_unfinished_exercises_lang ON unfinished_exercises(language_pair);
+        CREATE INDEX IF NOT EXISTS idx_word_details_word_lang ON word_details(word, language_pair);
       `);
       
       this.initialized = true;
@@ -288,6 +298,102 @@ class DatabaseService {
       return true;
     } catch (error) {
       console.error('Error saving words to SQLite:', error);
+      return false;
+    }
+  }
+
+  // Kelime detaylarını (DictionaryResponse yapısı) toplu olarak kaydet.
+  // Beklenen giriş formatı: Record<string, DictionaryResponse> — anahtar kelime,
+  // değer ise o kelimeye ait sözlük girdilerini içeren dizi (dizilerin dizisi).
+  async saveWordDetails(
+    details: Record<string, any>,
+    languagePair: string
+  ): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+
+      const entries = Object.entries(details || {});
+      if (entries.length === 0) {
+        return true;
+      }
+
+      console.log(
+        `Detaylı kelime verisi kaydı başlatılıyor: ${entries.length} kelime, dil: ${languagePair}`
+      );
+      const startTime = Date.now();
+      const updatedAt = new Date().toISOString();
+
+      await this.db.withTransactionAsync(async () => {
+        for (let i = 0; i < entries.length; i += this.BATCH_SIZE) {
+          const batch = entries.slice(i, i + this.BATCH_SIZE);
+          const placeholders: string[] = [];
+          const values: any[] = [];
+
+          for (const [word, data] of batch) {
+            placeholders.push('(?, ?, ?, ?)');
+            values.push(
+              word,
+              languagePair,
+              JSON.stringify(data),
+              updatedAt
+            );
+          }
+
+          const query = `
+            INSERT OR REPLACE INTO word_details (word, language_pair, data, updated_at)
+            VALUES ${placeholders.join(',')}
+          `;
+
+          await this.db.runAsync(query, values);
+        }
+      });
+
+      const endTime = Date.now();
+      console.log(
+        `Detaylı kelime verisi kaydı tamamlandı: ${entries.length} kelime, ${endTime - startTime}ms`
+      );
+      return true;
+    } catch (error) {
+      console.error('Error saving word details to SQLite:', error);
+      return false;
+    }
+  }
+
+  // Tek bir kelime için detay verisini getir (DictionaryResponse olarak parse edilmiş).
+  async getWordDetail(word: string, languagePair: string): Promise<any | null> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+
+      const result = await this.db.getFirstAsync<{ data: string }>(
+        'SELECT data FROM word_details WHERE word = ? AND language_pair = ? LIMIT 1',
+        [word, languagePair]
+      );
+
+      if (!result?.data) return null;
+      try {
+        return JSON.parse(result.data);
+      } catch (parseError) {
+        console.error('Error parsing word detail JSON:', parseError);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error getting word detail from SQLite:', error);
+      return null;
+    }
+  }
+
+  // Detaylı kelime verisinin belirli bir dil çifti için yüklü olup olmadığını kontrol et.
+  async isWordDetailsLoaded(languagePair: string): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+
+      const result = await this.db.getFirstAsync<{ count: number }>(
+        'SELECT COUNT(*) as count FROM word_details WHERE language_pair = ?',
+        [languagePair]
+      );
+      return result?.count ? result.count > 0 : false;
+    } catch (error) {
+      console.error('Error checking word details data:', error);
       return false;
     }
   }

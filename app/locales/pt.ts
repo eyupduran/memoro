@@ -38,6 +38,12 @@ export default {
     loadingImages: 'Preparando imagens de fundo...',
     savingLevel: 'Salvando nível {0}...'
   },
+  detailedDataLoader: {
+    loading: 'Baixando dados detalhados das palavras...',
+    completed: 'Dados detalhados das palavras carregados com sucesso!',
+    error: 'Ocorreu um erro ao carregar os dados detalhados.',
+    pleaseWait: 'Por favor, aguarde. Esta operação pode levar algum tempo.'
+  },
   notifications: {
     dailyReminderTitle: 'Hora do Vocabulário Diário! 📚',
     dailyReminderBody: 'Que tal aprender novas palavras hoje?',
@@ -222,6 +228,8 @@ export default {
       description: 'As listas de palavras e imagens são baixadas automaticamente no primeiro uso ou quando o idioma é alterado. Para atualizações, use o botão "Atualizar Dados".',
       learningLanguage: 'Idioma Selecionado',
       update: 'Atualizar Dados',
+      updateDetailed: 'Baixar Dados Detalhados',
+      detailedDescription: 'Os dados detalhados das palavras incluem pronúncia, classe gramatical, definições e frases de exemplo. Esses dados são usados na página de detalhes da palavra e nos exercícios.',
       noData: 'Nenhum dado baixado ainda',
       updateSuccess: 'Dados de palavras e imagens atualizados com sucesso',
       updateError: 'Ocorreu um erro ao atualizar os dados'

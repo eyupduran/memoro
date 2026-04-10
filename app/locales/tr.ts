@@ -38,6 +38,12 @@ export default {
     loadingImages: 'Arkaplan resimleri hazırlanıyor...',
     savingLevel: '{0} seviyesi kaydediliyor...'
   },
+  detailedDataLoader: {
+    loading: 'Detaylı kelime verileri indiriliyor...',
+    completed: 'Detaylı kelime verileri başarıyla yüklendi!',
+    error: 'Detaylı veriler yüklenirken hata oluştu.',
+    pleaseWait: 'Lütfen bekleyin, bu işlem biraz zaman alabilir.'
+  },
   notifications: {
     dailyReminderTitle: 'Günlük Kelime Zamanı! 📚',
     dailyReminderBody: 'Bugün yeni kelimeler öğrenmeye ne dersin?',
@@ -222,6 +228,8 @@ export default {
       description: 'Kelime listeleri ve görseller ilk kullanımda veya dil değişikliğinde otomatik indirilir. Güncellemeler için "Verileri Güncelle" butonunu kullanabilirsiniz.',
       learningLanguage: 'Seçili Dil',
       update: 'Verileri Güncelle',
+      updateDetailed: 'Detaylı Verileri Çek',
+      detailedDescription: 'Detaylı kelime verileri; telaffuz, sözcük türü, tanımlar ve örnek cümleler gibi ek bilgileri içerir. Bu veriler kelime detay sayfasında ve egzersizlerde kullanılır.',
       noData: 'Henüz indirilmiş veri bulunmuyor',
       updateSuccess: 'Kelime ve resim verileri başarıyla güncellendi',
       updateError: 'Veriler güncellenirken bir hata oluştu'
