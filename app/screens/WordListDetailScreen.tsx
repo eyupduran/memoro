@@ -70,27 +70,28 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
   const loadWords = async () => {
     try {
       setLoading(true);
-      // Get words with their streak values from the main words table
+      // Kelime listesi custom tablodan geliyor — meaning/example/variantKey burada özeldir.
       const listWords = await dbService.getWordsFromList(Number(listId));
-      
-      // For each word in the list, get its streak value from the main words table
+
+      // Her satır için ana `words` tablosundan SADECE streak değerini al.
+      // Kritik: ana tablodan gelen kaydı olduğu gibi geri döndürmüyoruz çünkü custom
+      // satırdaki meaning/example/variantKey farklı olabilir (ör. detay ekranından
+      // gelen varyantlar). Sadece streak'i üzerine binecek şekilde birleştiriyoruz.
       const wordsWithStreaks = await Promise.all(
-        listWords.map(async (word) => {
+        listWords.map(async (w) => {
           try {
-            // Get the word with streak from the main words table
-            const wordWithStreak = await dbService.getFirstAsync<Word>(
-              'SELECT word, meaning, example, level, streak FROM words WHERE word = ? AND level = ? AND language_pair = ?',
-              [word.word, word.level || 'A1', currentLanguagePair]
+            const streakRow = await dbService.getFirstAsync<{ streak: number }>(
+              'SELECT streak FROM words WHERE word = ? AND level = ? AND language_pair = ?',
+              [w.word, w.level || 'A1', currentLanguagePair]
             );
-            
-            return wordWithStreak || { ...word, streak: 0 };
+            return { ...w, streak: streakRow?.streak ?? 0 };
           } catch (error) {
             console.error('Error getting word streak:', error);
-            return { ...word, streak: 0 };
+            return { ...w, streak: 0 };
           }
         })
       );
-      
+
       setWords(wordsWithStreaks);
       setFilteredWords(wordsWithStreaks);
     } catch (error) {
