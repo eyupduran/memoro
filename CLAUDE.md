@@ -51,6 +51,17 @@ Screens consume data via services (`dbService`, `storageService`) rather than im
 ### Image generation
 The "create lock-screen image" feature composes a selected background with chosen words using `react-native-view-shot`, then saves to the gallery via `expo-media-library`. `WordOverlayScreen` + `ImageSelectionScreen` own this flow and support ~10 layout formats (standard, flashcard, bubble, modern, etc.).
 
+### Lock-screen wallpaper (Android native module)
+A local Expo module at [modules/expo-wallpaper/](modules/expo-wallpaper/) exposes direct lock-screen wallpaper APIs that the JS layer cannot reach otherwise.
+- **Kotlin side** ([WallpaperModule.kt](modules/expo-wallpaper/android/src/main/java/expo/modules/wallpaper/WallpaperModule.kt)): wraps `WallpaperManager.setBitmap(..., FLAG_LOCK)`. Does **not** touch the home-screen wallpaper. Includes MIUI detection and deep-links to MIUI's "Other permissions", "Autostart" and battery optimization screens, because on Xiaomi/Redmi devices `setBitmap` can fail silently without the "Change wallpaper" permission.
+- **Alarm receiver** ([WallpaperAlarmReceiver.kt](modules/expo-wallpaper/android/src/main/java/expo/modules/wallpaper/WallpaperAlarmReceiver.kt)): `AlarmManager`-based daily trigger. Reads a pre-rendered PNG from the app cache dir and applies it **without involving JS/React** — so auto-rotation works even if the user never opens the app. Self-reschedules on each fire and on boot (via `WallpaperBootReceiver`).
+- **iOS**: stub that throws `UNSUPPORTED_PLATFORM`. Apple does not expose any public lock-screen wallpaper API — [WordOverlayScreen.tsx](app/screens/WordOverlayScreen.tsx) falls back to saving to the gallery and showing manual instructions on iOS.
+- **JS service** ([app/services/autoWallpaper.ts](app/services/autoWallpaper.ts)): manages user settings in AsyncStorage, picks words for the next wallpaper (prioritizing unlearned words), and hands captured PNGs to the native module via `Wallpaper.setCachedWallpaperPath()` + `Wallpaper.scheduleDailyWallpaper(hour, minute)`.
+- **Offscreen render component** ([app/components/WallpaperComposer.tsx](app/components/WallpaperComposer.tsx)): standalone `ViewShot`-wrapped renderer supporting 4 layouts (standard, flashcard, modern, bubble) for the auto feature. Intentionally kept separate from `WordOverlayScreen`'s 10-layout system — do not try to unify them without a plan, the coupling is tight.
+- **Foreground refresh hook** ([app/hooks/useAutoWallpaperRefresh.tsx](app/hooks/useAutoWallpaperRefresh.tsx)): mounted in `HomeScreen`, regenerates the cached PNG on each `AppState 'active'` transition (debounced, with an ~18h same-day window) so the next day's alarm always has a fresh image.
+- **Settings UI** ([app/screens/AutoWallpaperSettingsScreen.tsx](app/screens/AutoWallpaperSettingsScreen.tsx)): toggle, time picker, word count / level / layout pills, "Test now" button, and a 3-step MIUI onboarding modal that deep-links to the relevant permission screens.
+- **Entry point**: A menu item on `HomeScreen` (`translations.home.autoWallpaper`) navigates to `AutoWallpaperSettings`.
+
 ## Project conventions (from `.cursor/rules/memoro-general-rules.mdc`)
 
 - **Theme**: never hardcode colors, fonts, or spacing. Pull from `useTheme()` so light/dark/pastel all work. Any new component must render correctly under all three themes.
@@ -65,3 +76,6 @@ The "create lock-screen image" feature composes a selected background with chose
 - `WordListScreen` title uses `translations.wordList.title.replace('{0}', '')` — the `{0}` placeholder pattern is used throughout the localization files; preserve it when adding parameterized strings.
 - Remote word API depends on both `selectedLanguage` (native/UI) and `learningLanguage` keys in AsyncStorage; the URL is `{learning}-{native}` in that order. Defaults are `en` learning, `tr` native.
 - `groups/all_words.json` and `groups/filter_bad_words.go` are tooling/data-prep artifacts, not part of the runtime bundle.
+- **Local native modules live under [modules/](modules/)**, not in `android/` or `ios/` directly. Expo autolinking picks them up at prebuild time — no manual registration in `app.json` `plugins` is needed. When adding native code, edit the module's own `AndroidManifest.xml` (merged automatically) and `build.gradle`.
+- **Auto lock-screen wallpaper is Android-only by design.** Never try to "make it work" on iOS by generating widgets or photo library shortcuts pretending to be wallpapers — Apple does not allow programmatic lock-screen wallpaper and the fallback UX (save + instructions) is the correct answer.
+- On MIUI/HyperOS (Xiaomi/Redmi), `WallpaperManager.setBitmap` can fail silently if the "Change wallpaper" permission under "Other permissions" is off. The native module surfaces `needsMiuiPermission=true` on permission errors — JS handlers should deep-link via `Wallpaper.openMiuiOtherPermissions()`.

@@ -25,6 +25,7 @@ import type { Word } from '../types/words';
 import { storageService } from '../services/storage';
 import Slider from '@react-native-community/slider';
 import * as IntentLauncher from 'expo-intent-launcher';
+import * as Wallpaper from 'expo-wallpaper';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WordOverlay'>;
 
@@ -119,6 +120,27 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
       justifyContent: 'center',
       width: '100%',
       paddingHorizontal: 16,
+    },
+    primaryActionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      marginHorizontal: 16,
+      marginBottom: 10,
+      width: '92%',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    primaryActionButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      marginLeft: 10,
     },
     actionButton: {
       flexDirection: 'row',
@@ -678,6 +700,109 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  const handleSetAsLockScreen = async () => {
+    try {
+      const hasPerms = await requestPermission();
+      if (!hasPerms) {
+        Alert.alert(translations.alerts.permissionRequired, translations.alerts.galleryPermission);
+        return;
+      }
+
+      await ScreenCapture.preventScreenCaptureAsync();
+
+      const captureRef = viewShotRef.current;
+      if (!captureRef || typeof captureRef.capture !== 'function') {
+        return;
+      }
+
+      // @ts-ignore - view-shot types
+      const uri: string = await captureRef.capture({
+        format: 'png',
+        quality: 1,
+      });
+
+      if (Platform.OS !== 'android' || !Wallpaper.isSupported()) {
+        // iOS fallback: save to gallery + show instructions
+        const asset = await MediaLibrary.createAssetAsync(uri);
+        if (!route.params.isReinforcement) {
+          await saveLearnedWords();
+        }
+        Alert.alert(
+          translations.alerts.success,
+          translations.wallpaper.iosInstructions,
+          [
+            {
+              text: translations.alerts.viewInGallery,
+              onPress: () => openGallery(asset.id),
+              style: 'default',
+            },
+            {
+              text: translations.alerts.okay,
+              onPress: () => navigation.navigate('Stats'),
+              style: 'default',
+            },
+          ],
+          { cancelable: false }
+        );
+        return;
+      }
+
+      // Android: set directly as lock-screen wallpaper
+      try {
+        await Wallpaper.setLockScreenWallpaper(uri);
+      } catch (e: any) {
+        const code: string = e?.code || 'UNKNOWN';
+        const needsMiui = typeof e?.message === 'string' && e.message.includes('needsMiuiPermission=true');
+
+        let message = translations.wallpaper.errors.setFailed;
+        if (code === 'PERMISSION_DENIED') message = translations.wallpaper.errors.permissionDenied;
+        else if (code === 'BITMAP_DECODE_FAILED') message = translations.wallpaper.errors.decodeFailed;
+        else if (code === 'UNSUPPORTED_PLATFORM') message = translations.wallpaper.errors.unsupported;
+
+        const buttons: any[] = [{ text: translations.alerts.okay, style: 'default' }];
+        if (needsMiui || code === 'PERMISSION_DENIED') {
+          buttons.unshift({
+            text: translations.wallpaper.openSettings,
+            onPress: () => Wallpaper.openMiuiOtherPermissions(),
+            style: 'default',
+          });
+        }
+        Alert.alert(translations.alerts.error, message, buttons, { cancelable: false });
+        return;
+      }
+
+      // Also save to gallery as a backup/record
+      await MediaLibrary.createAssetAsync(uri);
+
+      if (!route.params.isReinforcement) {
+        await saveLearnedWords();
+      }
+
+      Alert.alert(
+        translations.wallpaper.success,
+        translations.wallpaper.successDescription,
+        [
+          {
+            text: translations.alerts.okay,
+            onPress: () => navigation.navigate('Stats'),
+            style: 'default',
+          },
+        ],
+        { cancelable: false }
+      );
+    } catch (error) {
+      console.error('Error setting lock screen:', error);
+      Alert.alert(
+        translations.alerts.error,
+        translations.alerts.processingError,
+        [{ text: translations.alerts.okay, style: 'default' }],
+        { cancelable: false }
+      );
+    } finally {
+      await ScreenCapture.allowScreenCaptureAsync();
+    }
+  };
+
   // useEffect ile başlangıç değerlerini ayarla
   useEffect(() => {
     setTempFontSize(fontSizeScale);
@@ -967,6 +1092,18 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {!isCustomizeVisible && (
         <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.primaryActionButton, { backgroundColor: colors.primary }]}
+            onPress={handleSetAsLockScreen}
+          >
+            <MaterialIcons name="lock" size={22} color={colors.text.onPrimary} />
+            <Text style={[styles.primaryActionButtonText, { color: colors.text.onPrimary }]}>
+              {Platform.OS === 'android'
+                ? translations.wallpaper.setAsLockScreen
+                : translations.wallpaper.saveAndInstructions}
+            </Text>
+          </TouchableOpacity>
+
           <View style={styles.buttonGroup}>
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: colors.primary }]}

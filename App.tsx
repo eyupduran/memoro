@@ -29,6 +29,7 @@ import { LanguageProvider, useLanguage } from './app/contexts/LanguageContext';
 import ExerciseDetailScreen from './app/screens/ExerciseDetailScreen';
 import GamesScreen from './app/screens/GamesScreen';
 import PredefinedWordListsScreen from './app/screens/PredefinedWordListsScreen';
+import { AutoWallpaperSettingsScreen } from './app/screens/AutoWallpaperSettingsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -227,6 +228,11 @@ const AppNavigator = () => {
           name="PredefinedWordLists"
           component={PredefinedWordListsScreen}
           options={{ title: translations.settings.predefinedWordListsTitle || 'Hazır Kelime Listeleri' }}
+        />
+        <Stack.Screen
+          name="AutoWallpaperSettings"
+          component={AutoWallpaperSettingsScreen}
+          options={{ title: translations.wallpaper.auto.title }}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -1,0 +1,26 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.SET_WALLPAPER" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+  <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+  <application>
+    <receiver
+      android:name="expo.modules.wallpaper.WallpaperAlarmReceiver"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="expo.modules.wallpaper.ACTION_APPLY_WALLPAPER" />
+      </intent-filter>
+    </receiver>
+
+    <receiver
+      android:name="expo.modules.wallpaper.WallpaperBootReceiver"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+      </intent-filter>
+    </receiver>
+  </application>
+</manifest>

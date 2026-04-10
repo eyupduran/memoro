@@ -87,4 +87,5 @@ export type RootStackParamList = {
   PredefinedWordLists: {
     fromOnboarding?: boolean;
   };
-}; 
+  AutoWallpaperSettings: undefined;
+};
