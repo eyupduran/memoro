@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { dbService } from '../services/database';
 import { WordListModal } from '../components/WordListModal';
+import { DetailedDataLoader } from '../components/DetailedDataLoader';
 import type { RootStackParamList } from '../types/navigation';
 import type { Word } from '../types/words';
 
@@ -61,29 +62,28 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [entries, setEntries] = useState<DictEntry[] | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showListModal, setShowListModal] = useState(false);
+  const [showDetailedLoader, setShowDetailedLoader] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({ title: translations.wordDetail.title });
   }, [navigation, translations.wordDetail.title]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      const data = await dbService.getWordDetail(word, currentLanguagePair);
-      if (cancelled) return;
-      if (Array.isArray(data)) {
-        setEntries(data as DictEntry[]);
-      } else {
-        setEntries(null);
-      }
-      setLoading(false);
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
+  // Detayı SQLite'tan yükle. useCallback ile sarılı çünkü hem mount'ta hem de
+  // kullanıcı ekran içinden veri indirdikten sonra yeniden çağırılabilmesi gerekiyor.
+  const loadDetail = useCallback(async () => {
+    setLoading(true);
+    const data = await dbService.getWordDetail(word, currentLanguagePair);
+    if (Array.isArray(data)) {
+      setEntries(data as DictEntry[]);
+    } else {
+      setEntries(null);
+    }
+    setLoading(false);
   }, [word, currentLanguagePair]);
+
+  useEffect(() => {
+    loadDetail();
+  }, [loadDetail]);
 
   // Header için phonetic: ilk non-empty değeri kullan.
   const phonetic = useMemo(() => {
@@ -205,34 +205,6 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     setShowListModal(true);
   };
 
-  const handleStartExercise = () => {
-    if (selectedIds.size === 0) {
-      Alert.alert(translations.wordDetail.noSelectionError);
-      return;
-    }
-    const customWords = buildWordsFromSelection();
-    navigation.navigate('ExerciseQuestion', {
-      exerciseType: 'mixed',
-      questionIndex: 0,
-      totalQuestions: customWords.length,
-      score: 0,
-      wordSource: 'custom',
-      customWords,
-    });
-  };
-
-  const handleCreateImage = () => {
-    if (selectedIds.size === 0) {
-      Alert.alert(translations.wordDetail.noSelectionError);
-      return;
-    }
-    const selectedWords = buildWordsFromSelection();
-    navigation.navigate('ImageSelection', {
-      wordCount: selectedWords.length,
-      selectedWords,
-    });
-  };
-
   const renderBox = (box: DictionaryBox) => {
     const isSelected = selectedIds.has(box.id);
     return (
@@ -326,7 +298,29 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={[styles.noDataText, { color: colors.text.secondary }]}>
             {translations.wordDetail.noData}
           </Text>
+          <TouchableOpacity
+            style={[styles.downloadButton, { backgroundColor: colors.primary }]}
+            onPress={() => setShowDetailedLoader(true)}
+          >
+            <MaterialIcons name="cloud-download" size={20} color={colors.text.onPrimary} />
+            <Text style={[styles.downloadButtonText, { color: colors.text.onPrimary }]}>
+              {translations.wordDetail.downloadNow}
+            </Text>
+          </TouchableOpacity>
         </View>
+
+        {showDetailedLoader && (
+          <DetailedDataLoader
+            visible={showDetailedLoader}
+            languagePair={currentLanguagePair}
+            onComplete={() => {
+              setShowDetailedLoader(false);
+              // İndirme bittikten sonra detayı tekrar yüklemeyi dene —
+              // bu kelime detay setinde varsa artık kutular görünecek.
+              loadDetail();
+            }}
+          />
+        )}
       </View>
     );
   }
@@ -378,37 +372,15 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={[styles.selectedCountText, { color: colors.text.primary }]}>
             {translations.wordDetail.selectedCount.replace('{0}', String(selectedIds.size))}
           </Text>
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.primary + '15' }]}
-              onPress={handleAddToList}
-            >
-              <MaterialIcons name="playlist-add" size={18} color={colors.primary} />
-              <Text style={[styles.actionButtonText, { color: colors.primary }]}>
-                {translations.wordDetail.addToList}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.primary + '15' }]}
-              onPress={handleStartExercise}
-            >
-              <MaterialIcons name="school" size={18} color={colors.primary} />
-              <Text style={[styles.actionButtonText, { color: colors.primary }]}>
-                {translations.wordDetail.startExercise}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.primary + '15' }]}
-              onPress={handleCreateImage}
-            >
-              <MaterialIcons name="image" size={18} color={colors.primary} />
-              <Text style={[styles.actionButtonText, { color: colors.primary }]}>
-                {translations.wordDetail.createImage}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonFull, { backgroundColor: colors.primary + '15' }]}
+            onPress={handleAddToList}
+          >
+            <MaterialIcons name="playlist-add" size={18} color={colors.primary} />
+            <Text style={[styles.actionButtonText, { color: colors.primary }]}>
+              {translations.wordDetail.addToList}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -532,6 +504,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 24,
+    gap: 8,
+  },
+  downloadButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   actionBar: {
     position: 'absolute',
     left: 0,
@@ -546,23 +532,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 8,
-  },
   actionButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
-    gap: 4,
+    gap: 6,
+  },
+  actionButtonFull: {
+    alignSelf: 'stretch',
   },
   actionButtonText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

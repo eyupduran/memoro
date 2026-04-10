@@ -182,7 +182,8 @@ export default {
   wordDetail: {
     title: 'Detalhes da Palavra',
     loading: 'Carregando...',
-    noData: 'Nenhum dado detalhado encontrado para esta palavra. Você pode baixar os dados usando o botão "Baixar Dados Detalhados" na tela de Configurações.',
+    noData: 'Nenhum dado detalhado encontrado para esta palavra. Toque no botão abaixo para baixar os dados detalhados agora.',
+    downloadNow: 'Baixar Dados Detalhados',
     otherExamples: 'Outros exemplos',
     noExample: 'Sem exemplo',
     otherMeanings: 'Outros Significados',
