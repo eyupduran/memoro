@@ -195,6 +195,9 @@ export default {
     noSelectionError: 'Önce en az bir kutu seçin',
     definitionLabel: 'Tanım'
   },
+  wordListDetail: {
+    variantsCount: '{0} farklı anlam — genişletmek için dokun'
+  },
   wordListModal: {
     title: 'Kelime Listesi Seç',
     newListPlaceholder: 'Yeni liste adı',

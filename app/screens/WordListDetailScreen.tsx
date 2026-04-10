@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,13 @@ type Props = NativeStackScreenProps<RootStackParamList, 'WordListDetail'>;
 const MIN_WORDS = APP_CONSTANTS.MIN_WORDS;
 const MAX_WORDS = APP_CONSTANTS.MAX_WORDS;
 
+// Listede gösterilen her bir öğe: ya tek bir Word (eski davranış), ya da aynı
+// `word` alanına sahip birden fazla varyantı (detay ekranından eklenmiş) içeren grup.
+// Grup başlığına tıklanınca altında varyantlar genişler.
+type DisplayItem =
+  | { type: 'single'; word: Word }
+  | { type: 'group'; key: string; word: string; variants: Word[] };
+
 export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): React.ReactElement => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
@@ -36,6 +43,8 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedWords, setSelectedWords] = useState<Word[]>([]);
   const [showMaxWordsMessage, setShowMaxWordsMessage] = useState(false);
+  // Açılmış grup anahtarlarını tutar (aynı kelimenin çoklu varyantları için).
+  const [expandedWords, setExpandedWords] = useState<Set<string>>(new Set());
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const searchInputRef = useRef<TextInput>(null);
@@ -110,11 +119,53 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
     }
 
     const query = searchQuery.toLowerCase();
-    const filtered = words.filter(word => 
-      word.word.toLowerCase().includes(query) || 
+    const filtered = words.filter(word =>
+      word.word.toLowerCase().includes(query) ||
       word.meaning.toLowerCase().includes(query)
     );
     setFilteredWords(filtered);
+  };
+
+  // filteredWords'ten aynı kelimeye ait satırları gruplayarak DisplayItem listesi üret.
+  // - Aynı `word` alanına sahip 1 kayıt → single (sade kart)
+  // - Aynı `word` alanına sahip 2+ kayıt → group (genişletilebilir başlık)
+  // Sıra korunur: gruplar, grubun ilk görüldüğü konumda listelenir — yani mevcut
+  // arama/filter sırasına sadık kalınır.
+  const groupedItems = useMemo<DisplayItem[]>(() => {
+    const buckets = new Map<string, Word[]>();
+    const order: string[] = [];
+
+    for (const w of filteredWords) {
+      const key = w.word;
+      if (!buckets.has(key)) {
+        buckets.set(key, []);
+        order.push(key);
+      }
+      buckets.get(key)!.push(w);
+    }
+
+    const items: DisplayItem[] = [];
+    for (const key of order) {
+      const variants = buckets.get(key)!;
+      if (variants.length === 1) {
+        items.push({ type: 'single', word: variants[0] });
+      } else {
+        items.push({ type: 'group', key: `group-${key}`, word: key, variants });
+      }
+    }
+    return items;
+  }, [filteredWords]);
+
+  const toggleGroup = (groupKey: string) => {
+    setExpandedWords((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
   };
 
   const handleScroll = (event: any) => {
@@ -208,10 +259,103 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
     });
   };
 
+  // Bir kelime grubunun başlık kartı — varyant sayısını göstererek kullanıcıya
+  // "bu kelimenin alt satırları var" ipucunu verir. Tıklanınca altındaki varyantlar
+  // genişler/kapanır. Grup başlığı seçilemez (seçim sadece yaprak varyant kartlarında).
+  const renderGroupHeader = (group: { key: string; word: string; variants: Word[] }) => {
+    const isExpanded = expandedWords.has(group.key);
+    // İstatistiksel özet: varyantlardan birinin level'ı, en yüksek streak.
+    const firstVariant = group.variants[0];
+    const maxStreak = group.variants.reduce((max, v) => Math.max(max, v.streak || 0), 0);
+    const hasHighStreak = maxStreak >= APP_CONSTANTS.STREAK_THRESHOLD;
+    const variantCountText = (translations.wordListDetail?.variantsCount || '{0} varyant')
+      .replace('{0}', String(group.variants.length));
+
+    return (
+      <TouchableOpacity
+        style={styles.wordItemContainer}
+        activeOpacity={0.8}
+        onPress={() => toggleGroup(group.key)}
+      >
+        <View style={[
+          styles.wordItem,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderWidth: 1,
+          },
+        ]}>
+          <View style={styles.levelTagContainer}>
+            <Text style={[styles.levelTag, {
+              backgroundColor: colors.primary + '20',
+              color: colors.primary,
+            }]}>
+              {firstVariant.level}
+            </Text>
+            {hasHighStreak && (
+              <View style={[styles.streakIconContainer, { backgroundColor: colors.success + '20' }]}>
+                <MaterialIcons name="check-circle" size={16} color={colors.success} />
+              </View>
+            )}
+          </View>
+
+          <View style={styles.wordMain}>
+            <View style={styles.wordWithSpeech}>
+              <Text style={[styles.wordText, { color: colors.text.primary }]}>{group.word}</Text>
+              <TouchableOpacity
+                style={styles.speakButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  speakText(group.word);
+                }}
+              >
+                <MaterialIcons name="volume-up" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.meaningText, { color: colors.text.secondary }]}>
+              {variantCountText}
+            </Text>
+          </View>
+
+          <View style={styles.wordActions}>
+            <MaterialIcons
+              name={isExpanded ? 'expand-less' : 'expand-more'}
+              size={28}
+              color={colors.text.secondary}
+            />
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // FlatList'teki her öğe için branch: tek satır normal kart; grup ise başlık
+  // + (açıksa) altında içeriden padding'li varyant kartları.
+  const renderDisplayItem = ({ item }: { item: DisplayItem }) => {
+    if (item.type === 'single') {
+      return renderWordItem({ item: item.word });
+    }
+    const isExpanded = expandedWords.has(item.key);
+    return (
+      <View>
+        {renderGroupHeader(item)}
+        {isExpanded && (
+          <View style={styles.variantsContainer}>
+            {item.variants.map((v) => (
+              <View key={v.id} style={styles.variantRow}>
+                {renderWordItem({ item: v })}
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   const renderWordItem = ({ item }: { item: Word }) => {
     const isSelected = selectedWords.some(w => w.id === item.id);
     const hasHighStreak = (item.streak || 0) >= APP_CONSTANTS.STREAK_THRESHOLD;
-    
+
     return (
       <TouchableOpacity
         style={[
@@ -372,13 +516,14 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
         </View>
       ) : (
         <FlatList
-          data={filteredWords}
-          renderItem={renderWordItem}
-          keyExtractor={(item) => item.id}
+          data={groupedItems}
+          renderItem={renderDisplayItem}
+          keyExtractor={(item) => item.type === 'single' ? item.word.id : item.key}
           contentContainerStyle={[styles.listContent, { paddingTop: 82, paddingBottom: 84 }]}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
+          extraData={expandedWords}
         />
       )}
       {selectedWords.length > 0 && (
@@ -459,6 +604,16 @@ const styles = StyleSheet.create({
   },
   selectedWordItemContainer: {
     padding: 0,
+  },
+  // Grup başlığının altındaki yaprak varyant kartlarını içerir.
+  // Sol padding ile ana satırdan görsel olarak ayırılır.
+  variantsContainer: {
+    paddingLeft: 16,
+    marginTop: -4,
+    marginBottom: 4,
+  },
+  variantRow: {
+    // Her varyant, içindeki wordItemContainer'ın kendi marginBottom'ı ile zaten boşluklu.
   },
   wordItem: {
     padding: 12,

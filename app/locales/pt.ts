@@ -195,6 +195,9 @@ export default {
     noSelectionError: 'Selecione pelo menos uma caixa primeiro',
     definitionLabel: 'Definição'
   },
+  wordListDetail: {
+    variantsCount: '{0} significados diferentes — toque para expandir'
+  },
   wordListModal: {
     title: 'Selecionar Lista de Palavras',
     newListPlaceholder: 'Nome da nova lista',
