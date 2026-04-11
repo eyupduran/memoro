@@ -12,15 +12,14 @@ import { LanguageSelectorSettings } from '../components/LanguageSelectorSettings
 import { DataLoader } from '../components/DataLoader';
 import { DetailedDataLoader } from '../components/DetailedDataLoader';
 import { checkWordDataExists } from '../utils/database';
-import { BackupRestoreSection } from '../components/BackupRestoreSection';
-import { translations as allTranslations, NativeLanguage } from '../contexts/LanguageContext';
+import { CloudAccountSection } from '../components/CloudAccountSection';
 import WordListDownloadModal from '../components/WordListDownloadModal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export const SettingsScreen: React.FC<Props> = (props) => {
   const { theme, setTheme, colors } = useTheme();
-  const { translations, currentLanguagePair, showDataLoader: globalShowDataLoader, setShowDataLoader: setGlobalShowDataLoader, setNativeLanguage } = useLanguage();
+  const { translations, currentLanguagePair, showDataLoader: globalShowDataLoader, setShowDataLoader: setGlobalShowDataLoader } = useLanguage();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [hasDownloadedData, setHasDownloadedData] = useState(false);
   const [showDataLoader, setShowDataLoader] = useState(false);
@@ -178,49 +177,6 @@ export const SettingsScreen: React.FC<Props> = (props) => {
   const onDataLoadComplete = async () => {
     setShowDataLoader(false); // Local loader'ı kapat
     await checkDownloadedData(); // Verileri tekrar kontrol et
-  };
-
-  const handleImportComplete = (result: { success: boolean; languagePair?: string }) => {
-    if (result.success && result.languagePair) {
-      if (result.languagePair !== currentLanguagePair) {
-        // Dil çifti farklı, güncelleme gerekiyor
-        const newNativeLang = result.languagePair.split('-')[1] as NativeLanguage;
-        
-        setNativeLanguage(newNativeLang);
-        
-        const newTranslations = allTranslations[newNativeLang];
-
-        setTimeout(() => {
-          Alert.alert(
-            newTranslations.settings.backup.languageChangedTitle,
-            newTranslations.settings.backup.languageChangedMessage,
-            [
-              {
-                text: newTranslations.alerts.okay,
-                onPress: () => {
-                  setShowDataLoader(true); // Veri indirmeyi tetikle
-                }
-              }
-            ]
-          );
-        }, 500);
-
-      } else {
-        // Dil çifti aynı, normal başarı mesajı
-        setTimeout(() => {
-          Alert.alert(
-            translations.alerts.success,
-            translations.settings.backup.importSuccess
-          );
-        }, 500);
-      }
-    } else {
-      // İçe aktarma başarısız oldu
-       Alert.alert(
-        translations.alerts.error,
-        translations.settings.backup.importError
-      );
-    }
   };
 
   const themes: { type: ThemeType; label: string; icon: keyof typeof MaterialIcons.glyphMap; description: string }[] = [
@@ -402,17 +358,9 @@ export const SettingsScreen: React.FC<Props> = (props) => {
           </TouchableOpacity>
         </View>
 
-        {/* Backup and Restore Section */}
+        {/* Cloud Account Section (replaces the old file-based backup/restore) */}
         <View style={styles.section}>
-          <BackupRestoreSection 
-            currentLanguagePair={currentLanguagePair} 
-            onRestoreComplete={() => {
-              // Tema ve dil ayarlarını kontrol et
-              checkNotificationSettings();
-              checkDownloadedData();
-            }}
-            onImportComplete={handleImportComplete}
-          />
+          <CloudAccountSection />
         </View>
 
         <View style={[styles.section, { marginBottom: 0 }]}>

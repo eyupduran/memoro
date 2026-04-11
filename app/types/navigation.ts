@@ -8,6 +8,7 @@ export type WordSource = 'learned' | 'dictionary' | 'wordlist' | 'custom';
 export type RootStackParamList = {
   Home: undefined;
   Onboarding: undefined;
+  Auth: undefined;
   LevelSelection: undefined;
   WordCount: {
     level: string;

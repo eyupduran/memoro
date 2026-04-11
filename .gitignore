@@ -30,7 +30,15 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.local
 .env*.local
 
 # typescript
 *.tsbuildinfo
+
+# Claude Code local cache
+.claude/
+
+# Local EAS build output directory (used by `eas build --local --output`)
+output/

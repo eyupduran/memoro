@@ -2,10 +2,56 @@ import * as SQLite from 'expo-sqlite';
 import type { Word, WordList, LearnedWord } from '../types/words';
 import type { UnfinishedExercise } from '../screens/ExerciseQuestionScreen';
 
+/**
+ * Logical tables that cloudSync knows how to push. Every write method in
+ * DatabaseService tags itself with one of these so cloudSync can push only
+ * the tables that actually changed instead of re-uploading everything.
+ *
+ * Note: exercise_results and exercise_details are tagged together under
+ * 'exercise_results' because the two are always written as a pair and the
+ * push logic joins them.
+ */
+export type SyncTable =
+  | 'learned_words'
+  | 'word_progress'
+  | 'exercise_results'
+  | 'custom_word_lists'
+  | 'custom_word_list_items'
+  | 'unfinished_exercises'
+  | 'user_settings';
+
 class DatabaseService {
   private db!: SQLite.SQLiteDatabase;
   private initialized: boolean = false;
   private BATCH_SIZE = 500; // Toplu işlem için maksimum kelime sayısı
+  // Called after any user-data write. cloudSync registers a listener here to
+  // schedule a debounced push. The argument is the *logical* table name so
+  // cloudSync can skip pushing tables that haven't changed.
+  //
+  // Kept as a callback rather than an import to avoid a circular dependency
+  // (cloudSync imports dbService).
+  private onDirtyCallback: ((table: SyncTable) => void) | null = null;
+  // When > 0, markDirty is suppressed. cloudSync bumps this around pull()
+  // so writes done by the pull flow itself don't trigger another push.
+  private suppressDirtyDepth = 0;
+
+  public setOnDirty(callback: ((table: SyncTable) => void) | null): void {
+    this.onDirtyCallback = callback;
+  }
+
+  public suppressDirty(on: boolean): void {
+    this.suppressDirtyDepth += on ? 1 : -1;
+    if (this.suppressDirtyDepth < 0) this.suppressDirtyDepth = 0;
+  }
+
+  private markDirty(table: SyncTable): void {
+    if (this.suppressDirtyDepth > 0) return;
+    try {
+      this.onDirtyCallback?.(table);
+    } catch (err) {
+      console.warn('onDirty callback threw:', err);
+    }
+  }
 
   constructor() {
     try {
@@ -582,12 +628,13 @@ class DatabaseService {
   async deleteLearnedWord(word: string, languagePair: string): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
+
       const result = await this.db.runAsync(
         'DELETE FROM learned_words WHERE word = ? AND language_pair = ?',
         [word, languagePair]
       );
-      
+
+      if (result.changes > 0) this.markDirty('learned_words');
       return result.changes > 0;
     } catch (error) {
       console.error('Error deleting learned word:', error);
@@ -599,12 +646,13 @@ class DatabaseService {
   async incrementWordStreak(word: string, level: string, languagePair: string): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
+
       const result = await this.db.runAsync(
         'UPDATE words SET streak = streak + 1 WHERE word = ? AND level = ? AND language_pair = ?',
         [word, level, languagePair]
       );
-      
+
+      if (result.changes > 0) this.markDirty('word_progress');
       return result.changes > 0;
     } catch (error) {
       console.error('Error incrementing word streak:', error);
@@ -616,12 +664,13 @@ class DatabaseService {
   async decrementWordStreak(word: string, level: string, languagePair: string): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
+
       const result = await this.db.runAsync(
         'UPDATE words SET streak = MAX(0, streak - 1) WHERE word = ? AND level = ? AND language_pair = ?',
         [word, level, languagePair]
       );
-      
+
+      if (result.changes > 0) this.markDirty('word_progress');
       return result.changes > 0;
     } catch (error) {
       console.error('Error decrementing word streak:', error);
@@ -649,12 +698,13 @@ class DatabaseService {
   async resetWordStreak(word: string, level: string, languagePair: string): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
+
       const result = await this.db.runAsync(
         'UPDATE words SET streak = 0 WHERE word = ? AND level = ? AND language_pair = ?',
         [word, level, languagePair]
       );
-      
+
+      if (result.changes > 0) this.markDirty('word_progress');
       return result.changes > 0;
     } catch (error) {
       console.error('Error resetting word streak:', error);
@@ -734,14 +784,15 @@ class DatabaseService {
           }
           
           const query = `
-            INSERT OR REPLACE INTO learned_words (word, meaning, example, level, learnedAt, language_pair) 
+            INSERT OR REPLACE INTO learned_words (word, meaning, example, level, learnedAt, language_pair)
             VALUES ${placeholders.join(',')}
           `;
-          
+
           await this.db.runAsync(query, values);
         }
       });
-      
+
+      this.markDirty('learned_words');
       return true;
     } catch (error) {
       console.error('Error saving learned words to SQLite:', error);
@@ -961,7 +1012,8 @@ class DatabaseService {
         'INSERT INTO exercise_results (exercise_type, score, total_questions, date, language_pair, word_source, level, word_list_id, word_list_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [exerciseType, score, totalQuestions, date, languagePair, wordSource, level, wordListId, wordListName]
       );
-      
+
+      this.markDirty('exercise_results');
       // Eklenen kaydın ID'sini döndür
       return result.lastInsertRowId;
     } catch (error) {
@@ -978,15 +1030,18 @@ class DatabaseService {
   ): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
+
       // Detayları JSON olarak serialize et
       const detailsJson = JSON.stringify(details);
-      
+
       await this.db.runAsync(
         'INSERT INTO exercise_details (exercise_id, details, language_pair) VALUES (?, ?, ?)',
         [exerciseId, detailsJson, languagePair]
       );
-      
+
+      // exercise_results ve exercise_details her zaman beraber push edilir —
+      // details yazıldığında tek bir dirty tag yeterli.
+      this.markDirty('exercise_results');
       return true;
     } catch (error) {
       console.error('Error saving exercise details:', error);
@@ -1082,13 +1137,14 @@ class DatabaseService {
   async createWordList(name: string, languagePair: string): Promise<number | null> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
+
       const createdAt = new Date().toISOString();
       const result = await this.db.runAsync(
         'INSERT INTO custom_word_lists (name, created_at, language_pair) VALUES (?, ?, ?)',
         [name, createdAt, languagePair]
       );
-      
+
+      this.markDirty('custom_word_lists');
       return result.lastInsertRowId || null;
     } catch (error) {
       console.error('Error creating word list:', error);
@@ -1126,6 +1182,7 @@ class DatabaseService {
         );
       }
 
+      this.markDirty('custom_word_list_items');
       return true;
     } catch (error) {
       console.error('Error adding word to list:', error);
@@ -1188,8 +1245,12 @@ class DatabaseService {
   async deleteWordList(listId: number): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
+
       await this.db.runAsync('DELETE FROM custom_word_lists WHERE id = ?', [listId]);
+      // Listeyi silmek ON DELETE CASCADE ile items'ları da siler — iki tablo da
+      // dirty. Items'ı da işaretliyoruz ki push o tabloyu da yeniden yazsın.
+      this.markDirty('custom_word_lists');
+      this.markDirty('custom_word_list_items');
       return true;
     } catch (error) {
       console.error('Error deleting word list:', error);
@@ -1219,6 +1280,7 @@ class DatabaseService {
           [listId, word]
         );
       }
+      this.markDirty('custom_word_list_items');
       return true;
     } catch (error) {
       console.error('Error removing word from list:', error);
@@ -1341,7 +1403,7 @@ class DatabaseService {
   async saveUnfinishedExercise(exercise: UnfinishedExercise): Promise<void> {
     const query = `
       INSERT OR REPLACE INTO unfinished_exercises (
-        timestamp, language_pair, exercise_type, question_index, total_questions, score, 
+        timestamp, language_pair, exercise_type, question_index, total_questions, score,
         asked_words, question_details, word_source, level, word_list_id, word_list_name, previous_type
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
@@ -1361,6 +1423,7 @@ class DatabaseService {
       exercise.previousType || null,
     ];
     await this.db.runAsync(query, params);
+    this.markDirty('unfinished_exercises');
   }
 
   async getUnfinishedExercises(languagePair: string): Promise<UnfinishedExercise[]> {
@@ -1391,6 +1454,307 @@ class DatabaseService {
   async deleteUnfinishedExercise(timestamp: number): Promise<void> {
     const query = 'DELETE FROM unfinished_exercises WHERE timestamp = ?';
     await this.db.runAsync(query, [timestamp]);
+    this.markDirty('unfinished_exercises');
+  }
+
+  // ===========================================================================
+  // Cloud sync helpers
+  // These are used by `cloudSync.ts` to serialize/restore user data over the
+  // wire. They are intentionally "raw" (no JSON reshaping) so the sync layer
+  // can push and pull in a predictable shape.
+  // ===========================================================================
+
+  /**
+   * Returns learned words for a language pair with every column needed to push
+   * to cloud, including `language_pair` itself.
+   */
+  async getLearnedWordsRaw(languagePair: string): Promise<Array<{
+    word: string;
+    meaning: string;
+    example: string | null;
+    level: string;
+    learnedAt: string;
+  }>> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      const rows = await this.db.getAllAsync<{
+        word: string;
+        meaning: string;
+        example: string | null;
+        level: string;
+        learnedAt: string;
+      }>(
+        'SELECT word, meaning, example, level, learnedAt FROM learned_words WHERE language_pair = ?',
+        [languagePair]
+      );
+      return rows;
+    } catch (error) {
+      console.error('Error in getLearnedWordsRaw:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Returns per-word streak progress that is nonzero, for sync to cloud.
+   * Streaks live on the global `words` table, so we scope by language_pair
+   * and only include rows where the user has actually made progress.
+   */
+  async getWordProgressForSync(languagePair: string): Promise<Array<{
+    word: string;
+    level: string;
+    streak: number;
+  }>> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      const rows = await this.db.getAllAsync<{
+        word: string;
+        level: string;
+        streak: number;
+      }>(
+        'SELECT word, level, streak FROM words WHERE language_pair = ? AND streak > 0',
+        [languagePair]
+      );
+      return rows;
+    } catch (error) {
+      console.error('Error in getWordProgressForSync:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Restores word progress pulled from the cloud. Streaks are stored on the
+   * global `words` table — this method only updates rows that already exist
+   * (the global word list is seeded on first launch, so by the time we pull,
+   * the words are present).
+   */
+  async restoreWordProgress(
+    progress: Array<{ word: string; level: string; streak: number }>,
+    languagePair: string
+  ): Promise<void> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      if (progress.length === 0) return;
+      await this.db.withTransactionAsync(async () => {
+        for (const p of progress) {
+          await this.db.runAsync(
+            'UPDATE words SET streak = ? WHERE word = ? AND level = ? AND language_pair = ?',
+            [p.streak, p.word, p.level, languagePair]
+          );
+        }
+      });
+    } catch (error) {
+      console.error('Error in restoreWordProgress:', error);
+    }
+  }
+
+  /**
+   * Returns exercise results with every column needed to push to cloud.
+   */
+  async getExerciseResultsForSync(languagePair: string): Promise<Array<{
+    id: number;
+    exercise_type: string;
+    score: number;
+    total_questions: number;
+    date: string;
+    word_source: string | null;
+    level: string | null;
+    word_list_id: number | null;
+    word_list_name: string | null;
+  }>> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      const rows = await this.db.getAllAsync<any>(
+        `SELECT id, exercise_type, score, total_questions, date, word_source, level, word_list_id, word_list_name
+         FROM exercise_results WHERE language_pair = ?`,
+        [languagePair]
+      );
+      return rows;
+    } catch (error) {
+      console.error('Error in getExerciseResultsForSync:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Used by the pull flow to re-insert a full exercise result row. The caller
+   * passes the original `client_id` (the SQLite id that was originally
+   * generated when the user created this row) and we preserve it — otherwise
+   * the next push would send a NEW autoincrement id for the same row, and
+   * the cloud would accumulate duplicates on every sign-out/sign-in cycle.
+   */
+  async insertExerciseResultRaw(
+    id: number,
+    row: {
+      exercise_type: string;
+      score: number;
+      total_questions: number;
+      date: string;
+      language_pair: string;
+      word_source: string | null;
+      level: string | null;
+      word_list_id: number | null;
+      word_list_name: string | null;
+    }
+  ): Promise<number | null> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      const result = await this.db.runAsync(
+        `INSERT INTO exercise_results (id, exercise_type, score, total_questions, date, language_pair, word_source, level, word_list_id, word_list_name)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          row.exercise_type,
+          row.score,
+          row.total_questions,
+          row.date,
+          row.language_pair,
+          row.word_source,
+          row.level,
+          row.word_list_id,
+          row.word_list_name,
+        ]
+      );
+      return result.lastInsertRowId ?? id;
+    } catch (error) {
+      console.error('Error in insertExerciseResultRaw:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Returns custom word list items for sync — the raw rows (word + variant_key
+   * + added_at) that map 1:1 to the cloud `custom_word_list_items` table.
+   */
+  async getWordListItemsForSync(listId: number): Promise<Array<{
+    word: string;
+    meaning: string;
+    example: string | null;
+    level: string;
+    added_at: string;
+    variant_key: string;
+  }>> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      const rows = await this.db.getAllAsync<any>(
+        'SELECT word, meaning, example, level, added_at, variant_key FROM custom_word_list_items WHERE list_id = ?',
+        [listId]
+      );
+      return rows;
+    } catch (error) {
+      console.error('Error in getWordListItemsForSync:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Used by the pull flow to re-create a word list with its original id
+   * (the cloud `client_id`). Preserving the id is critical so the next push
+   * doesn't send a different id for the same row — otherwise the cloud
+   * would accumulate duplicates on every sign-out/sign-in cycle.
+   */
+  async insertWordListRaw(
+    id: number,
+    name: string,
+    createdAt: string,
+    languagePair: string
+  ): Promise<number | null> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      const result = await this.db.runAsync(
+        'INSERT INTO custom_word_lists (id, name, created_at, language_pair) VALUES (?, ?, ?, ?)',
+        [id, name, createdAt, languagePair]
+      );
+      return result.lastInsertRowId ?? id;
+    } catch (error) {
+      console.error('Error in insertWordListRaw:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Used by the pull flow to insert a word list item with a specific added_at.
+   */
+  async insertWordListItemRaw(
+    listId: number,
+    item: {
+      word: string;
+      meaning: string;
+      example: string;
+      level: string;
+      added_at: string;
+      variant_key: string;
+    }
+  ): Promise<boolean> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      await this.db.runAsync(
+        `INSERT OR IGNORE INTO custom_word_list_items
+         (list_id, word, meaning, example, level, added_at, variant_key)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          listId,
+          item.word,
+          item.meaning,
+          item.example || '',
+          item.level,
+          item.added_at,
+          item.variant_key || '',
+        ]
+      );
+      return true;
+    } catch (error) {
+      console.error('Error in insertWordListItemRaw:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Wipes all USER-SPECIFIC data from the local DB. Global content (the
+   * `words`, `word_details`, and `background_images` tables) is PRESERVED so
+   * the app does not need to re-download after a sign-out / sign-in.
+   *
+   * Word streaks on the `words` table are also reset to zero for the given
+   * language pair — they're conceptually user progress even though they live
+   * on a shared table.
+   */
+  async wipeUserData(languagePair: string): Promise<void> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      await this.db.withTransactionAsync(async () => {
+        await this.db.runAsync(
+          'DELETE FROM learned_words WHERE language_pair = ?',
+          [languagePair]
+        );
+        await this.db.runAsync(
+          'DELETE FROM exercise_details WHERE language_pair = ?',
+          [languagePair]
+        );
+        await this.db.runAsync(
+          'DELETE FROM exercise_results WHERE language_pair = ?',
+          [languagePair]
+        );
+        // custom_word_list_items cascade via FK when their parent list is gone
+        await this.db.runAsync(
+          'DELETE FROM custom_word_lists WHERE language_pair = ?',
+          [languagePair]
+        );
+        // Clean up any orphaned items just in case FK cascade is disabled
+        await this.db.runAsync(
+          'DELETE FROM custom_word_list_items WHERE list_id NOT IN (SELECT id FROM custom_word_lists)'
+        );
+        await this.db.runAsync(
+          'DELETE FROM unfinished_exercises WHERE language_pair = ?',
+          [languagePair]
+        );
+        // Reset streaks on the global word table (they are per-user progress)
+        await this.db.runAsync(
+          'UPDATE words SET streak = 0 WHERE language_pair = ?',
+          [languagePair]
+        );
+      });
+    } catch (error) {
+      console.error('Error in wipeUserData:', error);
+    }
   }
 }
 
