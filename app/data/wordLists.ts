@@ -188,22 +188,32 @@ export const loadDetailedWordsForLanguagePair = async (
     }
 
     progressCallback?.(40);
-
-    const rawData = await response.json();
+    const text = await response.text();
+    let rawData;
+    try {
+      rawData = JSON.parse(text);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      throw new Error('Failed to parse detailed words JSON');
+    }
 
     if (!Array.isArray(rawData)) {
+      console.log('Beklenmeyen detaylı kelime verisi formatı:', typeof rawData, 'isArray:', Array.isArray(rawData), 'value:', rawData);
       throw new Error('Detailed words response is not an array');
     }
 
     progressCallback?.(55);
 
+    console.log('rawData type:', typeof rawData, 'isArray:', Array.isArray(rawData), 'length:', rawData?.length);
+
     // Dizi-dizi formatını kelime anahtarlı Record'a dönüştür.
     // Aynı kelime için birden fazla üst-seviye grup gelirse (olağan değil ama mümkün),
     // sonrakini öncekinin üzerine yazmak yerine birleştiriyoruz ki hiçbir sözlük girdisi kaybolmasın.
-    const detailsByWord: Record<string, any[]> = {};
+    const detailsByWord = new Map<string, any[]>();
     let skipped = 0;
-
-    for (const group of rawData) {
+    
+    for (let i = 0; i < rawData.length; i++) {
+      const group = rawData[i];
       if (!Array.isArray(group) || group.length === 0) {
         skipped++;
         continue;
@@ -214,10 +224,13 @@ export const loadDetailedWordsForLanguagePair = async (
         skipped++;
         continue;
       }
-      if (detailsByWord[word]) {
-        detailsByWord[word] = [...detailsByWord[word], ...group];
+      if (detailsByWord.has(word)) {
+        const existing = detailsByWord.get(word)!;
+        for (let j = 0; j < group.length; j++) {
+          existing.push(group[j]);
+        }
       } else {
-        detailsByWord[word] = group;
+        detailsByWord.set(word, group.slice());
       }
     }
 
@@ -225,7 +238,7 @@ export const loadDetailedWordsForLanguagePair = async (
       console.warn(`Detailed words: ${skipped} grup atlandı (geçersiz format veya eksik word alanı)`);
     }
 
-    const wordCount = Object.keys(detailsByWord).length;
+    const wordCount = detailsByWord.size;
     if (wordCount === 0) {
       throw new Error('Detailed words response did not contain any usable entries');
     }
@@ -233,7 +246,8 @@ export const loadDetailedWordsForLanguagePair = async (
     console.log(`Detaylı kelime verisi: ${wordCount} benzersiz kelime hazırlandı`);
     progressCallback?.(70);
 
-    const saved = await dbService.saveWordDetails(detailsByWord, languagePair);
+    const finalDetails = Object.fromEntries(detailsByWord.entries());
+    const saved = await dbService.saveWordDetails(finalDetails, languagePair);
     if (!saved) {
       throw new Error('Failed to save detailed word data to SQLite');
     }
