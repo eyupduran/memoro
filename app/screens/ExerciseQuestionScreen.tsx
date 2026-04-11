@@ -74,11 +74,65 @@ const sounds = {
   click: null as Audio.Sound | null,
 };
 
-// Cümle sıralama egzersizinde "oku" butonu sadece cümle bu eşikten uzunsa gösterilir.
-// Kısa cümlelerde kelimeleri karıştırarak doğru sırayı bulmak zaten kolay —
-// her cümlede oku butonu vermek egzersizi aşırı kolaylaştırır.
-// 9 kelime eşiği: A2-B2 örnek cümlelerinin üst yarısını "uzun" olarak işaretler.
-const SENTENCE_ORDERING_READ_ALOUD_MIN_WORDS = 9;
+// Cümle sıralama egzersizinde "oku" butonu cümle başına bir streak mantığıyla gösterilir:
+// kullanıcı bir cümleyi ilk defa sıralıyorsa (streak === 0) buton çıkar; doğru sıralayıp
+// streak'i 1'e çıkardıktan sonra aynı cümle tekrar karşısına geldiğinde buton çıkmaz.
+// Yanlış sıralarsa streak sıfırlanır ve bir sonraki denemede buton geri gelir.
+// Böylece uzun cümleler ezberle değil tekrarla çözülür; kolay cümlelerde de buton
+// gereksiz yere elini tutmaz.
+const SENTENCE_ORDERING_STREAK_STORAGE_KEY = 'sentence_ordering_streaks';
+
+// Cümle bazlı streak kayıtları için stabil anahtar: küçük harf, tek boşluk, son noktalama yok.
+const normalizeSentenceForStreakKey = (sentence: string) =>
+  sentence
+    .trim()
+    .toLowerCase()
+    .replace(/[.!?]+$/, '')
+    .split(/\s+/)
+    .join(' ');
+
+const buildSentenceStreakKey = (sentence: string, languagePair: string) =>
+  `${languagePair}::${normalizeSentenceForStreakKey(sentence)}`;
+
+const loadSentenceOrderingStreakMap = async (): Promise<Record<string, number>> => {
+  try {
+    const raw = await storageService.getItem(SENTENCE_ORDERING_STREAK_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    console.error('Error loading sentence ordering streak map:', error);
+    return {};
+  }
+};
+
+const getSentenceOrderingStreak = async (
+  sentence: string,
+  languagePair: string
+): Promise<number> => {
+  const map = await loadSentenceOrderingStreakMap();
+  const key = buildSentenceStreakKey(sentence, languagePair);
+  return typeof map[key] === 'number' ? map[key] : 0;
+};
+
+const setSentenceOrderingStreak = async (
+  sentence: string,
+  languagePair: string,
+  value: number
+): Promise<void> => {
+  try {
+    const map = await loadSentenceOrderingStreakMap();
+    const key = buildSentenceStreakKey(sentence, languagePair);
+    if (value <= 0) {
+      delete map[key];
+    } else {
+      map[key] = value;
+    }
+    await storageService.setItem(SENTENCE_ORDERING_STREAK_STORAGE_KEY, JSON.stringify(map));
+  } catch (error) {
+    console.error('Error saving sentence ordering streak:', error);
+  }
+};
 
 const ExerciseQuestionScreen: React.FC = () => {
   const route = useRoute<ExerciseQuestionScreenProps['route']>();
@@ -136,6 +190,8 @@ const ExerciseQuestionScreen: React.FC = () => {
 
   const [orderingOptions, setOrderingOptions] = useState<Array<{ word: string; index: number }>>([]);
   const [orderingSelected, setOrderingSelected] = useState<Array<{ word: string; index: number }>>([]);
+  // Mevcut cümlenin sıralama streak değeri: 0 iken "oku" butonu gösterilir, >=1 iken gizlenir.
+  const [currentSentenceOrderingStreak, setCurrentSentenceOrderingStreak] = useState<number>(0);
 
   // Önceki sayfadan gelen soru detaylarını yükle
   useEffect(() => {
@@ -666,10 +722,11 @@ const ExerciseQuestionScreen: React.FC = () => {
     setOptions(allOptions.sort(() => Math.random() - 0.5));
   };
 
-  const prepareSentenceOrderingQuestion = (question: LearnedWord | Word) => {
+  const prepareSentenceOrderingQuestion = async (question: LearnedWord | Word) => {
     if (!question.example) {
       setOrderingOptions([]);
       setOrderingSelected([]);
+      setCurrentSentenceOrderingStreak(0);
       return;
     }
     let words = question.example.trim().split(/\s+/);
@@ -686,6 +743,10 @@ const ExerciseQuestionScreen: React.FC = () => {
     const shuffled = [...wordsWithIndices].sort(() => Math.random() - 0.5);
     setOrderingOptions(shuffled);
     setOrderingSelected([]);
+
+    // Bu cümlenin mevcut sıralama streak'ini yükle — "oku" butonunun görünürlüğünü belirler.
+    const streak = await getSentenceOrderingStreak(question.example, currentLanguagePair);
+    setCurrentSentenceOrderingStreak(streak);
   };
 
   // İlerleme çubuğu animasyonunu başlat
@@ -862,6 +923,20 @@ const ExerciseQuestionScreen: React.FC = () => {
       playWrongSound();
       if (currentQuestion && (wordSource === 'wordlist' || wordSource === 'custom')) {
         decrementWordStreak(currentQuestion);
+      }
+    }
+
+    // Cümle bazlı sıralama streak'ini güncelle — "oku" butonunun bir sonraki sefer
+    // görünüp görünmeyeceğini bu değer belirler. Doğru cevap streak'i artırır, yanlış
+    // cevap sıfırlar.
+    if (currentQuestion.example) {
+      if (correct) {
+        const nextStreak = currentSentenceOrderingStreak + 1;
+        setCurrentSentenceOrderingStreak(nextStreak);
+        setSentenceOrderingStreak(currentQuestion.example, currentLanguagePair, nextStreak);
+      } else {
+        setCurrentSentenceOrderingStreak(0);
+        setSentenceOrderingStreak(currentQuestion.example, currentLanguagePair, 0);
       }
     }
     // Soru detaylarını kaydet (normalize edilmiş versiyonlarla)
@@ -1243,11 +1318,10 @@ const ExerciseQuestionScreen: React.FC = () => {
         </View>
       );
     }
-    // Cümle uzun mu? Uzunsa kullanıcıya "oku" butonu göster — kısa cümlelerde
-    // karıştırılmış kelimelerden doğru sırayı bulmak zaten kolay, buton egzersizi
-    // gereksiz yere kolaylaştırır; uzun cümlelerde ise hafıza yükü çok artıyor.
-    const sentenceWordCount = currentQuestion.example.trim().split(/\s+/).length;
-    const showReadAloudButton = sentenceWordCount >= SENTENCE_ORDERING_READ_ALOUD_MIN_WORDS;
+    // Bu cümlenin sıralama streak'i yoksa (ilk deneme ya da önceki yanlış cevap sonrası
+    // sıfırlanmış) "oku" butonu gösterilir; streak >= 1 ise kullanıcı bu cümleyi zaten
+    // en az bir kez doğru sıralamış demektir, buton gizlenir.
+    const showReadAloudButton = currentSentenceOrderingStreak === 0;
 
     return (
       <View style={styles.questionContainer}>
