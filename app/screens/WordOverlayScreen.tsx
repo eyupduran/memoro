@@ -26,6 +26,7 @@ import { storageService } from '../services/storage';
 import Slider from '@react-native-community/slider';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as Wallpaper from 'expo-wallpaper';
+import { autoWallpaperService } from '../services/autoWallpaper';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WordOverlay'>;
 
@@ -40,7 +41,8 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
   const viewShotRef = useRef<ViewShot>(null);
-  const { selectedImage, selectedWords } = route.params;
+  const { selectedImage, selectedWords, autoCapture } = route.params;
+  const isHeadlessCapture = !!autoCapture;
   const windowWidth = Dimensions.get('window').width;
 
   const styles = useMemo(() => StyleSheet.create({
@@ -67,8 +69,10 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
       paddingBottom: 100,
     },
     wordContainer: {
-      flex: 1,
-      justifyContent: 'center',
+      // NOT centered with flex — we use absolute top-down positioning
+      // via transform: translateY(positionOffsetY). This keeps the
+      // preview in AutoWallpaperSettingsScreen and the real capture
+      // aligned pixel-for-pixel.
     },
     wordBox: {
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -137,10 +141,33 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
       shadowRadius: 4,
       elevation: 4,
     },
+    primaryActionRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100%',
+      paddingHorizontal: 16,
+      marginBottom: 10,
+    },
+    primaryActionButtonHalf: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 10,
+      borderRadius: 10,
+      marginHorizontal: 4,
+      flex: 1,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 4,
+    },
     primaryActionButtonText: {
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: '700',
-      marginLeft: 10,
+      marginLeft: 8,
     },
     actionButton: {
       flexDirection: 'row',
@@ -382,39 +409,72 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     },
   }), [colors, windowWidth]);
 
-  // Kelime sayısına göre başlangıç dikey konumunu belirle
+  // Kelime sayısına göre başlangıç dikey konumunu belirle.
+  //
+  // Değer `translateY` olarak kullanılır — `wordContainer` layout'ta
+  // en üstten başlar, transform bu kadar aşağı iter. Yani 0 = en üst.
+  //
+  // Xiaomi/MIUI kilit ekranındaki saat + tarih bloğu ekranın üst
+  // %35-40'ını kaplayabiliyor. Default'u %50 (ekran ortası) yapıyoruz
+  // — saatin tam altı + alt kısımda biraz nefes payı.
   const getInitialVerticalPosition = () => {
     const screenHeight = Dimensions.get('window').height;
     const wordCount = selectedWords.length;
-    const estimatedWordHeight = 100; // Ortalama bir kelime yüksekliği
+    const estimatedWordHeight = 110;
     const totalContentHeight = wordCount * estimatedWordHeight;
-    
-    // Ekranın ortasından içeriğin yarısını çıkararak ortalama pozisyonu bul
-    const centerPosition = (screenHeight / 2) - (totalContentHeight / 2);
-    
-    // Minimum 50px, maksimum ekran yüksekliğinin 3/4'ü kadar olsun
-    return Math.min(Math.max(centerPosition, 50), screenHeight * 0.75);
+
+    // Taban: ekran ortası (%50)
+    const minTop = screenHeight * 0.5;
+
+    // İçeriği ekran ortasının biraz altında konumlandır — content çok
+    // uzunsa üst tarafa kayar ama minTop garanti.
+    const centeredTop = screenHeight * 0.55 - totalContentHeight / 2;
+
+    const maxTop = screenHeight * 0.9;
+    return Math.min(Math.max(centeredTop, minTop), maxTop);
   };
 
-  // Özelleştirme State'leri
-  const [fontSizeScale, setFontSizeScale] = useState(1);
-  const [textColor, setTextColor] = useState(colors.text.onPrimary);
-  const [layoutStyle, setLayoutStyle] = useState<'plain' | 'box' | 'gradient' | 'shadow' | 'outline' | 'minimal' | 'card3d' | 'neon' | 'vintage' | 'watercolor'>('plain');
-  const [wordFormat, setWordFormat] = useState<WordFormat>('inline');
+  // Özelleştirme State'leri — headless mod için snapshot'tan başlat
+  const snap = autoCapture?.snapshot;
+  const [fontSizeScale, setFontSizeScale] = useState(snap?.fontSizeScale ?? 1);
+  // Default text color is always pure white, regardless of theme — the
+  // lock-screen wallpaper is viewed on top of photographic backgrounds
+  // so a theme-dependent colour (like colors.text.onPrimary which can
+  // be black in dark/pastel themes) would be invisible.
+  const [textColor, setTextColor] = useState(
+    snap?.textColor && snap.textColor.length > 0 ? snap.textColor : '#FFFFFF'
+  );
+  const [layoutStyle, setLayoutStyle] = useState<'plain' | 'box' | 'gradient' | 'shadow' | 'outline' | 'minimal' | 'card3d' | 'neon' | 'vintage' | 'watercolor'>(snap?.layoutStyle ?? 'plain');
+  const [wordFormat, setWordFormat] = useState<WordFormat>(snap?.wordFormat ?? 'inline');
   const [isCustomizeVisible, setIsCustomizeVisible] = useState(false);
-  const [fontFamily, setFontFamily] = useState<string | undefined>(undefined);
-  const [positionOffsetX, setPositionOffsetX] = useState(0);
-  const [positionOffsetY, setPositionOffsetY] = useState(getInitialVerticalPosition());
+  const [fontFamily, setFontFamily] = useState<string | undefined>(snap?.fontFamily ?? undefined);
+  const [positionOffsetX, setPositionOffsetX] = useState(snap?.positionOffsetX ?? 0);
+  const [positionOffsetY, setPositionOffsetY] = useState(snap?.positionOffsetY ?? getInitialVerticalPosition());
 
   // Geçici görüntüleme state'leri
-  const [tempFontSize, setTempFontSize] = useState(1);
-  const [tempOffsetX, setTempOffsetX] = useState(0);
-  const [tempOffsetY, setTempOffsetY] = useState(getInitialVerticalPosition());
+  const [tempFontSize, setTempFontSize] = useState(snap?.fontSizeScale ?? 1);
+  const [tempOffsetX, setTempOffsetX] = useState(snap?.positionOffsetX ?? 0);
+  const [tempOffsetY, setTempOffsetY] = useState(snap?.positionOffsetY ?? getInitialVerticalPosition());
+
+  // Force-reset position on mount. This makes sure Fast Refresh (which
+  // preserves state across code reloads) doesn't leave an old Y value
+  // from a previous version of `getInitialVerticalPosition`. Runs once
+  // after mount and only if the user hasn't already moved the slider.
+  const hasUserMovedPositionRef = useRef(false);
+  useEffect(() => {
+    if (snap?.positionOffsetY !== undefined) return;
+    if (hasUserMovedPositionRef.current) return;
+    const fresh = getInitialVerticalPosition();
+    setPositionOffsetY(fresh);
+    setTempOffsetY(fresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Renk paletini tanımla ve tekrarları kaldır
+  // Not: default renk her zaman beyaz — kilit ekranı fotoğraf arka
+  // planları üzerinde gösterildiği için tema bağımsız beyaz en güvenli.
   const initialColors = [
-    colors.text.onPrimary, // Default (White/Black based on theme)
-    '#FFFFFF', // Beyaz
+    '#FFFFFF', // Default (beyaz)
     '#000000', // Siyah
     '#FFFF00', // Sarı
     '#00FFFF', // Cyan
@@ -803,6 +863,89 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  /**
+   * "Otomatik Yap" button handler — pure info alert, does NOT mutate any
+   * auto-wallpaper state. The auto feature is configured entirely in the
+   * settings screen (or onboarding), so this button only tells the user
+   * what the feature is and how to enable/change it.
+   */
+  const showAutoWallpaperInfo = async () => {
+    if (Platform.OS !== 'android') {
+      Alert.alert(translations.alerts.error, translations.wallpaper.errors.unsupported);
+      return;
+    }
+    const existing = await autoWallpaperService.getSettings();
+    const isActive = existing.enabled;
+    const message = isActive
+      ? translations.wallpaper.auto.infoActive.replace(
+          '{0}',
+          `${existing.hour.toString().padStart(2, '0')}:${existing.minute.toString().padStart(2, '0')}`
+        )
+      : translations.wallpaper.auto.infoInactive;
+
+    Alert.alert(
+      translations.wallpaper.auto.infoTitle,
+      message,
+      [
+        {
+          text: translations.wallpaper.auto.goToSettings,
+          onPress: () => navigation.navigate('AutoWallpaperSettings'),
+        },
+        { text: translations.alerts.okay, style: 'cancel' },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  /**
+   * Headless auto-capture effect.
+   *
+   * When this screen is opened with `autoCapture` in route params, state
+   * has already been initialised from the snapshot. Wait for layout to
+   * settle, snapshot the ViewShot, hand it to the native wallpaper cache,
+   * optionally apply it immediately, then navigate back without any user
+   * interaction.
+   */
+  useEffect(() => {
+    if (!isHeadlessCapture) return;
+
+    let cancelled = false;
+    const runHeadlessCapture = async () => {
+      try {
+        // Allow ImageBackground + layout to settle. 300ms is empirically
+        // enough for the 10 layout variants in this screen.
+        await new Promise((r) => setTimeout(r, 350));
+        if (cancelled) return;
+
+        const captureRef = viewShotRef.current;
+        if (!captureRef || typeof captureRef.capture !== 'function') {
+          throw new Error('Capture ref unavailable');
+        }
+        // @ts-ignore
+        const uri: string = await captureRef.capture({ format: 'png', quality: 1 });
+
+        await autoWallpaperService.registerPreparedWallpaper(uri);
+        if (autoCapture?.applyImmediately) {
+          await Wallpaper.applyCachedWallpaperNow();
+        }
+      } catch (e) {
+        console.warn('[WordOverlayScreen] headless auto-capture failed:', e);
+      } finally {
+        if (!cancelled) {
+          // Return to whatever screen triggered us
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+        }
+      }
+    };
+
+    runHeadlessCapture();
+    return () => {
+      cancelled = true;
+    };
+  }, [isHeadlessCapture]);
+
   // useEffect ile başlangıç değerlerini ayarla
   useEffect(() => {
     setTempFontSize(fontSizeScale);
@@ -825,7 +968,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handlePositionYChange = (value: number) => {
     const roundedValue = Math.round(value / 10) * 10;
-    const limitedValue = Math.min(Math.max(roundedValue, -100), 500);
+    const limitedValue = Math.min(Math.max(roundedValue, -100), 900);
     setTempOffsetY(limitedValue);
   };
 
@@ -844,8 +987,9 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handlePositionYComplete = (value: number) => {
     const roundedValue = Math.round(value / 10) * 10;
-    const limitedValue = Math.min(Math.max(roundedValue, -100), 500);
+    const limitedValue = Math.min(Math.max(roundedValue, -100), 900);
     setPositionOffsetY(limitedValue);
+    hasUserMovedPositionRef.current = true;
   };
 
   // Modal açıldığında scroll pozisyonunu aktif seksiyona göre ayarla
@@ -1090,19 +1234,33 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         </ImageBackground>
       </ViewShot>
 
-      {!isCustomizeVisible && (
+      {!isCustomizeVisible && !isHeadlessCapture && (
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.primaryActionButton, { backgroundColor: colors.primary }]}
-            onPress={handleSetAsLockScreen}
-          >
-            <MaterialIcons name="lock" size={22} color={colors.text.onPrimary} />
-            <Text style={[styles.primaryActionButtonText, { color: colors.text.onPrimary }]}>
-              {Platform.OS === 'android'
-                ? translations.wallpaper.setAsLockScreen
-                : translations.wallpaper.saveAndInstructions}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.primaryActionRow}>
+            <TouchableOpacity
+              style={[styles.primaryActionButtonHalf, { backgroundColor: colors.primary }]}
+              onPress={handleSetAsLockScreen}
+            >
+              <MaterialIcons name="lock" size={20} color={colors.text.onPrimary} />
+              <Text style={[styles.primaryActionButtonText, { color: colors.text.onPrimary }]}>
+                {Platform.OS === 'android'
+                  ? translations.wallpaper.setAsLockScreen
+                  : translations.wallpaper.saveAndInstructions}
+              </Text>
+            </TouchableOpacity>
+
+            {Platform.OS === 'android' && (
+              <TouchableOpacity
+                style={[styles.primaryActionButtonHalf, { backgroundColor: colors.accent }]}
+                onPress={showAutoWallpaperInfo}
+              >
+                <MaterialIcons name="autorenew" size={20} color={colors.text.onPrimary} />
+                <Text style={[styles.primaryActionButtonText, { color: colors.text.onPrimary }]}>
+                  {translations.wallpaper.autoButton}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           <View style={styles.buttonGroup}>
             <TouchableOpacity
@@ -1552,7 +1710,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Slider
                   style={styles.customizeSlider}
                   minimumValue={-100}
-                  maximumValue={500}
+                  maximumValue={900}
                   step={10}
                   value={positionOffsetY}
                   onValueChange={handlePositionYChange}
@@ -1566,8 +1724,9 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           </ScrollView>
         </View>
       )}
+
     </View>
   );
 };
 
-export default WordOverlayScreen; 
+export default WordOverlayScreen;

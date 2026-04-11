@@ -5,14 +5,12 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useAutoWallpaperRefresh } from '../hooks/useAutoWallpaperRefresh';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { translations } = useLanguage();
-  const { offscreen: autoWallpaperOffscreen } = useAutoWallpaperRefresh();
 
   const menuItems: { id: string; title: string; icon: keyof typeof MaterialIcons.glyphMap; screen: keyof RootStackParamList }[] = [
     {
@@ -40,12 +38,6 @@ export const HomeScreen = () => {
       screen: 'WordLists',
     },
     {
-      id: 'autoWallpaper',
-      title: translations.home.autoWallpaper,
-      icon: 'lock',
-      screen: 'AutoWallpaperSettings',
-    },
-    {
       id: 'settings',
       title: translations.home.settings,
       icon: 'settings',
@@ -59,7 +51,7 @@ export const HomeScreen = () => {
         <Text style={styles.title}>{translations.home.title}</Text>
         <Text style={styles.subtitle}>{translations.home.subtitle}</Text>
       </View>
-      
+
       <View style={styles.menu}>
         {menuItems.map((item) => (
           <TouchableOpacity
@@ -72,7 +64,6 @@ export const HomeScreen = () => {
           </TouchableOpacity>
         ))}
       </View>
-      {autoWallpaperOffscreen}
     </View>
   );
 };

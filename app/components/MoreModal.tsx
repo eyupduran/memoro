@@ -46,12 +46,17 @@ export const MoreModal: React.FC<Props> = ({ visible, onClose, navigation }) => 
     }
   }, [visible]);
 
-  const handleNavigate = (screen: 'Settings' | 'Grammar' | 'Games') => {
+  const handleNavigate = (screen: 'Settings' | 'Grammar' | 'Games' | 'AutoWallpaperSettings') => {
     onClose();
     navigation.navigate(screen);
   };
 
   const menuItems = [
+    {
+      icon: 'lock',
+      title: translations.wallpaper?.auto?.title || 'Otomatik Kilit Ekranı',
+      onPress: () => handleNavigate('AutoWallpaperSettings'),
+    },
     {
       icon: 'settings',
       title: translations.settings.title || 'Ayarlar',

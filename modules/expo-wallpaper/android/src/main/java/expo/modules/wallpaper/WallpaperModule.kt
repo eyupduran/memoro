@@ -303,8 +303,8 @@ class WallpaperModule : Module() {
     return try {
       val clazz = Class.forName("android.os.SystemProperties")
       val get = clazz.getMethod("get", String::class.java)
-      val version = get.invoke(null, "ro.miui.ui.version.name") as? String
-      !version.isNullOrEmpty()
+      val miuiVersion = get.invoke(null, "ro.miui.ui.version.name") as? String
+      miuiVersion != null && miuiVersion.isNotEmpty()
     } catch (_: Throwable) {
       false
     }

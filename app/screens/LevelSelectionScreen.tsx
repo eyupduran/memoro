@@ -10,7 +10,9 @@ import {
   Platform,
   Image,
   StatusBar,
+  Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -18,6 +20,8 @@ import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Font from 'expo-font';
 import { MoreModal } from '../components/MoreModal';
+
+const AUTO_WALLPAPER_PROMO_FLAG = 'auto_wallpaper_promo_seen_v1';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 56) / 2; // 56 = padding (20 * 2) + margin between cards (16)
@@ -39,6 +43,39 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
   const { colors, theme } = useTheme();
   const { translations } = useLanguage();
   const [isMoreModalVisible, setIsMoreModalVisible] = useState(false);
+  const [autoWallpaperPromoVisible, setAutoWallpaperPromoVisible] = useState(false);
+
+  // First-time auto-wallpaper promo modal. Shown exactly once, on the
+  // first LevelSelection mount after onboarding completes. By this point
+  // the DB is seeded so navigating to AutoWallpaperSettings will render
+  // a real preview with real words + backgrounds.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    (async () => {
+      try {
+        const seen = await AsyncStorage.getItem(AUTO_WALLPAPER_PROMO_FLAG);
+        if (seen === 'true') return;
+        // Small delay so the level screen finishes rendering first
+        setTimeout(() => setAutoWallpaperPromoVisible(true), 600);
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
+
+  const dismissAutoWallpaperPromo = async () => {
+    setAutoWallpaperPromoVisible(false);
+    try {
+      await AsyncStorage.setItem(AUTO_WALLPAPER_PROMO_FLAG, 'true');
+    } catch {
+      // ignore
+    }
+  };
+
+  const openAutoWallpaperSettingsFromPromo = async () => {
+    await dismissAutoWallpaperPromo();
+    navigation.navigate('AutoWallpaperSettings');
+  };
 
   const LEVELS: Level[] = [
     { id: 'A1', name: 'A1', icon: 'school', descriptionKey: 'A1', color: '#4CAF50' },
@@ -189,9 +226,121 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
         onClose={() => setIsMoreModalVisible(false)}
         navigation={navigation}
       />
+
+      {/* First-time auto-wallpaper promo */}
+      <Modal
+        transparent
+        visible={autoWallpaperPromoVisible}
+        animationType="fade"
+        onRequestClose={dismissAutoWallpaperPromo}
+      >
+        <View style={promoStyles.backdrop}>
+          <View style={[promoStyles.card, { backgroundColor: colors.surface }]}>
+            <View
+              style={[
+                promoStyles.iconCircle,
+                { backgroundColor: `${colors.primary}18` },
+              ]}
+            >
+              <MaterialIcons name="lock" size={54} color={colors.primary} />
+            </View>
+            <Text style={[promoStyles.title, { color: colors.text.primary }]}>
+              {translations.wallpaper.auto.onboardingTitle}
+            </Text>
+            <Text style={[promoStyles.body, { color: colors.text.secondary }]}>
+              {translations.wallpaper.auto.onboardingDescription}
+            </Text>
+            <TouchableOpacity
+              style={[promoStyles.primaryBtn, { backgroundColor: colors.primary }]}
+              onPress={openAutoWallpaperSettingsFromPromo}
+            >
+              <MaterialIcons
+                name="settings"
+                size={20}
+                color={colors.text.onPrimary}
+              />
+              <Text
+                style={[
+                  promoStyles.primaryBtnText,
+                  { color: colors.text.onPrimary },
+                ]}
+              >
+                {translations.wallpaper.auto.onboardingEnable}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={promoStyles.skipBtn}
+              onPress={dismissAutoWallpaperPromo}
+            >
+              <Text style={[promoStyles.skipBtnText, { color: colors.text.secondary }]}>
+                {translations.wallpaper.auto.onboardingSkip}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
+
+const promoStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  body: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 22,
+  },
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignSelf: 'stretch',
+  },
+  primaryBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  skipBtn: {
+    marginTop: 12,
+    padding: 8,
+  },
+  skipBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});
 
 const styles = StyleSheet.create({
   container: {

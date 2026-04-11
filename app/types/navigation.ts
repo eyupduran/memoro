@@ -1,6 +1,7 @@
 import type { Word } from './words';
 import type { ImageSourcePropType } from 'react-native';
 import { QuestionDetail } from '../screens/ExerciseQuestionScreen';
+import type { OverlaySnapshot } from '../services/autoWallpaper';
 
 export type WordSource = 'learned' | 'dictionary' | 'wordlist' | 'custom';
 
@@ -25,6 +26,19 @@ export type RootStackParamList = {
     selectedWords: Word[];
     selectedImage: string;
     isReinforcement?: boolean;
+    /**
+     * When provided, WordOverlayScreen runs in headless auto-capture mode:
+     * - Initial customization state is restored from the snapshot
+     * - UI chrome (buttons, customize panel) is hidden
+     * - Screen auto-captures itself shortly after mount, applies the result
+     *   to the native wallpaper cache, then navigates back
+     * - No user interaction is needed
+     */
+    autoCapture?: {
+      snapshot: OverlaySnapshot;
+      /** Whether to also call Wallpaper.applyCachedWallpaperNow() after cache update */
+      applyImmediately?: boolean;
+    };
   };
   Stats: undefined;
   Settings: undefined;

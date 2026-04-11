@@ -1,19 +1,21 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Switch,
   Modal,
   ActivityIndicator,
   Alert,
   Platform,
-  ImageSourcePropType,
+  Switch,
+  ImageBackground,
+  Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import ViewShot from 'react-native-view-shot';
 
 import { useTheme } from '../context/ThemeContext';
@@ -23,61 +25,85 @@ import { RootStackParamList } from '../types/navigation';
 import {
   autoWallpaperService,
   AutoWallpaperSettings,
-  DEFAULT_AUTO_WALLPAPER_SETTINGS,
+  OverlaySnapshot,
 } from '../services/autoWallpaper';
-import { dbService } from '../services/database';
 import * as Wallpaper from 'expo-wallpaper';
-
-import {
-  WallpaperComposer,
-  WallpaperComposerLayout,
-  AUTO_WALLPAPER_LAYOUTS,
-} from '../components/WallpaperComposer';
+import type { Word } from '../types/words';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AutoWallpaperSettings'>;
 
-const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-const WORD_COUNTS = [3, 4, 5, 6, 7, 8];
 const MIUI_ONBOARDING_FLAG = 'auto_wallpaper_miui_onboarding_done';
 
+const SCREEN = Dimensions.get('screen');
+const WINDOW = Dimensions.get('window');
+
+// ---- Constants matching WordOverlayScreen defaults ----
+const LEVEL_OPTIONS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+const WORD_COUNT_OPTIONS = [3, 4, 5];
+
+/**
+ * Match WordOverlayScreen's getInitialVerticalPosition formula so that
+ * the preview and the captured PNG place words at the same spot. Uses
+ * absolute top-down positioning (not center-offset). Minimum floor of
+ * 50% of screen height keeps words below the MIUI lock-screen clock
+ * and visually centered in the preview (which is partially covered by
+ * the button bar at the bottom).
+ */
+const getInitialVerticalPosition = (wordCount: number): number => {
+  const estimatedWordHeight = 110;
+  const totalContentHeight = wordCount * estimatedWordHeight;
+  const minTop = WINDOW.height * 0.5;
+  const centeredTop = WINDOW.height * 0.55 - totalContentHeight / 2;
+  const maxTop = WINDOW.height * 0.9;
+  return Math.min(Math.max(centeredTop, minTop), maxTop);
+};
+
+/**
+ * Auto-wallpaper settings screen.
+ *
+ * User-tunable options: level, word count, time, enable toggle.
+ * Every visual aspect (layout, colour, font, position, background) uses
+ * the defaults that WordOverlayScreen uses on first open.
+ *
+ * The preview is a full-screen ViewShot scaled down with a CSS transform.
+ * "Şimdi Dene" captures the *same* ViewShot (at real screen size), so
+ * what the user sees in the preview is byte-for-byte identical to the
+ * PNG applied to the lock screen.
+ */
 export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
 
-  const [settings, setSettings] = useState<AutoWallpaperSettings>(DEFAULT_AUTO_WALLPAPER_SETTINGS);
+  const [settings, setSettings] = useState<AutoWallpaperSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [busyAction, setBusyAction] = useState<'save' | 'test' | null>(null);
+  const [busy, setBusy] = useState<'test' | 'save' | null>(null);
   const [deviceInfo, setDeviceInfo] = useState<Wallpaper.DeviceInfo>({
     isMiui: false,
     manufacturer: 'unknown',
     androidApiLevel: 0,
   });
-  const [nativeState, setNativeState] = useState<Wallpaper.AutoWallpaperState | null>(null);
 
   const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [pendingHour, setPendingHour] = useState(8);
+  const [pendingMinute, setPendingMinute] = useState(0);
+
   const [miuiOnboardingVisible, setMiuiOnboardingVisible] = useState(false);
   const [miuiStep, setMiuiStep] = useState<1 | 2 | 3>(1);
 
-  // Offscreen composer state — holds the words + bg to render before capture
-  const [composerPayload, setComposerPayload] = useState<{
-    words: any[];
-    layout: WallpaperComposerLayout;
-    background: ImageSourcePropType;
-  } | null>(null);
-  const composerRef = useRef<ViewShot>(null);
-  const capturePromiseRef = useRef<{ resolve: (uri: string) => void; reject: (e: any) => void } | null>(null);
+  // Real words picked from DB for the preview (matches what will go to cache)
+  const [previewWords, setPreviewWords] = useState<Word[]>([]);
+  const [previewBackground, setPreviewBackground] = useState<string>('');
+
+  const viewShotRef = useRef<ViewShot>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, ns, di] = await Promise.all([
+      const [s, di] = await Promise.all([
         autoWallpaperService.getSettings(),
-        Promise.resolve(Wallpaper.getAutoWallpaperState()),
         Promise.resolve(Wallpaper.getDeviceInfo()),
       ]);
       setSettings(s);
-      setNativeState(ns);
       setDeviceInfo(di);
     } finally {
       setLoading(false);
@@ -86,189 +112,131 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
 
   useEffect(() => {
     load();
-  }, [load]);
+    const unsubscribe = navigation.addListener('focus', load);
+    return unsubscribe;
+  }, [load, navigation]);
 
-  // Pick a background image for the composer — uses the first DB-stored
-  // background as a sensible default. Users don't pick it explicitly from
-  // this screen; if they want fine control, they can use the full manual
-  // flow from WordOverlayScreen.
-  const resolveBackgroundImage = useCallback(async (): Promise<ImageSourcePropType> => {
-    try {
-      const images = await dbService.getBackgroundImages();
-      if (images.length > 0) {
-        const raw: any = images[Math.floor(Math.random() * images.length)];
-        const url = raw?.url ?? raw?.uri ?? raw;
-        if (typeof url === 'string') {
-          return { uri: url };
-        }
-      }
-    } catch {
-      // fall through
-    }
-    // Hard fallback — a plain dark color via a data URI
-    return { uri: 'https://via.placeholder.com/1080x1920/111111/ffffff?text=' };
-  }, []);
-
-  /**
-   * Render the composer offscreen, capture the PNG, and hand it to the
-   * native cache. Returns the captured file URI.
-   */
-  const captureWallpaper = useCallback(async (): Promise<string | null> => {
-    const selection = await autoWallpaperService.prepareWordSelection(currentLanguagePair);
-    if (!selection || selection.words.length === 0) {
-      Alert.alert(
-        translations.alerts.error,
-        translations.wallpaper.auto.pickLevelFirst,
-        [{ text: translations.alerts.okay }]
-      );
-      return null;
-    }
-
-    const background = await resolveBackgroundImage();
-
-    // Mount the composer offscreen
-    setComposerPayload({
-      words: selection.words,
-      layout: (selection.settings.layout as WallpaperComposerLayout) ?? 'standard',
-      background,
-    });
-
-    // Wait for the capture to complete (triggered by the composer's useEffect below)
-    const uri = await new Promise<string>((resolve, reject) => {
-      capturePromiseRef.current = { resolve, reject };
-    });
-
-    // Unmount the composer
-    setComposerPayload(null);
-
-    // Register the captured PNG with the native cache
-    await autoWallpaperService.registerPreparedWallpaper(uri);
-    return uri;
-  }, [currentLanguagePair, resolveBackgroundImage, translations]);
-
-  // When the composer payload is set and mounted, run the capture.
-  // A short tick ensures layout has settled before snapshot.
+  // Whenever settings change (level / word count), refresh preview words and background
   useEffect(() => {
-    if (!composerPayload) return;
+    if (!settings) return;
     let cancelled = false;
-    const doCapture = async () => {
+    (async () => {
       try {
-        // Give the render tree a frame to settle
-        await new Promise((r) => setTimeout(r, 80));
+        const words = await autoWallpaperService.pickWordsForSnapshot(
+          settings.snapshot,
+          currentLanguagePairRef.current
+        );
         if (cancelled) return;
-        const ref = composerRef.current;
-        if (!ref || typeof ref.capture !== 'function') {
-          capturePromiseRef.current?.reject(new Error('Composer ref unavailable'));
-          capturePromiseRef.current = null;
-          return;
-        }
-        const uri = await ref.capture!();
-        capturePromiseRef.current?.resolve(uri);
-        capturePromiseRef.current = null;
+        setPreviewWords(words);
+
+        const bg = await autoWallpaperService.resolveBackgroundImage(settings.snapshot);
+        if (cancelled) return;
+        setPreviewBackground(bg);
       } catch (e) {
-        if (!cancelled) {
-          capturePromiseRef.current?.reject(e);
-          capturePromiseRef.current = null;
-        }
+        console.warn('[AutoWallpaperSettings] preview refresh failed:', e);
       }
-    };
-    doCapture();
+    })();
     return () => {
       cancelled = true;
     };
-  }, [composerPayload]);
+  }, [settings?.snapshot.level, settings?.snapshot.wordCount]);
 
-  const checkMiuiOnboarding = useCallback(async () => {
-    if (!deviceInfo.isMiui) return true;
-    // Show the onboarding modal on first enable
-    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-    const done = await AsyncStorage.getItem(MIUI_ONBOARDING_FLAG);
-    if (done !== 'true') {
-      setMiuiStep(1);
-      setMiuiOnboardingVisible(true);
-      return false;
-    }
-    return true;
-  }, [deviceInfo.isMiui]);
+  const currentLanguagePairRef = useRef(currentLanguagePair);
+  useEffect(() => {
+    currentLanguagePairRef.current = currentLanguagePair;
+  }, [currentLanguagePair]);
 
-  const completeMiuiOnboarding = useCallback(async () => {
-    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-    await AsyncStorage.setItem(MIUI_ONBOARDING_FLAG, 'true');
-    setMiuiOnboardingVisible(false);
+  const isAndroid = Platform.OS === 'android';
+
+  const updateSnapshot = useCallback(
+    (partial: Partial<OverlaySnapshot>) => {
+      if (!settings) return;
+      const updated: OverlaySnapshot = { ...settings.snapshot, ...partial };
+      setSettings({ ...settings, snapshot: updated });
+      autoWallpaperService
+        .updateSnapshot(partial)
+        .catch((e) => console.warn('[AutoWallpaperSettings] updateSnapshot failed:', e));
+    },
+    [settings]
+  );
+
+  const captureAndCache = useCallback(async (): Promise<string | null> => {
+    const ref = viewShotRef.current;
+    if (!ref || typeof ref.capture !== 'function') return null;
+    // @ts-ignore
+    const uri: string = await ref.capture({ format: 'png', quality: 1 });
+    await autoWallpaperService.registerPreparedWallpaper(uri);
+    return uri;
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (Platform.OS !== 'android') {
-      Alert.alert(translations.alerts.error, translations.wallpaper.errors.unsupported);
-      return;
-    }
-
-    // If enabling for the first time on MIUI, run the onboarding flow
-    if (settings.enabled && deviceInfo.isMiui) {
-      const ok = await checkMiuiOnboarding();
-      if (!ok) return; // onboarding modal is now visible; save will be retried after "finish"
-    }
-
-    setSaving(true);
-    setBusyAction('save');
-    try {
-      if (settings.enabled) {
-        // Generate initial cache so the first alarm has something to apply
-        await captureWallpaper();
-        await autoWallpaperService.enable(settings);
-      } else {
-        await autoWallpaperService.disable();
+  const handleToggleEnabled = useCallback(
+    async (value: boolean) => {
+      if (!settings) return;
+      if (!isAndroid) {
+        Alert.alert(translations.alerts.error, translations.wallpaper.errors.unsupported);
+        return;
       }
-      const ns = Wallpaper.getAutoWallpaperState();
-      setNativeState(ns);
-
-      // Android 12+: warn if exact alarms are not permitted
-      if (settings.enabled && !ns.canScheduleExactAlarms) {
-        Alert.alert(
-          translations.alerts.error,
-          translations.wallpaper.errors.setFailed,
-          [
-            {
-              text: translations.wallpaper.openSettings,
-              onPress: () => Wallpaper.openExactAlarmSettings(),
-            },
-            { text: translations.alerts.okay },
-          ]
-        );
-      } else {
-        Alert.alert(translations.alerts.success, translations.wallpaper.auto.saved);
+      setBusy('save');
+      try {
+        if (value) {
+          // Give the ViewShot a moment to settle with current words
+          await new Promise((r) => setTimeout(r, 300));
+          await captureAndCache();
+          await autoWallpaperService.enable(settings.hour, settings.minute);
+          Alert.alert(
+            translations.alerts.success,
+            translations.wallpaper.auto.successDescription.replace(
+              '{0}',
+              `${settings.hour.toString().padStart(2, '0')}:${settings.minute
+                .toString()
+                .padStart(2, '0')}`
+            )
+          );
+        } else {
+          await autoWallpaperService.disable();
+          Alert.alert(translations.alerts.success, translations.wallpaper.auto.stopped);
+        }
+        await load();
+      } catch (e: any) {
+        console.error('[AutoWallpaperSettings] toggle failed:', e);
+        const code = e?.code || 'UNKNOWN';
+        const needsMiui =
+          typeof e?.message === 'string' && e.message.includes('needsMiuiPermission=true');
+        let message = translations.wallpaper.errors.setFailed;
+        if (code === 'PERMISSION_DENIED') message = translations.wallpaper.errors.permissionDenied;
+        const buttons: any[] = [{ text: translations.alerts.okay }];
+        if (needsMiui || code === 'PERMISSION_DENIED') {
+          buttons.unshift({
+            text: translations.wallpaper.openSettings,
+            onPress: () => Wallpaper.openMiuiOtherPermissions(),
+          });
+        }
+        Alert.alert(translations.alerts.error, message, buttons);
+      } finally {
+        setBusy(null);
       }
-    } catch (e) {
-      console.error('[AutoWallpaperSettings] save failed:', e);
-      Alert.alert(translations.alerts.error, translations.alerts.processingError);
-    } finally {
-      setSaving(false);
-      setBusyAction(null);
-    }
-  }, [settings, deviceInfo, checkMiuiOnboarding, captureWallpaper, translations]);
+    },
+    [settings, isAndroid, translations, load, captureAndCache]
+  );
 
   const handleTestNow = useCallback(async () => {
-    if (Platform.OS !== 'android') {
+    if (!isAndroid) {
       Alert.alert(translations.alerts.error, translations.wallpaper.errors.unsupported);
       return;
     }
-    setSaving(true);
-    setBusyAction('test');
+    setBusy('test');
     try {
-      const uri = await captureWallpaper();
-      if (!uri) return;
+      await new Promise((r) => setTimeout(r, 300));
+      const uri = await captureAndCache();
+      if (!uri) throw new Error('Capture failed');
       await Wallpaper.applyCachedWallpaperNow();
       Alert.alert(translations.wallpaper.success, translations.wallpaper.successDescription);
-      const ns = Wallpaper.getAutoWallpaperState();
-      setNativeState(ns);
     } catch (e: any) {
       const code = e?.code || 'UNKNOWN';
       const needsMiui =
         typeof e?.message === 'string' && e.message.includes('needsMiuiPermission=true');
       let message = translations.wallpaper.errors.setFailed;
       if (code === 'PERMISSION_DENIED') message = translations.wallpaper.errors.permissionDenied;
-      else if (code === 'BITMAP_DECODE_FAILED') message = translations.wallpaper.errors.decodeFailed;
-
       const buttons: any[] = [{ text: translations.alerts.okay }];
       if (needsMiui || code === 'PERMISSION_DENIED') {
         buttons.unshift({
@@ -278,27 +246,40 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
       }
       Alert.alert(translations.alerts.error, message, buttons);
     } finally {
-      setSaving(false);
-      setBusyAction(null);
+      setBusy(null);
     }
-  }, [captureWallpaper, translations]);
+  }, [isAndroid, translations, captureAndCache]);
 
-  const formatTime = (h: number, m: number) =>
-    `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  const openTimePicker = useCallback(() => {
+    if (!settings) return;
+    setPendingHour(settings.hour);
+    setPendingMinute(settings.minute);
+    setTimePickerVisible(true);
+  }, [settings]);
 
-  const formatLastRun = (millis: number): string => {
-    if (!millis) return translations.wallpaper.auto.never;
+  const handleConfirmNewTime = useCallback(async () => {
+    setTimePickerVisible(false);
     try {
-      const d = new Date(millis);
-      return d.toLocaleString();
-    } catch {
-      return translations.wallpaper.auto.never;
+      await autoWallpaperService.updateTime(pendingHour, pendingMinute);
+      await load();
+    } catch (e) {
+      console.error('[AutoWallpaperSettings] updateTime failed:', e);
     }
+  }, [pendingHour, pendingMinute, load]);
+
+  const openMiuiOnboardingModal = () => {
+    setMiuiStep(1);
+    setMiuiOnboardingVisible(true);
   };
+
+  const completeMiuiOnboarding = useCallback(async () => {
+    await AsyncStorage.setItem(MIUI_ONBOARDING_FLAG, 'true');
+    setMiuiOnboardingVisible(false);
+  }, []);
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  if (loading) {
+  if (loading || !settings) {
     return (
       <View style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -306,7 +287,43 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
     );
   }
 
-  const isAndroid = Platform.OS === 'android';
+  const snapshot = settings.snapshot;
+  // Position Y must match what WordOverlayScreen uses on first open,
+  // and it depends on wordCount — recompute on the fly.
+  const previewPositionY = getInitialVerticalPosition(snapshot.wordCount);
+
+  // Preview scale so the full-screen ViewShot fits the settings card
+  const previewPadding = 32;
+  const previewWidth = Dimensions.get('window').width - previewPadding;
+  const previewScale = previewWidth / SCREEN.width;
+  const previewHeight = SCREEN.height * previewScale;
+
+  // Always pure white — matches WordOverlayScreen default, independent
+  // of the current theme so preview and capture stay readable on photo
+  // backgrounds regardless of dark/light/pastel theme.
+  const effectiveTextColor = '#FFFFFF';
+
+  const renderPill = <T extends string | number>(
+    value: T,
+    current: T,
+    label: string,
+    onPress: () => void
+  ) => (
+    <TouchableOpacity
+      key={String(value)}
+      style={[styles.pill, current === value && { backgroundColor: colors.primary }]}
+      onPress={onPress}
+    >
+      <Text
+        style={[
+          styles.pillText,
+          { color: current === value ? colors.text.onPrimary : colors.primary },
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -324,6 +341,119 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
           </View>
         )}
 
+        {/* Preview card — scaled view of the real full-screen ViewShot */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>{translations.wallpaper.auto.preview}</Text>
+          <View
+            style={[
+              styles.previewFrame,
+              { width: previewWidth, height: previewHeight, overflow: 'hidden' },
+            ]}
+          >
+            {/*
+              The ViewShot renders at real screen size. A scale transform
+              anchored to top-left shrinks it visually so it fits the
+              settings card. On capture, the real-size bitmap is what
+              gets written to the cache — so preview and output match
+              pixel-for-pixel.
+            */}
+            <View
+              style={{
+                width: SCREEN.width,
+                height: SCREEN.height,
+                transform: [{ scale: previewScale }],
+                // @ts-ignore — RN 0.74+ supports transformOrigin
+                transformOrigin: 'top left',
+              }}
+            >
+              <ViewShot
+                ref={viewShotRef}
+                style={{ width: SCREEN.width, height: SCREEN.height }}
+                options={{ format: 'png', quality: 1, result: 'tmpfile' }}
+              >
+                {(() => {
+                  const wordsList = (
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        padding: 20,
+                      }}
+                    >
+                      <View
+                        style={{
+                          // Absolute top-down positioning — no flex centering.
+                          // Matches WordOverlayScreen.wordContainer exactly.
+                          transform: [{ translateX: 0 }, { translateY: previewPositionY }],
+                        }}
+                      >
+                        {previewWords.map((w, idx) => (
+                          <View key={idx} style={{ paddingVertical: 8, marginBottom: 16 }}>
+                            <Text
+                              style={{
+                                color: effectiveTextColor,
+                                fontSize: 24,
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                                textShadowOffset: { width: 1, height: 1 },
+                                textShadowRadius: 3,
+                              }}
+                            >
+                              {w.word} : {w.meaning}
+                            </Text>
+                            {w.example ? (
+                              <Text
+                                style={{
+                                  color: effectiveTextColor,
+                                  fontSize: 14,
+                                  fontStyle: 'italic',
+                                  textAlign: 'center',
+                                  textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                                  textShadowOffset: { width: 1, height: 1 },
+                                  textShadowRadius: 3,
+                                }}
+                              >
+                                {w.example}
+                              </Text>
+                            ) : null}
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  );
+
+                  if (previewBackground) {
+                    return (
+                      <ImageBackground
+                        source={{ uri: previewBackground }}
+                        style={{ width: SCREEN.width, height: SCREEN.height }}
+                        resizeMode="cover"
+                      >
+                        {wordsList}
+                      </ImageBackground>
+                    );
+                  }
+                  // No background yet — show a plain dark fallback so the
+                  // words are always visible. No spinner: the preview never
+                  // shows a loading state because it would look stuck.
+                  return (
+                    <View
+                      style={{
+                        width: SCREEN.width,
+                        height: SCREEN.height,
+                        backgroundColor: '#1a1a2e',
+                      }}
+                    >
+                      {wordsList}
+                    </View>
+                  );
+                })()}
+              </ViewShot>
+            </View>
+          </View>
+        </View>
+
         {/* Enable toggle */}
         <View style={styles.card}>
           <View style={styles.rowBetween}>
@@ -331,31 +461,33 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
               <Text style={styles.cardTitle}>{translations.wallpaper.auto.enable}</Text>
               <Text style={styles.cardSubtitle}>
                 {settings.enabled
-                  ? translations.wallpaper.auto.enabled
-                  : translations.wallpaper.auto.disabled}
+                  ? translations.wallpaper.auto.statusActive
+                  : translations.wallpaper.auto.statusInactive}
               </Text>
             </View>
-            <Switch
-              value={settings.enabled}
-              onValueChange={(v) => setSettings({ ...settings, enabled: v })}
-              disabled={!isAndroid || saving}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor="#fff"
-            />
+            {busy === 'save' ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <Switch
+                value={settings.enabled}
+                onValueChange={handleToggleEnabled}
+                disabled={!isAndroid}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#fff"
+              />
+            )}
           </View>
         </View>
 
         {/* Time */}
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => setTimePickerVisible(true)}
-          disabled={!settings.enabled || saving}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.card} onPress={openTimePicker} activeOpacity={0.7}>
           <View style={styles.rowBetween}>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>{translations.wallpaper.auto.time}</Text>
-              <Text style={styles.cardValue}>{formatTime(settings.hour, settings.minute)}</Text>
+              <Text style={styles.cardValue}>
+                {settings.hour.toString().padStart(2, '0')}:
+                {settings.minute.toString().padStart(2, '0')}
+              </Text>
             </View>
             <MaterialIcons name="access-time" size={24} color={colors.primary} />
           </View>
@@ -365,26 +497,11 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{translations.wallpaper.auto.wordCount}</Text>
           <View style={styles.pillRow}>
-            {WORD_COUNTS.map((n) => (
-              <TouchableOpacity
-                key={n}
-                style={[
-                  styles.pill,
-                  settings.wordCount === n && { backgroundColor: colors.primary },
-                ]}
-                onPress={() => setSettings({ ...settings, wordCount: n })}
-                disabled={!settings.enabled || saving}
-              >
-                <Text
-                  style={[
-                    styles.pillText,
-                    settings.wordCount === n && { color: colors.text.onPrimary },
-                  ]}
-                >
-                  {n}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {WORD_COUNT_OPTIONS.map((n) =>
+              renderPill(n, snapshot.wordCount, String(n), () =>
+                updateSnapshot({ wordCount: n })
+              )
+            )}
           </View>
         </View>
 
@@ -392,63 +509,33 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{translations.wallpaper.auto.level}</Text>
           <View style={styles.pillRow}>
-            {LEVELS.map((l) => (
-              <TouchableOpacity
-                key={l}
-                style={[
-                  styles.pill,
-                  settings.level === l && { backgroundColor: colors.primary },
-                ]}
-                onPress={() => setSettings({ ...settings, level: l })}
-                disabled={!settings.enabled || saving}
-              >
-                <Text
-                  style={[
-                    styles.pillText,
-                    settings.level === l && { color: colors.text.onPrimary },
-                  ]}
-                >
-                  {l}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {LEVEL_OPTIONS.map((l) =>
+              renderPill(l, snapshot.level, l, () => updateSnapshot({ level: l }))
+            )}
           </View>
         </View>
 
-        {/* Layout */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{translations.wallpaper.auto.layout}</Text>
-          <View style={styles.pillRow}>
-            {AUTO_WALLPAPER_LAYOUTS.map((l) => (
-              <TouchableOpacity
-                key={l}
-                style={[
-                  styles.pill,
-                  settings.layout === l && { backgroundColor: colors.primary },
-                ]}
-                onPress={() => setSettings({ ...settings, layout: l })}
-                disabled={!settings.enabled || saving}
-              >
-                <Text
-                  style={[
-                    styles.pillText,
-                    settings.layout === l && { color: colors.text.onPrimary },
-                  ]}
-                >
-                  {l}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Last run */}
-        {nativeState && nativeState.lastRunMillis > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardSubtitle}>
-              {translations.wallpaper.auto.lastRun.replace('{0}', formatLastRun(nativeState.lastRunMillis))}
-            </Text>
-          </View>
+        {/* Test now */}
+        {isAndroid && (
+          <>
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+              onPress={handleTestNow}
+              disabled={!!busy}
+            >
+              {busy === 'test' ? (
+                <ActivityIndicator color={colors.text.onPrimary} />
+              ) : (
+                <>
+                  <MaterialIcons name="play-arrow" size={22} color={colors.text.onPrimary} />
+                  <Text style={[styles.primaryButtonText, { color: colors.text.onPrimary }]}>
+                    {translations.wallpaper.auto.testNow}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+            <Text style={styles.hint}>{translations.wallpaper.auto.testDescription}</Text>
+          </>
         )}
 
         {/* MIUI warning */}
@@ -456,19 +543,11 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
           <View style={[styles.card, styles.warningCard]}>
             <MaterialIcons name="warning" size={22} color={colors.warning} />
             <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.warningTitle}>
-                {translations.wallpaper.miui.warningTitle}
-              </Text>
+              <Text style={styles.warningTitle}>{translations.wallpaper.miui.warningTitle}</Text>
               <Text style={styles.warningText}>
                 {translations.wallpaper.miui.warningDescription}
               </Text>
-              <TouchableOpacity
-                style={styles.textButton}
-                onPress={() => {
-                  setMiuiStep(1);
-                  setMiuiOnboardingVisible(true);
-                }}
-              >
+              <TouchableOpacity style={styles.textButton} onPress={openMiuiOnboardingModal}>
                 <Text style={[styles.textButtonLabel, { color: colors.primary }]}>
                   {translations.wallpaper.miui.reopen}
                 </Text>
@@ -476,53 +555,7 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
             </View>
           </View>
         )}
-
-        {/* Test now */}
-        <TouchableOpacity
-          style={[styles.secondaryButton, { borderColor: colors.primary }]}
-          onPress={handleTestNow}
-          disabled={!isAndroid || saving}
-        >
-          {busyAction === 'test' ? (
-            <ActivityIndicator color={colors.primary} />
-          ) : (
-            <>
-              <MaterialIcons name="play-arrow" size={22} color={colors.primary} />
-              <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>
-                {translations.wallpaper.auto.testNow}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-        <Text style={styles.hint}>{translations.wallpaper.auto.testDescription}</Text>
-
-        {/* Save */}
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: colors.primary }]}
-          onPress={handleSave}
-          disabled={!isAndroid || saving}
-        >
-          {busyAction === 'save' ? (
-            <ActivityIndicator color={colors.text.onPrimary} />
-          ) : (
-            <Text style={[styles.primaryButtonText, { color: colors.text.onPrimary }]}>
-              {translations.wallpaper.auto.save}
-            </Text>
-          )}
-        </TouchableOpacity>
       </ScrollView>
-
-      {/* Offscreen composer (absolute, far off-screen) */}
-      {composerPayload && (
-        <View pointerEvents="none" style={styles.offscreen}>
-          <WallpaperComposer
-            ref={composerRef}
-            words={composerPayload.words}
-            layout={composerPayload.layout}
-            backgroundImage={composerPayload.background}
-          />
-        </View>
-      )}
 
       {/* Time picker modal */}
       <Modal
@@ -533,32 +566,71 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
       >
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
-            <Text style={styles.modalTitle}>{translations.wallpaper.auto.time}</Text>
+            <Text style={styles.modalTitle}>{translations.wallpaper.auto.pickTimeTitle}</Text>
+            <Text style={styles.modalBody}>{translations.wallpaper.auto.pickTimeSubtitle}</Text>
             <View style={styles.timePickerRow}>
-              <TimeColumn
-                values={Array.from({ length: 24 }, (_, i) => i)}
-                selected={settings.hour}
-                onChange={(v) => setSettings({ ...settings, hour: v })}
-                pad
-                colors={colors}
-              />
+              <ScrollView style={styles.timeColumn} showsVerticalScrollIndicator={false}>
+                {Array.from({ length: 24 }, (_, i) => i).map((h) => {
+                  const sel = h === pendingHour;
+                  return (
+                    <TouchableOpacity
+                      key={`h-${h}`}
+                      style={[styles.timeItem, sel && { backgroundColor: colors.primary }]}
+                      onPress={() => setPendingHour(h)}
+                    >
+                      <Text
+                        style={[
+                          styles.timeItemText,
+                          { color: sel ? colors.text.onPrimary : colors.text.primary },
+                        ]}
+                      >
+                        {h.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
               <Text style={[styles.timeColon, { color: colors.text.primary }]}>:</Text>
-              <TimeColumn
-                values={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]}
-                selected={settings.minute}
-                onChange={(v) => setSettings({ ...settings, minute: v })}
-                pad
-                colors={colors}
-              />
+              <ScrollView style={styles.timeColumn} showsVerticalScrollIndicator={false}>
+                {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => {
+                  const sel = m === pendingMinute;
+                  return (
+                    <TouchableOpacity
+                      key={`m-${m}`}
+                      style={[styles.timeItem, sel && { backgroundColor: colors.primary }]}
+                      onPress={() => setPendingMinute(m)}
+                    >
+                      <Text
+                        style={[
+                          styles.timeItemText,
+                          { color: sel ? colors.text.onPrimary : colors.text.primary },
+                        ]}
+                      >
+                        {m.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
-            <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: 16 }]}
-              onPress={() => setTimePickerVisible(false)}
-            >
-              <Text style={[styles.primaryButtonText, { color: colors.text.onPrimary }]}>
-                {translations.alerts.okay}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity
+                style={[styles.cancelBtn, { borderColor: colors.border }]}
+                onPress={() => setTimePickerVisible(false)}
+              >
+                <Text style={{ color: colors.text.secondary, fontWeight: '600' }}>
+                  {translations.wallpaper.auto.cancel}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { backgroundColor: colors.primary }]}
+                onPress={handleConfirmNewTime}
+              >
+                <Text style={{ color: colors.text.onPrimary, fontWeight: '700' }}>
+                  {translations.wallpaper.auto.confirm}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -572,7 +644,7 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
       >
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
-            <Text style={styles.modalStep}>
+            <Text style={[styles.modalStep, { color: colors.primary }]}>
               {translations.wallpaper.miui.step.replace('{0}', String(miuiStep))}
             </Text>
             <Text style={styles.modalTitle}>
@@ -607,18 +679,16 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
               </Text>
             </TouchableOpacity>
             <View style={styles.modalButtonRow}>
-              <TouchableOpacity
-                style={[styles.textButton]}
-                onPress={async () => {
-                  await completeMiuiOnboarding();
-                }}
-              >
+              <TouchableOpacity style={styles.textButton} onPress={completeMiuiOnboarding}>
                 <Text style={[styles.textButtonLabel, { color: colors.text.secondary }]}>
                   {translations.wallpaper.miui.skip}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: colors.primary, flex: 1, marginLeft: 10 }]}
+                style={[
+                  styles.confirmBtn,
+                  { backgroundColor: colors.primary, flex: 1, marginLeft: 10 },
+                ]}
                 onPress={async () => {
                   if (miuiStep < 3) {
                     setMiuiStep((miuiStep + 1) as 1 | 2 | 3);
@@ -627,7 +697,7 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
                   }
                 }}
               >
-                <Text style={[styles.primaryButtonText, { color: colors.text.onPrimary }]}>
+                <Text style={{ color: colors.text.onPrimary, fontWeight: '700' }}>
                   {miuiStep < 3
                     ? translations.wallpaper.miui.iDidThis
                     : translations.wallpaper.miui.finish}
@@ -641,57 +711,7 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
   );
 };
 
-// ---- Time column (scrollable picker) ----
-
-const TimeColumn: React.FC<{
-  values: number[];
-  selected: number;
-  onChange: (v: number) => void;
-  pad?: boolean;
-  colors: ReturnType<typeof useTheme>['colors'];
-}> = ({ values, selected, onChange, pad, colors }) => (
-  <ScrollView style={timeColumnStyles.scroll} showsVerticalScrollIndicator={false}>
-    {values.map((v) => {
-      const isSelected = v === selected;
-      return (
-        <TouchableOpacity
-          key={v}
-          style={[
-            timeColumnStyles.item,
-            isSelected && { backgroundColor: colors.primary },
-          ]}
-          onPress={() => onChange(v)}
-        >
-          <Text
-            style={[
-              timeColumnStyles.itemText,
-              { color: isSelected ? colors.text.onPrimary : colors.text.primary },
-            ]}
-          >
-            {pad ? v.toString().padStart(2, '0') : v}
-          </Text>
-        </TouchableOpacity>
-      );
-    })}
-  </ScrollView>
-);
-
-const timeColumnStyles = StyleSheet.create({
-  scroll: {
-    maxHeight: 200,
-    width: 70,
-  },
-  item: {
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 6,
-    marginVertical: 2,
-  },
-  itemText: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-});
+// ---- Styles ----
 
 const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
   StyleSheet.create({
@@ -705,10 +725,10 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
     },
     scrollContent: {
       padding: 16,
-      paddingBottom: 40,
+      paddingBottom: 60,
     },
     header: {
-      marginBottom: 16,
+      marginBottom: 12,
     },
     title: {
       fontSize: 24,
@@ -728,26 +748,8 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       borderWidth: 1,
       borderColor: colors.card.border,
     },
-    warningCard: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      borderColor: colors.warning,
-      backgroundColor: colors.surfaceVariant,
-    },
-    warningTitle: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.text.primary,
-      marginBottom: 4,
-    },
-    warningText: {
-      fontSize: 13,
-      color: colors.text.secondary,
-      marginLeft: 10,
-      flex: 1,
-    },
     cardTitle: {
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '600',
       color: colors.text.primary,
       marginBottom: 6,
@@ -783,18 +785,44 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
     pillText: {
       fontSize: 14,
       fontWeight: '600',
-      color: colors.primary,
+    },
+    previewFrame: {
+      alignSelf: 'center',
+      marginTop: 8,
+      borderRadius: 12,
+      overflow: 'hidden',
+      backgroundColor: '#000',
+    },
+    warningCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      borderColor: colors.warning,
+      backgroundColor: colors.surfaceVariant,
+    },
+    warningTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text.primary,
+      marginBottom: 4,
+    },
+    warningText: {
+      fontSize: 13,
+      color: colors.text.secondary,
+      marginLeft: 10,
+      flex: 1,
     },
     primaryButton: {
-      paddingVertical: 14,
-      borderRadius: 10,
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
+      paddingVertical: 14,
+      borderRadius: 10,
       marginTop: 12,
     },
     primaryButtonText: {
       fontSize: 16,
       fontWeight: '700',
+      marginLeft: 8,
     },
     secondaryButton: {
       flexDirection: 'row',
@@ -803,7 +831,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       paddingVertical: 12,
       borderRadius: 10,
       borderWidth: 2,
-      marginTop: 12,
+      marginTop: 8,
     },
     secondaryButtonText: {
       fontSize: 15,
@@ -824,12 +852,6 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       fontSize: 14,
       fontWeight: '600',
     },
-    offscreen: {
-      position: 'absolute',
-      left: -10000,
-      top: 0,
-      opacity: 0,
-    },
     modalBackdrop: {
       flex: 1,
       backgroundColor: 'rgba(0, 0, 0, 0.6)',
@@ -846,7 +868,6 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
     modalStep: {
       fontSize: 12,
       fontWeight: '700',
-      color: colors.primary,
       marginBottom: 6,
     },
     modalTitle: {
@@ -871,9 +892,39 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       justifyContent: 'center',
       marginTop: 16,
     },
+    timeColumn: {
+      maxHeight: 200,
+      width: 70,
+    },
+    timeItem: {
+      paddingVertical: 10,
+      alignItems: 'center',
+      borderRadius: 6,
+      marginVertical: 2,
+    },
+    timeItemText: {
+      fontSize: 20,
+      fontWeight: '600',
+    },
     timeColon: {
       fontSize: 30,
       fontWeight: '700',
       marginHorizontal: 10,
+    },
+    cancelBtn: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 10,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 10,
+    },
+    confirmBtn: {
+      flex: 2,
+      paddingVertical: 12,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
   });
