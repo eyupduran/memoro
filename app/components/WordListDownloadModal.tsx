@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { dbService } from '../services/database';
 import { useLanguage } from '../contexts/LanguageContext';
 import { fetchAndStoreCategorizedWordLists } from '../data/wordLists';
+import { useAlert } from '../contexts/AlertContext';
 
 interface WordListDownloadModalProps {
   visible: boolean;
@@ -11,6 +12,7 @@ interface WordListDownloadModalProps {
 
 const WordListDownloadModal: React.FC<WordListDownloadModalProps> = ({ visible, onClose }) => {
   const { currentLanguagePair } = useLanguage();
+  const { showAlert } = useAlert();
   const [selected, setSelected] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -35,11 +37,11 @@ const WordListDownloadModal: React.FC<WordListDownloadModalProps> = ({ visible, 
             setWordData(data);
             console.log("Kategorili kelime listeleri API'den çekilip veritabanına kaydedildi.");
           } else {
-            Alert.alert('Hata', 'Kelime listesi alınamadı.');
+            showAlert({ title: 'Hata', message: 'Kelime listesi alınamadı.', variant: 'error' });
           }
         }
       } catch (e) {
-        Alert.alert('Hata', 'Kelime listesi alınamadı.');
+        showAlert({ title: 'Hata', message: 'Kelime listesi alınamadı.', variant: 'error' });
         console.error("Error fetching categorized word lists:", e);
       } finally {
         setFetching(false);
@@ -84,7 +86,7 @@ const WordListDownloadModal: React.FC<WordListDownloadModalProps> = ({ visible, 
       if (!wordData) return;
       const selectedKeys = Object.keys(selected).filter((k) => selected[k]);
       if (selectedKeys.length === 0) {
-        Alert.alert('Uyarı', 'Lütfen en az bir kelime listesi seçin.');
+        showAlert({ title: 'Uyarı', message: 'Lütfen en az bir kelime listesi seçin.', variant: 'warning' });
         setLoading(false);
         return;
       }
@@ -108,11 +110,11 @@ const WordListDownloadModal: React.FC<WordListDownloadModalProps> = ({ visible, 
           }
         }
       }
-      Alert.alert('Başarılı', 'Seçilen kelime listeleri eklendi!');
+      showAlert({ title: 'Başarılı', message: 'Seçilen kelime listeleri eklendi!', variant: 'success' });
       setSelected({});
       onClose();
     } catch (e) {
-      Alert.alert('Hata', 'Bir hata oluştu.');
+      showAlert({ title: 'Hata', message: 'Bir hata oluştu.', variant: 'error' });
     } finally {
       setLoading(false);
     }

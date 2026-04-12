@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text, Modal, Alert, BackHandler } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text, Modal, BackHandler } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAlert } from '../contexts/AlertContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { GrammarLevelModal } from '../components/GrammarLevelModal';
@@ -15,6 +16,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Grammar'>;
 export const GrammarScreen: React.FC<Props> = () => {
   const { colors } = useTheme();
   const { translations } = useLanguage();
+  const { showAlert } = useAlert();
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
   const [isLevelModalVisible, setIsLevelModalVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,10 +46,11 @@ export const GrammarScreen: React.FC<Props> = () => {
     if (isLevelModalVisible) return;
     
     // Kullanıcıya gramer sayfasından çıkış uyarısı göster
-    Alert.alert(
-      translations.grammar.exitWarning.title,
-      translations.grammar.exitWarning.message,
-      [
+    showAlert({
+      title: translations.grammar.exitWarning.title,
+      message: translations.grammar.exitWarning.message,
+      variant: 'confirm',
+      buttons: [
         {
           text: translations.grammar.exitWarning.cancel,
           onPress: () => {},
@@ -61,8 +64,7 @@ export const GrammarScreen: React.FC<Props> = () => {
           style: 'destructive',
         },
       ],
-      { cancelable: true }
-    );
+    });
   };
 
   // Geri tuşu için uyarı
@@ -71,12 +73,13 @@ export const GrammarScreen: React.FC<Props> = () => {
       const onBackPress = () => {
         // Eğer seviye seçimi modalı açıksa, normal geri tuşu davranışını engelleme
         if (isLevelModalVisible) return false;
-        
+
         // Kullanıcıya gramer sayfasından çıkış uyarısı göster
-        Alert.alert(
-          translations.grammar.exitWarning.title,
-          translations.grammar.exitWarning.message,
-          [
+        showAlert({
+          title: translations.grammar.exitWarning.title,
+          message: translations.grammar.exitWarning.message,
+          variant: 'confirm',
+          buttons: [
             {
               text: translations.grammar.exitWarning.cancel,
               onPress: () => {},
@@ -90,8 +93,7 @@ export const GrammarScreen: React.FC<Props> = () => {
               style: 'destructive',
             },
           ],
-          { cancelable: true }
-        );
+        });
         
         // Geri tuşunun varsayılan davranışını engelle
         return true;

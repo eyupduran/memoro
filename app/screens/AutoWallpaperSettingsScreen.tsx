@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
-  Alert,
   Platform,
   Switch,
   ImageBackground,
@@ -20,6 +19,7 @@ import ViewShot from 'react-native-view-shot';
 
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAlert } from '../contexts/AlertContext';
 import { RootStackParamList } from '../types/navigation';
 
 import {
@@ -73,6 +73,7 @@ const getInitialVerticalPosition = (wordCount: number): number => {
 export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
+  const { showAlert } = useAlert();
 
   const [settings, setSettings] = useState<AutoWallpaperSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -173,7 +174,7 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
     async (value: boolean) => {
       if (!settings) return;
       if (!isAndroid) {
-        Alert.alert(translations.alerts.error, translations.wallpaper.errors.unsupported);
+        showAlert({ title: translations.alerts.error, message: translations.wallpaper.errors.unsupported, variant: 'error' });
         return;
       }
       setBusy('save');
@@ -183,18 +184,19 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
           await new Promise((r) => setTimeout(r, 300));
           await captureAndCache();
           await autoWallpaperService.enable(settings.hour, settings.minute);
-          Alert.alert(
-            translations.alerts.success,
-            translations.wallpaper.auto.successDescription.replace(
+          showAlert({
+            title: translations.alerts.success,
+            message: translations.wallpaper.auto.successDescription.replace(
               '{0}',
               `${settings.hour.toString().padStart(2, '0')}:${settings.minute
                 .toString()
                 .padStart(2, '0')}`
-            )
-          );
+            ),
+            variant: 'success',
+          });
         } else {
           await autoWallpaperService.disable();
-          Alert.alert(translations.alerts.success, translations.wallpaper.auto.stopped);
+          showAlert({ title: translations.alerts.success, message: translations.wallpaper.auto.stopped, variant: 'success' });
         }
         await load();
       } catch (e: any) {
@@ -211,7 +213,7 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
             onPress: () => Wallpaper.openMiuiOtherPermissions(),
           });
         }
-        Alert.alert(translations.alerts.error, message, buttons);
+        showAlert({ title: translations.alerts.error, message, variant: 'error', buttons });
       } finally {
         setBusy(null);
       }
@@ -221,7 +223,7 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
 
   const handleTestNow = useCallback(async () => {
     if (!isAndroid) {
-      Alert.alert(translations.alerts.error, translations.wallpaper.errors.unsupported);
+      showAlert({ title: translations.alerts.error, message: translations.wallpaper.errors.unsupported, variant: 'error' });
       return;
     }
     setBusy('test');
@@ -230,7 +232,7 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
       const uri = await captureAndCache();
       if (!uri) throw new Error('Capture failed');
       await Wallpaper.applyCachedWallpaperNow();
-      Alert.alert(translations.wallpaper.success, translations.wallpaper.successDescription);
+      showAlert({ title: translations.wallpaper.success, message: translations.wallpaper.successDescription, variant: 'success' });
     } catch (e: any) {
       const code = e?.code || 'UNKNOWN';
       const needsMiui =
@@ -244,7 +246,7 @@ export const AutoWallpaperSettingsScreen: React.FC<Props> = ({ navigation }) => 
           onPress: () => Wallpaper.openMiuiOtherPermissions(),
         });
       }
-      Alert.alert(translations.alerts.error, message, buttons);
+      showAlert({ title: translations.alerts.error, message, variant: 'error', buttons });
     } finally {
       setBusy(null);
     }

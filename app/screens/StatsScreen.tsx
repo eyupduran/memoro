@@ -10,7 +10,6 @@ import {
   FlatList,
   Modal,
   Pressable,
-  Alert,
   TextInput,
   Animated,
 } from 'react-native';
@@ -20,6 +19,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
 import { dbService } from '../services/database';
+import { useAlert } from '../contexts/AlertContext';
 import type { LearnedWord } from '../types/words';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Stats'>;
@@ -43,13 +43,14 @@ type TabType = 'learnedWords' | 'wordLists';
 export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
+  const { showAlert } = useAlert();
   const [selectedTab, setSelectedTab] = useState<TabType>('wordLists');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [words, setWords] = useState<LearnedWord[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalWords, setTotalWords] = useState(0);
   const [selectedWords, setSelectedWords] = useState<LearnedWord[]>([]);
-  const [wordLists, setWordLists] = useState<{ id: number; name: string; created_at: string }[]>([]);
+  const [wordLists, setWordLists] = useState<{ id: number; name: string; created_at: string; word_count: number }[]>([]);
   const [loadingLists, setLoadingLists] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredWords, setFilteredWords] = useState<LearnedWord[]>([]);
@@ -282,30 +283,26 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
       const success = await dbService.deleteLearnedWord(word, currentLanguagePair);
       
       if (success) {
-        // State'i güncelle
         setAllWords(prevWords => prevWords.filter(w => w.word !== word));
-        
-        // Başarılı silme mesajı göster
-        Alert.alert(
-          translations.stats.success || 'Başarılı',
-          translations.stats.wordDeletedSuccessfully || 'Kelime başarıyla silindi',
-          [{ text: translations.stats.ok || 'Tamam' }]
-        );
+        showAlert({
+          title: translations.stats.success || 'Başarılı',
+          message: translations.stats.wordDeletedSuccessfully || 'Kelime başarıyla silindi',
+          variant: 'success',
+        });
       } else {
-        // Silme başarısız olduğunda hata mesajı göster
-        Alert.alert(
-          translations.stats.error || 'Hata',
-          translations.stats.errorDeletingWord || 'Kelime silinirken bir hata oluştu',
-          [{ text: translations.stats.ok || 'Tamam' }]
-        );
+        showAlert({
+          title: translations.stats.error || 'Hata',
+          message: translations.stats.errorDeletingWord || 'Kelime silinirken bir hata oluştu',
+          variant: 'error',
+        });
       }
     } catch (error) {
       console.error('Error deleting word:', error);
-      Alert.alert(
-        translations.stats.error || 'Hata',
-        translations.stats.errorDeletingWord || 'Kelime silinirken bir hata oluştu',
-        [{ text: translations.stats.ok || 'Tamam' }]
-      );
+      showAlert({
+        title: translations.stats.error || 'Hata',
+        message: translations.stats.errorDeletingWord || 'Kelime silinirken bir hata oluştu',
+        variant: 'error',
+      });
     }
   };
 
@@ -379,36 +376,6 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.deleteButton, { backgroundColor: colors.error + '15' }]}
-            onPress={(e) => {
-              e.stopPropagation();
-              Alert.alert(
-                translations.stats.deleteWordTitle || 'Kelimeyi Sil',
-                translations.stats.deleteWordMessage || 'Bu kelimeyi silmek istediğinizden emin misiniz?',
-                [
-                  {
-                    text: translations.stats.deleteWordCancel || 'İptal',
-                    style: 'cancel'
-                  },
-                  {
-                    text: translations.stats.deleteWordConfirm || 'Evet, Sil',
-                    style: 'destructive',
-                    onPress: async () => {
-                      try {
-                        await handleDeleteWord(item.word);
-                      } catch (error) {
-                        console.error('Error deleting word:', error);
-                      }
-                    }
-                  }
-                ]
-              );
-            }}
-          >
-            <MaterialIcons name="delete-outline" size={16} color={colors.error} />
-          </TouchableOpacity>
-          
           <View style={styles.wordMain}>
             <View style={styles.wordWithSpeech}>
               <Text style={[styles.wordText, { color: colors.text.primary }]}>{item.word}</Text>
@@ -443,10 +410,41 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
                 {translations.wordListModal?.addToList || 'Listeye Ekle'}
               </Text>
             </TouchableOpacity>
-            
+
+            <TouchableOpacity
+              style={[styles.wordListDeleteChip, { backgroundColor: colors.error + '12' }]}
+              onPress={(e) => {
+                e.stopPropagation();
+                showAlert({
+                  title: translations.stats.deleteWordTitle || 'Kelimeyi Sil',
+                  message: translations.stats.deleteWordMessage || 'Bu kelimeyi silmek istediğinizden emin misiniz?',
+                  variant: 'confirm',
+                  buttons: [
+                    { text: translations.stats.deleteWordCancel || 'İptal', style: 'cancel' },
+                    {
+                      text: translations.stats.deleteWordConfirm || 'Evet, Sil',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await handleDeleteWord(item.word);
+                        } catch (error) {
+                          console.error('Error deleting word:', error);
+                        }
+                      },
+                    },
+                  ],
+                });
+              }}
+            >
+              <MaterialIcons name="remove-circle-outline" size={14} color={colors.error} />
+              <Text style={[styles.wordListDeleteChipText, { color: colors.error }]}>
+                {translations.stats.deleteWordTitle || 'Kelimeyi Sil'}
+              </Text>
+            </TouchableOpacity>
+
             <View style={styles.rightActions}>
               <TouchableOpacity
-                style={[styles.selectButton, { 
+                style={[styles.selectButton, {
                   backgroundColor: isSelected ? colors.primary + '15' : 'transparent',
                   borderColor: isSelected ? colors.primary : colors.border,
                 }]}
@@ -455,12 +453,12 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
                   handleWordSelect(item);
                 }}
               >
-                <MaterialIcons 
-                  name={isSelected ? "check" : "add"} 
-                  size={16} 
-                  color={isSelected ? colors.primary : colors.text.secondary} 
+                <MaterialIcons
+                  name={isSelected ? "check" : "add"}
+                  size={16}
+                  color={isSelected ? colors.primary : colors.text.secondary}
                 />
-                <Text style={[styles.selectButtonText, { 
+                <Text style={[styles.selectButtonText, {
                   color: isSelected ? colors.primary : colors.text.secondary,
                 }]}>
                   {isSelected ? 'Seçildi' : 'Seç'}
@@ -475,143 +473,161 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
 
   // Kelime listesi silme işlemini yönet
   const handleDeleteWordList = (listId: number, listName: string) => {
-    Alert.alert(
-      translations.wordListModal?.deleteListTitle || 'Listeyi Sil',
-      translations.wordListModal?.deleteListMessage || 'Bu listeyi silmek istediğinizden emin misiniz? Listeyle birlikte içindeki tüm kelimeler de silinecektir.',
-      [
-        {
-          text: translations.wordListModal?.deleteListCancel || 'İptal',
-          style: 'cancel'
-        },
+    showAlert({
+      title: translations.wordListModal?.deleteListTitle || 'Listeyi Sil',
+      message: translations.wordListModal?.deleteListMessage || 'Bu listeyi silmek istediğinizden emin misiniz? Listeyle birlikte içindeki tüm kelimeler de silinecektir.',
+      variant: 'confirm',
+      buttons: [
+        { text: translations.wordListModal?.deleteListCancel || 'İptal', style: 'cancel' },
         {
           text: translations.wordListModal?.deleteListConfirm || 'Evet, Sil',
           style: 'destructive',
           onPress: async () => {
             try {
               const success = await dbService.deleteWordList(listId);
-              
               if (success) {
-                // Listeleri yeniden yükle
                 loadWordLists();
-                // Başarı mesajı göster
-                Alert.alert(
-                  translations.wordListModal?.success || 'Başarılı',
-                  translations.wordListModal?.deleteListSuccess || 'Liste başarıyla silindi'
-                );
+                showAlert({
+                  title: translations.wordListModal?.success || 'Başarılı',
+                  message: translations.wordListModal?.deleteListSuccess || 'Liste başarıyla silindi',
+                  variant: 'success',
+                });
               } else {
-                // Hata mesajı göster
-                Alert.alert(
-                  translations.wordListModal?.error || 'Hata',
-                  translations.wordListModal?.deleteListError || 'Liste silinirken bir hata oluştu'
-                );
+                showAlert({
+                  title: translations.wordListModal?.error || 'Hata',
+                  message: translations.wordListModal?.deleteListError || 'Liste silinirken bir hata oluştu',
+                  variant: 'error',
+                });
               }
             } catch (error) {
               console.error('Error deleting word list:', error);
-              Alert.alert(
-                translations.wordListModal?.error || 'Hata',
-                translations.wordListModal?.deleteListError || 'Liste silinirken bir hata oluştu'
-              );
+              showAlert({
+                title: translations.wordListModal?.error || 'Hata',
+                message: translations.wordListModal?.deleteListError || 'Liste silinirken bir hata oluştu',
+                variant: 'error',
+              });
             }
-          }
-        }
-      ]
-    );
+          },
+        },
+      ],
+    });
   };
 
   // Yeni kelime listesi oluştur
   const handleCreateWordList = async () => {
     if (!newWordListName.trim()) {
-      Alert.alert(
-        translations.wordListModal?.error || 'Hata',
-        translations.wordListModal?.emptyListName || 'Liste adı gereklidir',
-        [{ text: 'Tamam' }]
-      );
+      showAlert({
+        title: translations.wordListModal?.error || 'Hata',
+        message: translations.wordListModal?.emptyListName || 'Liste adı gereklidir',
+        variant: 'warning',
+      });
       return;
     }
 
     try {
       const success = await dbService.createWordList(newWordListName.trim(), currentLanguagePair);
-      
       if (success) {
-        // Input'u temizle
         setNewWordListName('');
-        // Listeleri yeniden yükle
         loadWordLists();
-        // Başarı mesajı göster
-        Alert.alert(
-          translations.wordListModal?.success || 'Başarılı',
-          translations.wordListModal?.addSuccess || 'Liste başarıyla oluşturuldu'
-        );
+        showAlert({
+          title: translations.wordListModal?.success || 'Başarılı',
+          message: translations.wordListModal?.addSuccess || 'Liste başarıyla oluşturuldu',
+          variant: 'success',
+        });
       } else {
-        // Hata mesajı göster
-        Alert.alert(
-          translations.wordListModal?.error || 'Hata',
-          translations.wordListModal?.createError || 'Liste oluşturulurken bir hata oluştu'
-        );
+        showAlert({
+          title: translations.wordListModal?.error || 'Hata',
+          message: translations.wordListModal?.createError || 'Liste oluşturulurken bir hata oluştu',
+          variant: 'error',
+        });
       }
     } catch (error) {
       console.error('Error creating word list:', error);
-      Alert.alert(
-        translations.wordListModal?.error || 'Hata',
-        translations.wordListModal?.createError || 'Liste oluşturulurken bir hata oluştu'
-      );
+      showAlert({
+        title: translations.wordListModal?.error || 'Hata',
+        message: translations.wordListModal?.createError || 'Liste oluşturulurken bir hata oluştu',
+        variant: 'error',
+      });
     }
   };
 
   // Kelime listesi kartını render et
-  const renderWordListItem = ({ item }: { item: { id: number; name: string; created_at: string } }) => (
-    <TouchableOpacity
-      style={[
-        styles.wordListCard,
-        { 
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-        },
-      ]}
-      onPress={() => navigation.navigate('WordListDetail', { listId: item.id.toString(), listName: item.name })}
-    >
-      <View style={styles.wordListHeader}>
-        <View style={styles.wordListInfo}>
-          <View style={styles.wordListNameContainer}>
-            <Text style={[styles.wordListName, { color: colors.text.primary }]}>
-              {item.name}
-            </Text>
-            {wordListStreaks[item.id] && (
-              <MaterialIcons
-                name="check-circle"
-                size={16}
-                color={colors.primary}
-                style={styles.streakIcon}
-              />
-            )}
+  const renderWordListItem = ({ item }: { item: { id: number; name: string; created_at: string; word_count: number } }) => {
+    // Liste adından level bilgisini çıkar
+    const levelMatch = item.name.match(/^(A1|A2|B1|B2|C1|C2)/);
+    const level = levelMatch?.[0] || null;
+
+    const LEVEL_COLORS: Record<string, string> = {
+      A1: '#4CAF50', A2: '#8BC34A',
+      B1: '#FF9800', B2: '#FF5722',
+      C1: '#9C27B0', C2: '#673AB7',
+    };
+    const accentColor = level ? LEVEL_COLORS[level] : colors.primary;
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={[
+          styles.wordListCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderLeftColor: accentColor,
+            borderLeftWidth: 4,
+          },
+        ]}
+        onPress={() => navigation.navigate('WordListDetail', { listId: item.id.toString(), listName: item.name })}
+      >
+        <View style={styles.wordListCardBody}>
+          <View style={styles.wordListCardLeft}>
+            <View style={[styles.wordListIconCircle, { backgroundColor: accentColor + '15' }]}>
+              <MaterialIcons name="format-list-bulleted" size={22} color={accentColor} />
+            </View>
           </View>
-          <Text style={[styles.wordListDate, { color: colors.text.secondary }]}>
-            {formatDate(item.created_at)}
-          </Text>
+          <View style={styles.wordListCardCenter}>
+            <View style={styles.wordListNameRow}>
+              <Text style={[styles.wordListName, { color: colors.text.primary }]} numberOfLines={1}>
+                {item.name}
+              </Text>
+              {wordListStreaks[item.id] && (
+                <MaterialIcons name="check-circle" size={15} color={colors.primary} style={{ marginLeft: 6 }} />
+              )}
+            </View>
+            <View style={styles.wordListMeta}>
+              <View style={styles.wordListMetaItem}>
+                <MaterialIcons name="text-snippet" size={13} color={colors.text.secondary} />
+                <Text style={[styles.wordListMetaText, { color: colors.text.secondary }]}>
+                  {item.word_count} {translations.stats.wordCountLabel || 'kelime'}
+                </Text>
+              </View>
+              <View style={[styles.wordListMetaDot, { backgroundColor: colors.text.secondary }]} />
+              <View style={styles.wordListMetaItem}>
+                <MaterialIcons name="access-time" size={13} color={colors.text.secondary} />
+                <Text style={[styles.wordListMetaText, { color: colors.text.secondary }]}>
+                  {formatDate(item.created_at)}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <MaterialIcons name="chevron-right" size={22} color={colors.text.secondary} style={{ opacity: 0.4 }} />
         </View>
-        <View style={styles.wordListActions}>
+        <View style={[styles.wordListCardFooter, { borderTopColor: colors.border }]}>
           <TouchableOpacity
-            style={[styles.deleteListButton, { backgroundColor: `${colors.error}15` }]}
+            style={[styles.wordListDeleteChip, { backgroundColor: colors.error + '12' }]}
             onPress={(e) => {
               e.stopPropagation();
               handleDeleteWordList(item.id, item.name);
             }}
           >
-            <MaterialIcons 
-              name="delete-outline" 
-              size={22} 
-              color={colors.error || '#f44336'} 
-            />
+            <MaterialIcons name="remove-circle-outline" size={14} color={colors.error} />
+            <Text style={[styles.wordListDeleteChipText, { color: colors.error }]}>
+              {translations.wordListModal?.deleteListTitle || 'Listeyi Sil'}
+            </Text>
           </TouchableOpacity>
-          <MaterialIcons 
-            name="chevron-right" 
-            size={24} 
-            color={colors.text.secondary}
-          />
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
   
   // Liste altındaki yükleniyor göstergesini render et
   const renderFooter = () => {
@@ -1091,43 +1107,88 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   wordListsGridContainer: {
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 20,
   },
   wordListCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 14,
+    marginBottom: 10,
     borderWidth: 1,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
     elevation: 2,
   },
-  wordListHeader: {
+  wordListCardBody: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingRight: 12,
+    paddingLeft: 14,
+  },
+  wordListCardLeft: {
+    marginRight: 14,
+  },
+  wordListIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  wordListInfo: {
+  wordListCardCenter: {
     flex: 1,
+    marginRight: 8,
   },
-  wordListNameContainer: {
+  wordListNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    marginBottom: 5,
   },
   wordListName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 15,
+    fontWeight: '700',
+    flexShrink: 1,
   },
-  streakIcon: {
-    marginLeft: 4,
+  wordListMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  wordListDate: {
+  wordListMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  wordListMetaText: {
     fontSize: 12,
-    opacity: 0.5,
+  },
+  wordListMetaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    marginHorizontal: 7,
+    opacity: 0.4,
+  },
+  wordListCardFooter: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  wordListDeleteChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+  },
+  wordListDeleteChipText: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginLeft: 4,
   },
   learnedWordsContainer: {
     flex: 1,
@@ -1316,9 +1377,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteListButton: {
-    padding: 8,
-    marginRight: 12,
-    borderRadius: 20,
+    padding: 6,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1426,9 +1486,10 @@ const styles = StyleSheet.create({
   createListContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    gap: 12,
+    gap: 10,
   },
   createListInput: {
     flex: 1,

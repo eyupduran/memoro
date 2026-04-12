@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { WebView } from 'react-native-webview';
-import { StyleSheet, View, ActivityIndicator, TouchableOpacity, Alert, BackHandler } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, TouchableOpacity, BackHandler } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAlert } from '../contexts/AlertContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const GamesScreen = () => {
   const { colors } = useTheme();
   const { translations } = useLanguage();
+  const { showAlert } = useAlert();
   const navigation = useNavigation();
   const [currentUrl, setCurrentUrl] = useState('https://www.gamestolearnenglish.com/');
   const [canGoBack, setCanGoBack] = useState(false);
@@ -19,10 +21,11 @@ const GamesScreen = () => {
     React.useCallback(() => {
       const onBackPress = () => {
         // Kullanıcıya oyun sayfasından çıkış uyarısı göster
-        Alert.alert(
-          translations.games.exitWarning.title,
-          translations.games.exitWarning.message,
-          [
+        showAlert({
+          title: translations.games.exitWarning.title,
+          message: translations.games.exitWarning.message,
+          variant: 'confirm',
+          buttons: [
             {
               text: translations.games.exitWarning.cancel,
               onPress: () => {},
@@ -36,8 +39,7 @@ const GamesScreen = () => {
               style: 'destructive',
             },
           ],
-          { cancelable: true }
-        );
+        });
         
         // Geri tuşunun varsayılan davranışını engelle
         return true;

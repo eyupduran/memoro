@@ -28,6 +28,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { ThemeProvider, useTheme } from './app/context/ThemeContext';
 import { LanguageProvider, useLanguage } from './app/contexts/LanguageContext';
 import { AuthProvider, useAuth } from './app/contexts/AuthContext';
+import { AlertProvider } from './app/contexts/AlertContext';
 import ExerciseDetailScreen from './app/screens/ExerciseDetailScreen';
 import GamesScreen from './app/screens/GamesScreen';
 import PredefinedWordListsScreen from './app/screens/PredefinedWordListsScreen';
@@ -383,11 +384,13 @@ export default function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <DetailedDownloadProvider>
-            <ThemedAppContainer />
-          </DetailedDownloadProvider>
-        </AuthProvider>
+        <AlertProvider>
+          <AuthProvider>
+            <DetailedDownloadProvider>
+              <ThemedAppContainer />
+            </DetailedDownloadProvider>
+          </AuthProvider>
+        </AlertProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

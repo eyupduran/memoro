@@ -1237,15 +1237,21 @@ class DatabaseService {
   }
 
   // Özel kelime listelerini getir
-  async getWordLists(languagePair: string): Promise<{ id: number; name: string; created_at: string }[]> {
+  async getWordLists(languagePair: string): Promise<{ id: number; name: string; created_at: string; word_count: number }[]> {
     try {
       if (!this.initialized) await this.initDatabase();
-      
-      const lists = await this.db.getAllAsync<{ id: number; name: string; created_at: string }>(
-        'SELECT id, name, created_at FROM custom_word_lists WHERE language_pair = ? AND deleted_at IS NULL ORDER BY created_at DESC',
+
+      const lists = await this.db.getAllAsync<{ id: number; name: string; created_at: string; word_count: number }>(
+        `SELECT l.id, l.name, l.created_at,
+                COUNT(i.id) as word_count
+         FROM custom_word_lists l
+         LEFT JOIN custom_word_list_items i ON i.list_id = l.id AND i.deleted_at IS NULL
+         WHERE l.language_pair = ? AND l.deleted_at IS NULL
+         GROUP BY l.id
+         ORDER BY l.created_at DESC`,
         [languagePair]
       );
-      
+
       return lists;
     } catch (error) {
       console.error('Error getting word lists:', error);

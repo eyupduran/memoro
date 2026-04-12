@@ -36,6 +36,7 @@ export interface Translations {
   stats: {
     title: string;
     totalWords: string;
+    wordCountLabel: string;
     wordLists: string;
     learnedWords: string;
     levels: {

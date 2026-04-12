@@ -51,8 +51,9 @@ export default {
     dailyWordReminderBody: 'Que tal aprender suas palavras de hoje?'
   },
   stats: {
-    title: 'Estats',
+    title: 'Minhas Listas',
     totalWords: 'Total de {0} palavras aprendidas',
+    wordCountLabel: 'palavras',
     wordLists: 'Listas de Palavras',
     learnedWords: 'Minhas Palavras Visuais',
     levels: {
@@ -115,7 +116,7 @@ export default {
     title: 'Memoro',
     subtitle: 'Assistente de Aprendizado de Vocabulário em Inglês',
     learnWords: 'Aprender Palavras',
-    statistics: 'Estats',
+    statistics: 'Minhas Listas',
     settings: 'Configurações',
     dictionary: 'Dicionário',
     grammar: 'Gramática',
@@ -139,7 +140,7 @@ export default {
     tabs: {
       home: 'Início',
       dictionary: 'Dicionário',
-      stats: 'Estats',
+      stats: 'Minhas Listas',
       settings: 'Configurações'
     }
   },
@@ -599,7 +600,7 @@ export default {
     },
     tabs: {
       exercise: 'Exercício',
-      stats: 'Estats',
+      stats: 'Minhas Listas',
       settings: 'Configurações'
     }
   },

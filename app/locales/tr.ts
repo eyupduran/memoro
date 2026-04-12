@@ -51,8 +51,9 @@ export default {
     dailyWordReminderBody: 'Bugünkü kelimelerinizi öğrenmeye ne dersiniz?'
   },
   stats: {
-    title: 'İstatistikler',
+    title: 'Listelerim',
     totalWords: 'Toplam {0} kelime öğrenildi',
+    wordCountLabel: 'kelime',
     wordLists: 'Kelime Listeleri',
     learnedWords: 'Görsel Kelimelerim',
     levels: {
@@ -115,7 +116,7 @@ export default {
     title: 'Memoro',
     subtitle: 'İngilizce Kelime Öğrenme Asistanı',
     learnWords: 'Kelime Öğren',
-    statistics: 'İstatistikler',
+    statistics: 'Listelerim',
     settings: 'Ayarlar',
     dictionary: 'Sözlük',
     grammar: 'Gramer',
@@ -139,7 +140,7 @@ export default {
     tabs: {
       home: 'Ana Sayfa',
       dictionary: 'Sözlük',
-      stats: 'İstatistik',
+      stats: 'Listelerim',
       settings: 'Ayarlar'
     }
   },
@@ -603,7 +604,7 @@ export default {
     },
     tabs: {
       exercise: 'Egzersiz',
-      stats: 'İstatistik',
+      stats: 'Listelerim',
       settings: 'Ayarlar',
     }
   },

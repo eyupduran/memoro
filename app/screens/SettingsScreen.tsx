@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAlert } from '../contexts/AlertContext';
 import type { ThemeType } from '../theme/themes';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,7 +13,8 @@ import { LanguageSelectorSettings } from '../components/LanguageSelectorSettings
 import { DataLoader } from '../components/DataLoader';
 import { useDetailedDownload } from '../contexts/DetailedDownloadContext';
 import { checkWordDataExists } from '../utils/database';
-import { CloudAccountSection } from '../components/CloudAccountSection';
+import { useAuth } from '../contexts/AuthContext';
+import { cloudSync } from '../services/cloudSync';
 import WordListDownloadModal from '../components/WordListDownloadModal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
@@ -20,36 +22,35 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 export const SettingsScreen: React.FC<Props> = (props) => {
   const { theme, setTheme, colors } = useTheme();
   const { translations, currentLanguagePair, showDataLoader: globalShowDataLoader, setShowDataLoader: setGlobalShowDataLoader } = useLanguage();
+  const { showAlert } = useAlert();
+  const { user, signOut } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [hasDownloadedData, setHasDownloadedData] = useState(false);
   const [showDataLoader, setShowDataLoader] = useState(false);
   const { startDownload: startDetailedDownload } = useDetailedDownload();
   const isInitialMount = useRef(true);
   const [showWordListModal, setShowWordListModal] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const t = translations.settings.cloudAccount;
+  const isSignedIn = !!user;
 
   useEffect(() => {
-    // Odaklanma olayını dinle
     const unsubscribe = props.navigation.addListener('focus', () => {
       checkDownloadedData();
       checkNotificationSettings();
-      // Başka bir ekranda tetiklenmiş olabilecek global loader'ı kapat
       if (globalShowDataLoader) {
         setGlobalShowDataLoader(false);
       }
     });
-
-    // Temizleme
     return unsubscribe;
   }, [props.navigation, globalShowDataLoader]);
 
-  // Dil çifti değiştiğinde veri yükleyiciyi tetikle
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
-
-    // Dil değiştiğinde DataLoader'ı göster
     setShowDataLoader(true);
   }, [currentLanguagePair]);
 
@@ -72,7 +73,6 @@ export const SettingsScreen: React.FC<Props> = (props) => {
     }
   };
 
-  // Android için bildirim kanalını ayarlar
   async function setupNotificationChannelAndroid() {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
@@ -84,82 +84,66 @@ export const SettingsScreen: React.FC<Props> = (props) => {
     }
   }
 
-  // Günlük bildirimi zamanlar
   async function scheduleDailyNotification() {
     try {
-      await Notifications.cancelAllScheduledNotificationsAsync(); // Önceki zamanlamaları iptal et
-      await setupNotificationChannelAndroid(); // Android kanalını kontrol et/oluştur
-
-      const notificationContent = {
-        title: "☀️ Günaydın!",
-        body: 'Bugün yeni kelimeler öğrenme zamanı! Hadi başlayalım 💪',
-      };
-
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      await setupNotificationChannelAndroid();
       await Notifications.scheduleNotificationAsync({
-        content: notificationContent,
+        content: {
+          title: "☀️ Günaydın!",
+          body: 'Bugün yeni kelimeler öğrenme zamanı! Hadi başlayalım 💪',
+        },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: 10,
           minute: 0,
         },
       });
-      console.log('Günlük bildirim saat 10:00 için ayarlandı.');
-      return true; // Başarılı
+      return true;
     } catch (error) {
-        console.error("Error scheduling notification:", error);
-        Alert.alert(translations.alerts.error, translations.alerts.notificationSchedulingError);
-        return false; // Başarısız
+      console.error("Error scheduling notification:", error);
+      showAlert({ title: translations.alerts.error, message: translations.alerts.notificationSchedulingError, variant: 'error' });
+      return false;
     }
   }
 
-  // Tüm bildirimleri iptal eder
   async function cancelAllNotifications() {
-    try{
-        await Notifications.cancelAllScheduledNotificationsAsync();
-        console.log('Tüm zamanlanmış bildirimler iptal edildi.');
+    try {
+      await Notifications.cancelAllScheduledNotificationsAsync();
     } catch (error) {
-        console.error("Error cancelling notifications:", error);
-        Alert.alert(translations.alerts.error, translations.alerts.notificationCancellationError);
+      console.error("Error cancelling notifications:", error);
+      showAlert({ title: translations.alerts.error, message: translations.alerts.notificationCancellationError, variant: 'error' });
     }
   }
 
-  // Bildirim ayarını değiştirme işlevi
   const handleNotificationToggle = async () => {
     const previousState = notificationsEnabled;
     const newState = !previousState;
-    // Önce UI'ı iyimser bir şekilde güncelle
     setNotificationsEnabled(newState);
 
     try {
       if (newState) {
-        // Bildirimler açıldı, izin iste
         const { status } = await Notifications.requestPermissionsAsync();
-
         if (status === 'granted') {
-          // İzin verildi, bildirimi zamanla
           const scheduled = await scheduleDailyNotification();
           if (scheduled) {
-             await AsyncStorage.setItem('notificationsEnabled', 'true');
+            await AsyncStorage.setItem('notificationsEnabled', 'true');
           } else {
-              // Zamanlama başarısız oldu, durumu geri al
-              setNotificationsEnabled(false);
-              await AsyncStorage.setItem('notificationsEnabled', 'false');
+            setNotificationsEnabled(false);
+            await AsyncStorage.setItem('notificationsEnabled', 'false');
           }
         } else {
-          // İzin reddedildi
-          Alert.alert(translations.alerts.permissionRequired, translations.notifications.dailyWordReminderBody);
-          setNotificationsEnabled(false); // UI'ı geri al
+          showAlert({ title: translations.alerts.permissionRequired, message: translations.notifications.dailyWordReminderBody, variant: 'warning' });
+          setNotificationsEnabled(false);
           await AsyncStorage.setItem('notificationsEnabled', 'false');
         }
       } else {
-        // Bildirimler kapatıldı, zamanlanmış olanları iptal et
         await cancelAllNotifications();
         await AsyncStorage.setItem('notificationsEnabled', 'false');
       }
     } catch (error) {
       console.error("Error handling notification toggle:", error);
-      Alert.alert(translations.alerts.error, translations.alerts.processingError);
-      // Hata durumunda UI durumunu önceki haline geri al
+      showAlert({ title: translations.alerts.error, message: translations.alerts.processingError, variant: 'error' });
       setNotificationsEnabled(previousState);
     }
   };
@@ -173,10 +157,33 @@ export const SettingsScreen: React.FC<Props> = (props) => {
     }
   };
 
-  // Veri indirme işlemi tamamlandığında
+  const handleSignOut = () => {
+    showAlert({
+      title: t.signOutConfirmTitle,
+      message: t.signOutConfirmMessage,
+      variant: 'confirm',
+      buttons: [
+        { text: t.signOutCancel, style: 'cancel' },
+        {
+          text: t.signOutConfirm,
+          style: 'destructive',
+          onPress: async () => {
+            setSigningOut(true);
+            try {
+              await cloudSync.onSignOutCleanup(currentLanguagePair);
+              await signOut();
+            } finally {
+              setSigningOut(false);
+            }
+          },
+        },
+      ],
+    });
+  };
+
   const onDataLoadComplete = async () => {
-    setShowDataLoader(false); // Local loader'ı kapat
-    await checkDownloadedData(); // Verileri tekrar kontrol et
+    setShowDataLoader(false);
+    await checkDownloadedData();
   };
 
   const themes: { type: ThemeType; label: string; icon: keyof typeof MaterialIcons.glyphMap; description: string }[] = [
@@ -202,68 +209,152 @@ export const SettingsScreen: React.FC<Props> = (props) => {
 
   return (
     <>
-      <ScrollView 
+      <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
+        {/* ── Hesabım ── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            {t.title}
+          </Text>
+
+          <View style={[styles.card, { backgroundColor: colors.card.background }]}>
+            {isSignedIn ? (
+              <>
+                <View style={styles.accountRow}>
+                  <View style={[styles.avatarCircle, { backgroundColor: colors.primary + '18' }]}>
+                    <MaterialIcons name="person" size={24} color={colors.primary} />
+                  </View>
+                  <View style={styles.accountInfo}>
+                    <Text style={[styles.accountEmail, { color: colors.text.primary }]} numberOfLines={1}>
+                      {user?.email}
+                    </Text>
+                    <View style={styles.syncBadge}>
+                      <MaterialIcons name="cloud-done" size={13} color="#4CAF50" />
+                      <Text style={[styles.syncBadgeText, { color: '#4CAF50' }]}>
+                        {t.descriptionSignedIn}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.outlineButton, { borderColor: colors.border }]}
+                  onPress={handleSignOut}
+                  disabled={signingOut}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="logout" size={18} color={colors.text.secondary} />
+                  <Text style={[styles.outlineButtonText, { color: colors.text.secondary }]}>
+                    {t.signOut}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <View style={styles.accountRow}>
+                  <View style={[styles.avatarCircle, { backgroundColor: colors.text.secondary + '15' }]}>
+                    <MaterialIcons name="cloud-off" size={22} color={colors.text.secondary} />
+                  </View>
+                  <View style={styles.accountInfo}>
+                    <Text style={[styles.accountLabel, { color: colors.text.primary }]}>
+                      {t.guestStatus}
+                    </Text>
+                    <Text style={[styles.accountDesc, { color: colors.text.secondary }]}>
+                      {t.descriptionGuest}
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+                  onPress={() => props.navigation.navigate('Auth')}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="cloud-upload" size={18} color={colors.text.onPrimary} />
+                  <Text style={[styles.primaryButtonText, { color: colors.text.onPrimary }]}>
+                    {t.signInOrCreate}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+
+        {/* ── Bildirimler ── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            {translations.settings.notifications}
+          </Text>
+
+          <View style={[styles.card, { backgroundColor: colors.card.background }]}>
+            <View style={styles.notifRow}>
+              <View style={[styles.notifIconCircle, { backgroundColor: colors.primary + '15' }]}>
+                <MaterialIcons name="notifications-active" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.notifInfo}>
+                <Text style={[styles.notifLabel, { color: colors.text.primary }]}>
+                  {translations.notifications.dailyWordReminder}
+                </Text>
+                {notificationsEnabled && (
+                  <Text style={[styles.notifTime, { color: colors.text.secondary }]}>
+                    {translations.settings.notificationTime}
+                  </Text>
+                )}
+              </View>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={handleNotificationToggle}
+                trackColor={{ false: colors.text.light, true: colors.primary }}
+                thumbColor={colors.background}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* ── Tema ── */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
             {translations.settings.themeSelection}
           </Text>
-          <Text style={[styles.sectionDescription, { color: colors.text.secondary }]}>
+          <Text style={[styles.sectionDesc, { color: colors.text.secondary }]}>
             {translations.settings.themeDescription}
           </Text>
-          <View style={styles.themeContainer}>
-            {themes.map((item) => (
-              <TouchableOpacity
-                key={item.type}
-                style={[
-                  styles.themeCard,
-                  { backgroundColor: colors.card.background },
-                  theme === item.type && {
-                    borderColor: colors.primary,
-                    borderWidth: 2,
-                  },
-                ]}
-                onPress={() => handleThemeChange(item.type)}
-              >
-                <View style={[
-                  styles.iconContainer,
-                  { backgroundColor: colors.surfaceVariant }
-                ]}>
-                  <MaterialIcons
-                    name={item.icon}
-                    size={28}
-                    color={theme === item.type ? colors.primary : colors.icon.secondary}
-                  />
-                </View>
-                <View style={styles.themeInfo}>
-                  <Text style={[
-                    styles.themeLabel,
-                    { color: colors.text.primary }
-                  ]}>
+
+          <View style={styles.themeRow}>
+            {themes.map((item) => {
+              const isActive = theme === item.type;
+              return (
+                <TouchableOpacity
+                  key={item.type}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.themeChip,
+                    {
+                      backgroundColor: isActive ? colors.primary + '12' : colors.card.background,
+                      borderColor: isActive ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={() => handleThemeChange(item.type)}
+                >
+                  <View style={[styles.themeIconWrap, { backgroundColor: isActive ? colors.primary + '20' : colors.surfaceVariant }]}>
+                    <MaterialIcons name={item.icon} size={20} color={isActive ? colors.primary : colors.icon.secondary} />
+                  </View>
+                  <Text style={[styles.themeChipLabel, { color: isActive ? colors.primary : colors.text.primary }]}>
                     {item.label}
                   </Text>
-                  <Text style={[
-                    styles.themeDescription,
-                    { color: colors.text.secondary }
-                  ]}>
-                    {item.description}
-                  </Text>
-                </View>
-                {theme === item.type && (
-                  <MaterialIcons
-                    name="check-circle"
-                    size={24}
-                    color={colors.primary}
-                    style={styles.checkIcon}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
+                  {isActive && (
+                    <MaterialIcons name="check-circle" size={18} color={colors.primary} style={{ marginLeft: 'auto' }} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
+        {/* ── Dil ── */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
             {translations.languageSelector.title}
@@ -271,122 +362,99 @@ export const SettingsScreen: React.FC<Props> = (props) => {
           <LanguageSelectorSettings />
         </View>
 
-        {/* Downloaded Data Section */}
+        {/* ── Veri Yönetimi ── */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
             {translations.settings.downloadedData.title}
           </Text>
-          
-          <View style={[styles.dataCard, { backgroundColor: colors.card.background }]}>
-            <View style={styles.labelRow}>
-              <Text style={[styles.dataLabel, { color: colors.text.primary }]}>
-                {translations.settings.downloadedData.learningLanguage}:
-              </Text>
-              <Text style={[styles.dataValue, { color: colors.text.secondary, marginLeft: 8 }]}>
-                {hasDownloadedData ? translations.languages[currentLanguagePair.split('-')[1] as keyof typeof translations.languages] : translations.settings.downloadedData.noData}
-              </Text>
+
+          <View style={[styles.card, { backgroundColor: colors.card.background }]}>
+            <View style={styles.dataRow}>
+              <View style={[styles.dataIconCircle, { backgroundColor: colors.primary + '15' }]}>
+                <MaterialIcons name="storage" size={20} color={colors.primary} />
+              </View>
+              <View style={styles.dataInfo}>
+                <Text style={[styles.dataLabel, { color: colors.text.primary }]}>
+                  {translations.settings.downloadedData.learningLanguage}
+                </Text>
+                <Text style={[styles.dataValue, { color: colors.text.secondary }]}>
+                  {hasDownloadedData ? translations.languages[currentLanguagePair.split('-')[1] as keyof typeof translations.languages] : translations.settings.downloadedData.noData}
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.descriptionContainer}>
-              <MaterialIcons 
-                name="info-outline" 
-                size={20} 
-                color={colors.text.secondary} 
-                style={styles.infoIcon}
-              />
-              <Text style={[styles.descriptionText, { color: colors.text.secondary, fontSize: 13 }]}>
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            <View style={styles.descBox}>
+              <MaterialIcons name="info-outline" size={16} color={colors.text.secondary} style={{ marginTop: 1 }} />
+              <Text style={[styles.descText, { color: colors.text.secondary }]}>
                 {translations.settings.downloadedData.description}
               </Text>
             </View>
-            
+
             <TouchableOpacity
-              style={[styles.updateButton, { backgroundColor: colors.primary }]}
+              style={[styles.actionButton, { backgroundColor: colors.primary }]}
               onPress={() => {
-                // Global loader'ı etkilemeden sadece bu ekranda loader'ı göster
-                if (globalShowDataLoader) {
-                  setGlobalShowDataLoader(false);
-                }
+                if (globalShowDataLoader) setGlobalShowDataLoader(false);
                 setShowDataLoader(true);
               }}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>
+              <MaterialIcons name="refresh" size={18} color={colors.text.onPrimary} />
+              <Text style={[styles.actionButtonText, { color: colors.text.onPrimary }]}>
                 {translations.settings.downloadedData.update}
               </Text>
             </TouchableOpacity>
 
-            <View style={styles.descriptionContainer}>
-              <MaterialIcons
-                name="info-outline"
-                size={20}
-                color={colors.text.secondary}
-                style={styles.infoIcon}
-              />
-              <Text style={[styles.descriptionText, { color: colors.text.secondary, fontSize: 13 }]}>
+            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+
+            <View style={styles.descBox}>
+              <MaterialIcons name="info-outline" size={16} color={colors.text.secondary} style={{ marginTop: 1 }} />
+              <Text style={[styles.descText, { color: colors.text.secondary }]}>
                 {translations.settings.downloadedData.detailedDescription}
               </Text>
             </View>
 
             <TouchableOpacity
-              style={[styles.updateButton, { backgroundColor: colors.primary }]}
+              style={[styles.actionButton, { backgroundColor: colors.primary }]}
               onPress={() => {
-                if (globalShowDataLoader) {
-                  setGlobalShowDataLoader(false);
-                }
+                if (globalShowDataLoader) setGlobalShowDataLoader(false);
                 startDetailedDownload(currentLanguagePair);
               }}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>
+              <MaterialIcons name="download" size={18} color={colors.text.onPrimary} />
+              <Text style={[styles.actionButtonText, { color: colors.text.onPrimary }]}>
                 {translations.settings.downloadedData.updateDetailed}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Predefined Word Lists Section */}
-        <View style={styles.section}>
+        {/* ── Hazır Kelime Listeleri ── */}
+        <View style={[styles.section, { marginBottom: 40 }]}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-            Hazır Kelime Listeleri
+            {translations.settings.predefinedWordListsTitle || 'Hazır Kelime Listeleri'}
           </Text>
-          <Text style={[styles.sectionDescription, { color: colors.text.secondary }]}>
-            Burada uygulamada hazır bulunan kelime listelerini kendi özel listelerinize ekleyebilirsiniz. Seviye ve kategoriye göre seçim yapabilir veya tüm listeleri indirebilirsiniz.
+          <Text style={[styles.sectionDesc, { color: colors.text.secondary }]}>
+            Kategorilere ayrılmış hazır kelime listeleriyle öğrenmeye hızlı başlayın.
           </Text>
+
           <TouchableOpacity
-            style={[styles.updateButton, { backgroundColor: colors.primary }]}
+            style={[styles.actionButton, { backgroundColor: colors.primary }]}
             onPress={() => props.navigation.navigate('PredefinedWordLists', {})}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>Hazır Kelime Listesi Ekle</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Cloud Account Section (replaces the old file-based backup/restore) */}
-        <View style={styles.section}>
-          <CloudAccountSection />
-        </View>
-
-        <View style={[styles.section, { marginBottom: 0 }]}>
-          <View style={styles.notificationHeader}>
-            <View style={styles.notificationTextContainer}>
-              <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-                {translations.settings.notifications}
-              </Text>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={handleNotificationToggle}
-              trackColor={{ false: colors.text.light, true: colors.primary }}
-              thumbColor={colors.background}
-            />
-          </View>
-          {notificationsEnabled && (
-            <Text style={[styles.notificationTimeInfo, { color: colors.text.secondary }]}>
-              {translations.settings.notificationTime}
+            <MaterialIcons name="library-add" size={18} color={colors.text.onPrimary} />
+            <Text style={[styles.actionButtonText, { color: colors.text.onPrimary }]}>
+              {translations.settings.predefinedWordListsTitle || 'Hazır Kelime Listesi Ekle'}
             </Text>
-          )}
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
       {showDataLoader && (
-        <View style={styles.loaderContainer}>
+        <View style={styles.loaderOverlay}>
           <DataLoader
             visible={showDataLoader}
             onComplete={onDataLoadComplete}
@@ -395,7 +463,6 @@ export const SettingsScreen: React.FC<Props> = (props) => {
           />
         </View>
       )}
-
 
       <WordListDownloadModal
         visible={showWordListModal}
@@ -411,116 +478,209 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+    paddingBottom: 40,
   },
+
+  // ── Section ──
   section: {
-    marginBottom: 32,
+    marginBottom: 28,
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
-  },
-  sectionDescription: {
-    fontSize: 14,
-    marginBottom: 20,
-  },
-  themeContainer: {
-    gap: 16,
-  },
-  themeCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    minHeight: 80,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  themeInfo: {
-    flex: 1,
-    flexShrink: 1,
-    paddingRight: 36,
-  },
-  themeLabel: {
-    fontSize: 16,
-    fontWeight: '600',
     marginBottom: 4,
   },
-  themeDescription: {
-    fontSize: 14,
-    flexWrap: 'wrap',
+  sectionDesc: {
+    fontSize: 13,
     lineHeight: 18,
+    marginBottom: 14,
   },
-  checkIcon: {
-    position: 'absolute',
-    right: 16,
-    top: 16,
-  },
-  notificationSection: {
-    marginBottom: 0,
-  },
-  notificationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  notificationTextContainer: {
-    flex: 1,
-    marginRight: 16,
-  },
-  notificationTimeInfo: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  dataCard: {
+
+  // ── Card ──
+  card: {
+    borderRadius: 14,
     padding: 16,
-    borderRadius: 12,
-    marginTop: 12,
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  labelRow: {
+
+  // ── Account ──
+  accountRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 14,
+    marginBottom: 14,
+  },
+  avatarCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  accountInfo: {
+    flex: 1,
+  },
+  accountEmail: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  accountLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  accountDesc: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  syncBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  syncBadgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+  // ── Buttons ──
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 8,
+  },
+  primaryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  outlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 6,
+  },
+  outlineButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    borderRadius: 10,
+    gap: 8,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // ── Notifications ──
+  notifRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  notifIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifInfo: {
+    flex: 1,
+  },
+  notifLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  notifTime: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+
+  // ── Themes ──
+  themeRow: {
+    gap: 10,
+  },
+  themeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    gap: 12,
+  },
+  themeIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  themeChipLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  // ── Data ──
+  dataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 4,
+  },
+  dataIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dataInfo: {
+    flex: 1,
   },
   dataLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   dataValue: {
-    fontSize: 16,
+    fontSize: 13,
+    marginTop: 1,
   },
-  descriptionContainer: {
+  separator: {
+    height: 1,
+    marginVertical: 14,
+    opacity: 0.5,
+  },
+  descBox: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    gap: 6,
+    marginBottom: 12,
   },
-  infoIcon: {
-    marginRight: 8,
-    marginTop: 2,
-  },
-  descriptionText: {
-    fontSize: 14,
+  descText: {
+    fontSize: 12,
+    lineHeight: 17,
     flex: 1,
-    lineHeight: 20,
   },
-  updateButton: {
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  updateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  loaderContainer: {
+
+  // ── Loader ──
+  loaderOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -531,4 +691,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1000,
   },
-}); 
+});

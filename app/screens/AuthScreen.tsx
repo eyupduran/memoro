@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -17,6 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useAlert } from '../contexts/AlertContext';
 import type { RootStackParamList } from '../types/navigation';
 
 type Mode = 'signIn' | 'signUp';
@@ -35,6 +35,7 @@ export const AuthScreen: React.FC = () => {
   const { colors } = useTheme();
   const { translations } = useLanguage();
   const { signIn, signUp, signOut } = useAuth();
+  const { showAlert } = useAlert();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -95,7 +96,7 @@ export const AuthScreen: React.FC = () => {
   const handleSubmit = async () => {
     const validationError = validate();
     if (validationError) {
-      Alert.alert(translations.alerts.error, validationError);
+      showAlert({ title: translations.alerts.error, message: validationError, variant: 'error' });
       return;
     }
     setSubmitting(true);
@@ -106,7 +107,7 @@ export const AuthScreen: React.FC = () => {
           : await signUp(email, password);
 
       if (!result.success) {
-        Alert.alert(translations.alerts.error, errorMessageFor(result.errorCode));
+        showAlert({ title: translations.alerts.error, message: errorMessageFor(result.errorCode), variant: 'error' });
         return;
       }
 
@@ -115,15 +116,20 @@ export const AuthScreen: React.FC = () => {
         // kullanıcının bilinçli olarak giriş yapmasını istiyoruz.
         // Session'ı kapat ve login sekmesine yönlendir.
         await signOut();
-        Alert.alert(t.signUpSuccessTitle, t.signUpSuccessMessage, [
-          {
-            text: 'OK',
-            onPress: () => {
-              setMode('signIn');
-              setPassword('');
+        showAlert({
+          title: t.signUpSuccessTitle,
+          message: t.signUpSuccessMessage,
+          variant: 'success',
+          buttons: [
+            {
+              text: 'OK',
+              onPress: () => {
+                setMode('signIn');
+                setPassword('');
+              },
             },
-          },
-        ]);
+          ],
+        });
       } else {
         dismiss();
       }

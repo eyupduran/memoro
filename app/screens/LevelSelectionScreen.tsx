@@ -189,7 +189,7 @@ export const LevelSelectionScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => navigation.navigate('Stats')}
         >
           <View style={styles.tabButtonContent}>
-            <MaterialIcons name="analytics" size={22} color={colors.text.secondary} />
+            <MaterialIcons name="folder-special" size={22} color={colors.text.secondary} />
             <Text style={[styles.tabText, { color: colors.text.secondary }]}>
               {translations.levelSelection.tabs.stats}
             </Text>

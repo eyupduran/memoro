@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { dbService } from '../services/database';
 import { fetchAndStoreCategorizedWordLists } from '../data/wordLists';
 import { MaterialIcons } from '@expo/vector-icons';
 import { DataLoader } from '../components/DataLoader';
+import { useAlert } from '../contexts/AlertContext';
 
 interface OnboardingPredefinedWordListsScreenProps {
   onComplete: () => void;
@@ -18,6 +19,7 @@ export const OnboardingPredefinedWordListsScreen: React.FC<OnboardingPredefinedW
 }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
+  const { showAlert } = useAlert();
   const [selected, setSelected] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -37,11 +39,11 @@ export const OnboardingPredefinedWordListsScreen: React.FC<OnboardingPredefinedW
           if (data) {
             setWordData(data);
           } else {
-            Alert.alert(translations.alerts.error, 'Kelime listesi alınamadı.');
+            showAlert({ title: translations.alerts.error, message: 'Kelime listesi alınamadı.', variant: 'error' });
           }
         }
       } catch (e) {
-        Alert.alert(translations.alerts.error, 'Kelime listesi alınamadı.');
+        showAlert({ title: translations.alerts.error, message: 'Kelime listesi alınamadı.', variant: 'error' });
       } finally {
         setFetching(false);
       }
@@ -81,7 +83,7 @@ export const OnboardingPredefinedWordListsScreen: React.FC<OnboardingPredefinedW
       if (!wordData) return;
       const selectedKeys = Object.keys(selected).filter((k) => selected[k]);
       if (selectedKeys.length === 0) {
-        Alert.alert(translations.alerts.error, 'Lütfen en az bir kelime listesi seçin.');
+        showAlert({ title: translations.alerts.error, message: 'Lütfen en az bir kelime listesi seçin.', variant: 'error' });
         setLoading(false);
         return;
       }
@@ -127,7 +129,7 @@ export const OnboardingPredefinedWordListsScreen: React.FC<OnboardingPredefinedW
       setShowDataLoader(true);
       
     } catch (e) {
-      Alert.alert(translations.alerts.error, 'Bir hata oluştu.');
+      showAlert({ title: translations.alerts.error, message: 'Bir hata oluştu.', variant: 'error' });
       setLoading(false);
     }
   };

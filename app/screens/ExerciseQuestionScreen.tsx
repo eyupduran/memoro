@@ -9,7 +9,7 @@ import {
   ScrollView,
   Easing,
   Modal,
-  Alert,
+
   BackHandler,
   Dimensions,
 } from 'react-native';
@@ -17,6 +17,7 @@ import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAlert } from '../contexts/AlertContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -139,8 +140,9 @@ const ExerciseQuestionScreen: React.FC = () => {
   const navigation = useNavigation<ExerciseQuestionScreenNavigationProp>();
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
-  
-  const { 
+  const { showAlert } = useAlert();
+
+  const {
     exerciseType, 
     questionIndex, 
     totalQuestions, 
@@ -286,10 +288,11 @@ const ExerciseQuestionScreen: React.FC = () => {
         if (answerShown || loading) return false;
         
         // Kullanıcıya egzersizi tamamlamadığı için uyarı göster
-        Alert.alert(
-          translations.exercise.exitWarning?.title || 'Egzersizden Çıkış',
-          translations.exercise.exitWarning?.message || 'Egzersizi tamamlamadınız. Çıkmak istediğinizden emin misiniz?',
-          [
+        showAlert({
+          title: translations.exercise.exitWarning?.title || 'Egzersizden Çıkış',
+          message: translations.exercise.exitWarning?.message || 'Egzersizi tamamlamadınız. Çıkmak istediğinizden emin misiniz?',
+          variant: 'confirm',
+          buttons: [
             {
               text: translations.exercise.exitWarning?.cancel || 'İptal',
               onPress: () => {},
@@ -304,8 +307,7 @@ const ExerciseQuestionScreen: React.FC = () => {
               style: 'destructive',
             },
           ],
-          { cancelable: true }
-        );
+        });
         
         // Geri tuşunun varsayılan davranışını engelle
         return true;

@@ -6,13 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAlert } from '../contexts/AlertContext';
 import { dbService } from '../services/database';
 import { WordListModal } from '../components/WordListModal';
 import { useDetailedDownload } from '../contexts/DetailedDownloadContext';
@@ -56,6 +56,7 @@ type DictionaryBox = {
 export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
+  const { showAlert } = useAlert();
   const { word, meaning, level } = route.params;
 
   const [loading, setLoading] = useState(true);
@@ -215,7 +216,7 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleAddToList = () => {
     if (selectedIds.size === 0) {
-      Alert.alert(translations.wordDetail.noSelectionError);
+      showAlert({ title: translations.wordDetail.noSelectionError, variant: 'warning' });
       return;
     }
     setShowListModal(true);

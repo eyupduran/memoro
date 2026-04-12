@@ -6,7 +6,6 @@ import {
   ImageBackground,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Dimensions,
   Image,
   Platform,
@@ -27,6 +26,7 @@ import Slider from '@react-native-community/slider';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as Wallpaper from 'expo-wallpaper';
 import { autoWallpaperService } from '../services/autoWallpaper';
+import { useAlert } from '../contexts/AlertContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WordOverlay'>;
 
@@ -40,6 +40,7 @@ interface LearnedWord extends Word {
 export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
+  const { showAlert } = useAlert();
   const viewShotRef = useRef<ViewShot>(null);
   const { selectedImage, selectedWords, autoCapture } = route.params;
   const isHeadlessCapture = !!autoCapture;
@@ -699,7 +700,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       const hasPerms = await requestPermission();
       if (!hasPerms) {
-        Alert.alert(translations.alerts.permissionRequired, translations.alerts.galleryPermission);
+        showAlert({ title: translations.alerts.permissionRequired, message: translations.alerts.galleryPermission, variant: 'warning' });
         return;
       }
 
@@ -727,12 +728,13 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
           await saveLearnedWords();
         }
 
-        Alert.alert(
-          translations.alerts.success,
-          route.params.isReinforcement 
+        showAlert({
+          title: translations.alerts.success,
+          message: route.params.isReinforcement
             ? translations.alerts.imageSavedWithTip
             : translations.alerts.imageAndWordsSaved,
-          [
+          variant: 'success',
+          buttons: [
             {
               text: translations.alerts.viewInGallery,
               onPress: () => openGallery(asset.id),
@@ -744,17 +746,16 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
               style: 'default'
             }
           ],
-          { cancelable: false }
-        );
+        });
       }
     } catch (error) {
       console.error('Error saving:', error);
-      Alert.alert(
-        translations.alerts.error,
-        translations.alerts.processingError,
-        [{ text: translations.alerts.okay, style: 'default' }],
-        { cancelable: false }
-      );
+      showAlert({
+        title: translations.alerts.error,
+        message: translations.alerts.processingError,
+        variant: 'error',
+        buttons: [{ text: translations.alerts.okay, style: 'default' }],
+      });
     } finally {
       await ScreenCapture.allowScreenCaptureAsync();
     }
@@ -764,7 +765,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       const hasPerms = await requestPermission();
       if (!hasPerms) {
-        Alert.alert(translations.alerts.permissionRequired, translations.alerts.galleryPermission);
+        showAlert({ title: translations.alerts.permissionRequired, message: translations.alerts.galleryPermission, variant: 'warning' });
         return;
       }
 
@@ -787,10 +788,11 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         if (!route.params.isReinforcement) {
           await saveLearnedWords();
         }
-        Alert.alert(
-          translations.alerts.success,
-          translations.wallpaper.iosInstructions,
-          [
+        showAlert({
+          title: translations.alerts.success,
+          message: translations.wallpaper.iosInstructions,
+          variant: 'success',
+          buttons: [
             {
               text: translations.alerts.viewInGallery,
               onPress: () => openGallery(asset.id),
@@ -802,8 +804,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
               style: 'default',
             },
           ],
-          { cancelable: false }
-        );
+        });
         return;
       }
 
@@ -827,7 +828,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
             style: 'default',
           });
         }
-        Alert.alert(translations.alerts.error, message, buttons, { cancelable: false });
+        showAlert({ title: translations.alerts.error, message, variant: 'error', buttons });
         return;
       }
 
@@ -838,26 +839,26 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         await saveLearnedWords();
       }
 
-      Alert.alert(
-        translations.wallpaper.success,
-        translations.wallpaper.successDescription,
-        [
+      showAlert({
+        title: translations.wallpaper.success,
+        message: translations.wallpaper.successDescription,
+        variant: 'success',
+        buttons: [
           {
             text: translations.alerts.okay,
             onPress: () => navigation.navigate('Stats'),
             style: 'default',
           },
         ],
-        { cancelable: false }
-      );
+      });
     } catch (error) {
       console.error('Error setting lock screen:', error);
-      Alert.alert(
-        translations.alerts.error,
-        translations.alerts.processingError,
-        [{ text: translations.alerts.okay, style: 'default' }],
-        { cancelable: false }
-      );
+      showAlert({
+        title: translations.alerts.error,
+        message: translations.alerts.processingError,
+        variant: 'error',
+        buttons: [{ text: translations.alerts.okay, style: 'default' }],
+      });
     } finally {
       await ScreenCapture.allowScreenCaptureAsync();
     }
@@ -871,7 +872,7 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
    */
   const showAutoWallpaperInfo = async () => {
     if (Platform.OS !== 'android') {
-      Alert.alert(translations.alerts.error, translations.wallpaper.errors.unsupported);
+      showAlert({ title: translations.alerts.error, message: translations.wallpaper.errors.unsupported, variant: 'error' });
       return;
     }
     const existing = await autoWallpaperService.getSettings();
@@ -883,18 +884,18 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         )
       : translations.wallpaper.auto.infoInactive;
 
-    Alert.alert(
-      translations.wallpaper.auto.infoTitle,
+    showAlert({
+      title: translations.wallpaper.auto.infoTitle,
       message,
-      [
+      variant: 'info',
+      buttons: [
         {
           text: translations.wallpaper.auto.goToSettings,
           onPress: () => navigation.navigate('AutoWallpaperSettings'),
         },
         { text: translations.alerts.okay, style: 'cancel' },
       ],
-      { cancelable: true }
-    );
+    });
   };
 
   /**

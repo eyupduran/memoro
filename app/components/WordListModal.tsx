@@ -8,10 +8,10 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAlert } from '../contexts/AlertContext';
 import { dbService } from '../services/database';
 import type { Word } from '../types/words';
 
@@ -27,6 +27,7 @@ interface WordListModalProps {
 export const WordListModal: React.FC<WordListModalProps> = ({ visible, onClose, word, words }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
+  const { showAlert } = useAlert();
   const [lists, setLists] = useState<{ id: number; name: string; created_at: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [newListName, setNewListName] = useState('');
@@ -47,10 +48,11 @@ export const WordListModal: React.FC<WordListModalProps> = ({ visible, onClose, 
 
   const handleCreateList = async () => {
     if (!newListName.trim()) {
-      Alert.alert(
-        translations.wordListModal?.error || 'Hata',
-        translations.wordListModal?.emptyListName || 'Liste adı boş olamaz'
-      );
+      showAlert({
+        title: translations.wordListModal?.error || 'Hata',
+        message: translations.wordListModal?.emptyListName || 'Liste adı boş olamaz',
+        variant: 'error',
+      });
       return;
     }
 
@@ -62,10 +64,11 @@ export const WordListModal: React.FC<WordListModalProps> = ({ visible, onClose, 
       setNewListName('');
       loadLists();
     } else {
-      Alert.alert(
-        translations.wordListModal?.error,
-        translations.wordListModal?.createError
-      );
+      showAlert({
+        title: translations.wordListModal?.error,
+        message: translations.wordListModal?.createError,
+        variant: 'error',
+      });
     }
   };
 
@@ -89,16 +92,18 @@ export const WordListModal: React.FC<WordListModalProps> = ({ visible, onClose, 
     setLoading(false);
 
     if (!anyFailed) {
-      Alert.alert(
-        translations.wordListModal?.success,
-        translations.wordListModal?.addSuccess
-      );
+      showAlert({
+        title: translations.wordListModal?.success,
+        message: translations.wordListModal?.addSuccess,
+        variant: 'success',
+      });
       onClose();
     } else {
-      Alert.alert(
-        translations.wordListModal?.error,
-        translations.wordListModal?.addError
-      );
+      showAlert({
+        title: translations.wordListModal?.error,
+        message: translations.wordListModal?.addError,
+        variant: 'error',
+      });
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { dbService } from '../services/database';
@@ -9,6 +9,7 @@ import { RootStackParamList } from '../types/navigation';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors as appColors } from '../theme/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAlert } from '../contexts/AlertContext';
 
 // Ekran propsları
 type Props = NativeStackScreenProps<RootStackParamList, 'PredefinedWordLists'>;
@@ -16,6 +17,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'PredefinedWordLists'>;
 const PredefinedWordListsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
+  const { showAlert } = useAlert();
   const [selected, setSelected] = useState<{ [key: string]: boolean }>({});
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -35,11 +37,11 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation, route }) => {
           if (data) {
             setWordData(data);
           } else {
-            Alert.alert(translations.alerts.error, 'Kelime listesi alınamadı.');
+            showAlert({ title: translations.alerts.error, message: 'Kelime listesi alınamadı.', variant: 'error' });
           }
         }
       } catch (e) {
-        Alert.alert(translations.alerts.error, 'Kelime listesi alınamadı.');
+        showAlert({ title: translations.alerts.error, message: 'Kelime listesi alınamadı.', variant: 'error' });
       } finally {
         setFetching(false);
       }
@@ -79,7 +81,7 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation, route }) => {
       if (!wordData) return;
       const selectedKeys = Object.keys(selected).filter((k) => selected[k]);
       if (selectedKeys.length === 0) {
-        Alert.alert(translations.alerts.error, 'Lütfen en az bir kelime listesi seçin.');
+        showAlert({ title: translations.alerts.error, message: 'Lütfen en az bir kelime listesi seçin.', variant: 'error' });
         setLoading(false);
         return;
       }
@@ -145,19 +147,20 @@ const PredefinedWordListsScreen: React.FC<Props> = ({ navigation, route }) => {
       if (isFromOnboarding) {
         navigation.replace('LevelSelection');
       } else {
-        Alert.alert(
-          translations.alerts.success, 
-          'Seçilen kelime listeleri eklendi! Mevcut listeler güncellendi.',
-          [
+        showAlert({
+          title: translations.alerts.success,
+          message: 'Seçilen kelime listeleri eklendi! Mevcut listeler güncellendi.',
+          variant: 'success',
+          buttons: [
             {
               text: translations.alerts.okay,
               onPress: () => navigation.goBack()
             }
           ]
-        );
+        });
       }
     } catch (e) {
-      Alert.alert(translations.alerts.error, 'Bir hata oluştu.');
+      showAlert({ title: translations.alerts.error, message: 'Bir hata oluştu.', variant: 'error' });
     } finally {
       setLoading(false);
     }

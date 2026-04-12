@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAlert } from '../contexts/AlertContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
@@ -10,6 +11,7 @@ type LearningLanguage = 'en';
 export const LanguageSelectorSettings: React.FC = () => {
   const { nativeLanguage, learningLanguage, setNativeLanguage, setLearningLanguage, translations } = useLanguage();
   const { colors } = useTheme();
+  const { showAlert } = useAlert();
   const [showNativeDropdown, setShowNativeDropdown] = useState(false);
   const [previousLanguage, setPreviousLanguage] = useState<NativeLanguage>(nativeLanguage);
   
@@ -17,11 +19,11 @@ export const LanguageSelectorSettings: React.FC = () => {
     // Dil değiştikten sonra bildirim göster
     if (previousLanguage !== nativeLanguage && previousLanguage) {
       // Bildirim göster
-      Alert.alert(
-        translations.languageSelector.title,
-        translations.languageSelector.info,
-        [{ text: 'OK', style: 'default' }]
-      );
+      showAlert({
+        title: translations.languageSelector.title,
+        message: translations.languageSelector.info,
+        variant: 'info',
+      });
     }
     
     setPreviousLanguage(nativeLanguage);

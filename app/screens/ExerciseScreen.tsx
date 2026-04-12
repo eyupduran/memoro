@@ -8,12 +8,13 @@ import {
   ActivityIndicator,
   FlatList,
   Modal,
-  Alert,
+
   Dimensions,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAlert } from '../contexts/AlertContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,6 +33,7 @@ const ExerciseScreen: React.FC = () => {
   const navigation = useNavigation<ExerciseScreenNavigationProp>();
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
+  const { showAlert } = useAlert();
   const [learnedWords, setLearnedWords] = useState<LearnedWord[]>([]);
   const [exerciseHistory, setExerciseHistory] = useState<ExerciseResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,10 +219,11 @@ const ExerciseScreen: React.FC = () => {
   };
 
   const deleteUnfinishedExercise = async (timestamp: number) => {
-    Alert.alert(
-      translations.exercise.unfinishedExercise.deleteTitle,
-      translations.exercise.unfinishedExercise.deleteMessage,
-      [
+    showAlert({
+      title: translations.exercise.unfinishedExercise.deleteTitle,
+      message: translations.exercise.unfinishedExercise.deleteMessage,
+      variant: 'confirm',
+      buttons: [
         {
           text: translations.exercise.exitWarning?.cancel || 'İptal',
           style: 'cancel'
@@ -235,7 +238,7 @@ const ExerciseScreen: React.FC = () => {
           }
         }
       ]
-    );
+    });
   };
 
   const startNewExercise = (type: 'fillInTheBlank' | 'wordMatch' | 'sentenceMatch' | 'mixed') => {

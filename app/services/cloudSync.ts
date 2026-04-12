@@ -143,7 +143,7 @@ class CloudSyncService {
    * Pass `fullPush=true` to force all tables to be pushed regardless of the
    * dirty set — used by onSignOutCleanup and first-time onSignInBootstrap.
    */
-  async push(languagePair?: string, fullPush = false): Promise<boolean> {
+  async push(languagePair?: string, fullPush = false, silent = false): Promise<boolean> {
     if (!isSupabaseConfigured()) return false;
     if (this.inFlight) return false;
     const user = await authService.getCurrentUser();
@@ -166,7 +166,7 @@ class CloudSyncService {
     this.dirtyTables.clear();
 
     this.inFlight = true;
-    this.setState({ status: 'syncing', error: null });
+    if (!silent) this.setState({ status: 'syncing', error: null });
 
     try {
       const pair = languagePair || (await this.getCurrentLanguagePair());
@@ -177,10 +177,8 @@ class CloudSyncService {
       return true;
     } catch (err: any) {
       console.error('[cloudSync] push error:', err);
-      // If push failed, restore the tables we tried to push so a retry
-      // picks them up. Merge with anything new that arrived in the meantime.
       for (const t of tablesToPush) this.dirtyTables.add(t);
-      this.setState({ status: 'error', error: err?.message || 'push failed' });
+      if (!silent) this.setState({ status: 'error', error: err?.message || 'push failed' });
       return false;
     } finally {
       this.inFlight = false;
@@ -337,7 +335,7 @@ class CloudSyncService {
    */
   async onSignOutCleanup(languagePair: string): Promise<void> {
     try {
-      await this.push(languagePair, true);
+      await this.push(languagePair, true, true);
     } catch {
       // ignore — best effort
     }

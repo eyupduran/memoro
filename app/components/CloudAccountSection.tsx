@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -13,6 +12,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useAlert } from '../contexts/AlertContext';
 import { cloudSync } from '../services/cloudSync';
 import type { RootStackParamList } from '../types/navigation';
 
@@ -33,6 +33,7 @@ export const CloudAccountSection: React.FC = () => {
   const { colors } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
   const { user, signOut } = useAuth();
+  const { showAlert } = useAlert();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [signingOut, setSigningOut] = useState(false);
@@ -41,10 +42,11 @@ export const CloudAccountSection: React.FC = () => {
   const isSignedIn = !!user;
 
   const handleSignOut = () => {
-    Alert.alert(
-      t.signOutConfirmTitle,
-      t.signOutConfirmMessage,
-      [
+    showAlert({
+      title: t.signOutConfirmTitle,
+      message: t.signOutConfirmMessage,
+      variant: 'confirm',
+      buttons: [
         { text: t.signOutCancel, style: 'cancel' },
         {
           text: t.signOutConfirm,
@@ -58,8 +60,8 @@ export const CloudAccountSection: React.FC = () => {
             }
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   const handleSignIn = () => {
