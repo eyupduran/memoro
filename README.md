@@ -45,6 +45,26 @@ APK dosyasını [GitHub Releases](https://github.com/eyupduran/memoro/releases/t
 - **Kelime Silme**: Öğrenilen kelimeleri silme özelliği
 - **Kelime Pekiştirme**: Öğrenilen kelimeleri tekrar çalışma
 
+### 🔒 Otomatik Kilit Ekranı (Android)
+- **Günlük Otomatik Değişim**: Belirlenen saatte kilit ekranı görselini otomatik olarak yenileme
+- **Canlı Önizleme**: Ayar ekranında gerçek zamanlı kilit ekranı önizlemesi
+- **Kelime Sayısı ve Seviye Seçimi**: Görselde görünecek kelime sayısı (3–5) ve CEFR seviyesi (A1–C2) ayarı
+- **Görsel Özelleştirme**: 10 farklı format, yazı tipi, renk, konum ve arka plan seçimi
+- **Akıllı Kelime Seçimi**: Henüz öğrenilmemiş kelimelere öncelik vererek görsel oluşturma
+- **MIUI/HyperOS Desteği**: Xiaomi/Redmi cihazlarda gerekli izin yönlendirmeleri (otomatik başlatma, duvar kağıdı izni, pil optimizasyonu)
+- **Arka Planda Çalışma**: Uygulama kapalıyken bile AlarmManager ile günlük görsel uygulama
+- **iOS Alternatifi**: iOS'ta galeriye kaydetme ve manuel kilit ekranı ayarlama yönlendirmesi
+
+### 👤 Hesap ve Bulut Senkronizasyon
+- **Kayıt ve Giriş**: E-posta/şifre ile hesap oluşturma ve giriş yapma
+- **Misafir Modu**: Hesap oluşturmadan uygulamayı tam kapasiteyle kullanabilme
+- **Otomatik Bulut Senkronizasyon**: Giriş yapıldığında tüm verilerin bulutta otomatik yedeklenmesi
+- **Akıllı Birleştirme**: İlk girişte mevcut yerel verileri buluta aktarma veya buluttaki verileri cihaza çekme
+- **Artımlı Senkronizasyon**: Sadece değişen tabloları senkronize ederek veri tasarrufu
+- **Senkronizasyon Durumu**: Uygulama genelinde senkronizasyon durumunu gösteren animasyonlu banner
+- **7 Tablo Senkronizasyonu**: Öğrenilen kelimeler, kelime ilerlemesi, egzersiz sonuçları, kelime listeleri, ayarlar ve daha fazlası
+- **Çıkışta Yedekleme**: Çıkış yapmadan önce tüm verilerin otomatik olarak buluta aktarılması
+
 ### 🎨 Görsel Özelleştirme
 - **10 Farklı Görsel Formatı**: Standart, inline, compact, flashcard, dictionary, quiz, poetic, bubble, memo, modern
 - **Gelişmiş Özelleştirme**: Font boyutu, pozisyon, renk ayarları
@@ -90,6 +110,8 @@ APK dosyasını [GitHub Releases](https://github.com/eyupduran/memoro/releases/t
 - **Expo Speech**: Metin-konuşma dönüşümü
 - **React Native Reanimated**: Animasyonlar
 - **React Native Gesture Handler**: Dokunma hareketleri
+- **Supabase**: Kimlik doğrulama ve bulut veritabanı (hesap sistemi ve senkronizasyon)
+- **Expo Wallpaper (Yerel Modül)**: Android kilit ekranı duvar kağıdı yönetimi (AlarmManager tabanlı günlük otomatik değişim)
 
 ## 🛠️ Kurulum
 
@@ -113,16 +135,19 @@ APK dosyasını [GitHub Releases](https://github.com/eyupduran/memoro/releases/t
 
 ```
 /app
-  /components - UI bileşenleri
-  /contexts - React context yönetimi
+  /components - UI bileşenleri (SyncBanner, CloudAccountSection vb.)
+  /context - Theme context
+  /contexts - Language ve Auth context yönetimi
   /data - Kelime listeleri ve veritabanı işlemleri
   /screens - Uygulama ekranları
-  /services - Bildirim, veri yönetimi servisleri
+  /services - Bildirim, veri yönetimi, kimlik doğrulama, bulut senkronizasyon servisleri
   /theme - Tema ve stil tanımlamaları 
   /utils - Yardımcı fonksiyonlar
   /locales - Çoklu dil dosyaları (Türkçe, Portekizce)
   /types - TypeScript tip tanımlamaları
 /assets - Görsel ve font dosyaları
+/modules
+  /expo-wallpaper - Android kilit ekranı yerel modülü (Kotlin)
 ```
 
 ## 🖼️ Projeden Görseller
