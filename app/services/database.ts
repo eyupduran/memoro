@@ -44,6 +44,10 @@ class DatabaseService {
     if (this.suppressDirtyDepth < 0) this.suppressDirtyDepth = 0;
   }
 
+  private now(): string {
+    return new Date().toISOString();
+  }
+
   private markDirty(table: SyncTable): void {
     if (this.suppressDirtyDepth > 0) return;
     try {
@@ -130,9 +134,11 @@ class DatabaseService {
           level TEXT NOT NULL,
           learnedAt TEXT NOT NULL,
           language_pair TEXT NOT NULL,
+          updated_at TEXT NOT NULL DEFAULT '',
+          deleted_at TEXT DEFAULT NULL,
           UNIQUE(word, language_pair)
         );
-        
+
         CREATE TABLE IF NOT EXISTS exercise_results (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           exercise_type TEXT NOT NULL,
@@ -140,7 +146,9 @@ class DatabaseService {
           total_questions INTEGER NOT NULL,
           date TEXT NOT NULL,
           language_pair TEXT NOT NULL,
-          word_source TEXT
+          word_source TEXT,
+          updated_at TEXT NOT NULL DEFAULT '',
+          deleted_at TEXT DEFAULT NULL
         );
 
         CREATE TABLE IF NOT EXISTS exercise_details (
@@ -148,6 +156,8 @@ class DatabaseService {
           exercise_id INTEGER NOT NULL,
           details TEXT NOT NULL,
           language_pair TEXT NOT NULL,
+          updated_at TEXT NOT NULL DEFAULT '',
+          deleted_at TEXT DEFAULT NULL,
           FOREIGN KEY (exercise_id) REFERENCES exercise_results (id) ON DELETE CASCADE
         );
 
@@ -169,6 +179,8 @@ class DatabaseService {
           name TEXT NOT NULL,
           created_at TEXT NOT NULL,
           language_pair TEXT NOT NULL,
+          updated_at TEXT NOT NULL DEFAULT '',
+          deleted_at TEXT DEFAULT NULL,
           UNIQUE(name, language_pair)
         );
 
@@ -181,6 +193,8 @@ class DatabaseService {
           level TEXT NOT NULL,
           added_at TEXT NOT NULL,
           variant_key TEXT NOT NULL DEFAULT '',
+          updated_at TEXT NOT NULL DEFAULT '',
+          deleted_at TEXT DEFAULT NULL,
           FOREIGN KEY(list_id) REFERENCES custom_word_lists(id) ON DELETE CASCADE,
           UNIQUE(list_id, word, variant_key)
         );
@@ -207,7 +221,9 @@ class DatabaseService {
           level TEXT,
           word_list_id INTEGER,
           word_list_name TEXT,
-          previous_type TEXT
+          previous_type TEXT,
+          updated_at TEXT NOT NULL DEFAULT '',
+          deleted_at TEXT DEFAULT NULL
         );
       `);
 
@@ -320,14 +336,41 @@ class DatabaseService {
         console.log("custom_word_list_items tablosu güncellendi, variant_key sütunu eklendi.");
       }
 
+      // Incremental sync migration: add updated_at + deleted_at to user-data tables.
+      // Check learned_words as sentinel — if it already has updated_at, all tables do.
+      const syncMigrationInfo = await this.db.getAllAsync<{ name: string }>(
+        "PRAGMA table_info(learned_words)"
+      );
+      const hasUpdatedAt = syncMigrationInfo.some(c => c.name === 'updated_at');
+      if (!hasUpdatedAt) {
+        await this.db.execAsync(`
+          ALTER TABLE learned_words ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';
+          ALTER TABLE learned_words ADD COLUMN deleted_at TEXT DEFAULT NULL;
+          ALTER TABLE exercise_results ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';
+          ALTER TABLE exercise_results ADD COLUMN deleted_at TEXT DEFAULT NULL;
+          ALTER TABLE exercise_details ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';
+          ALTER TABLE exercise_details ADD COLUMN deleted_at TEXT DEFAULT NULL;
+          ALTER TABLE custom_word_lists ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';
+          ALTER TABLE custom_word_lists ADD COLUMN deleted_at TEXT DEFAULT NULL;
+          ALTER TABLE custom_word_list_items ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';
+          ALTER TABLE custom_word_list_items ADD COLUMN deleted_at TEXT DEFAULT NULL;
+          ALTER TABLE unfinished_exercises ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';
+          ALTER TABLE unfinished_exercises ADD COLUMN deleted_at TEXT DEFAULT NULL;
+        `);
+        console.log("Incremental sync migration: updated_at + deleted_at columns added.");
+      }
+
       // İndeks oluştur
       await this.db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_words_level_lang ON words(level, language_pair);
         CREATE INDEX IF NOT EXISTS idx_words_word ON words(word);
         CREATE INDEX IF NOT EXISTS idx_learned_words_lang ON learned_words(language_pair);
+        CREATE INDEX IF NOT EXISTS idx_learned_words_updated ON learned_words(updated_at);
         CREATE INDEX IF NOT EXISTS idx_exercise_results_lang ON exercise_results(language_pair);
+        CREATE INDEX IF NOT EXISTS idx_exercise_results_updated ON exercise_results(updated_at);
         CREATE INDEX IF NOT EXISTS idx_custom_word_lists_lang ON custom_word_lists(language_pair);
         CREATE INDEX IF NOT EXISTS idx_custom_word_list_items_list ON custom_word_list_items(list_id);
+        CREATE INDEX IF NOT EXISTS idx_custom_word_list_items_updated ON custom_word_list_items(updated_at);
         CREATE INDEX IF NOT EXISTS idx_unfinished_exercises_lang ON unfinished_exercises(language_pair);
         CREATE INDEX IF NOT EXISTS idx_word_details_word_lang ON word_details(word, language_pair);
       `);
@@ -624,14 +667,14 @@ class DatabaseService {
     }
   }
 
-  // Belirli bir kelimeyi öğrenilen kelimelerden sil
+  // Belirli bir kelimeyi öğrenilen kelimelerden sil (soft delete)
   async deleteLearnedWord(word: string, languagePair: string): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
-
+      const ts = this.now();
       const result = await this.db.runAsync(
-        'DELETE FROM learned_words WHERE word = ? AND language_pair = ?',
-        [word, languagePair]
+        'UPDATE learned_words SET deleted_at = ?, updated_at = ? WHERE word = ? AND language_pair = ? AND deleted_at IS NULL',
+        [ts, ts, word, languagePair]
       );
 
       if (result.changes > 0) this.markDirty('learned_words');
@@ -764,27 +807,29 @@ class DatabaseService {
         return true;
       }
       
+      const ts = this.now();
       await this.db.withTransactionAsync(async () => {
         // Her BATCH_SIZE kelime için toplu sorgu
         for (let i = 0; i < words.length; i += this.BATCH_SIZE) {
           const batch = words.slice(i, i + this.BATCH_SIZE);
           let placeholders = [];
           let values = [];
-          
+
           for (const word of batch) {
-            placeholders.push('(?, ?, ?, ?, ?, ?)');
+            placeholders.push('(?, ?, ?, ?, ?, ?, ?)');
             values.push(
               word.word,
               word.meaning,
               word.example || '',
               word.level,
               word.learnedAt,
-              languagePair
+              languagePair,
+              ts
             );
           }
-          
+
           const query = `
-            INSERT OR REPLACE INTO learned_words (word, meaning, example, level, learnedAt, language_pair)
+            INSERT OR REPLACE INTO learned_words (word, meaning, example, level, learnedAt, language_pair, updated_at)
             VALUES ${placeholders.join(',')}
           `;
 
@@ -806,7 +851,7 @@ class DatabaseService {
       if (!this.initialized) await this.initDatabase();
       
       const result = await this.db.getAllAsync<LearnedWord>(
-        'SELECT word, meaning, example, level, learnedAt, language_pair FROM learned_words WHERE language_pair = ?',
+        'SELECT word, meaning, example, level, learnedAt, language_pair FROM learned_words WHERE language_pair = ? AND deleted_at IS NULL',
         [languagePair]
       );
       return result.map(row => ({
@@ -1009,8 +1054,8 @@ class DatabaseService {
       const date = new Date().toISOString();
       
       const result = await this.db.runAsync(
-        'INSERT INTO exercise_results (exercise_type, score, total_questions, date, language_pair, word_source, level, word_list_id, word_list_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [exerciseType, score, totalQuestions, date, languagePair, wordSource, level, wordListId, wordListName]
+        'INSERT INTO exercise_results (exercise_type, score, total_questions, date, language_pair, word_source, level, word_list_id, word_list_name, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [exerciseType, score, totalQuestions, date, languagePair, wordSource, level, wordListId, wordListName, this.now()]
       );
 
       this.markDirty('exercise_results');
@@ -1035,8 +1080,8 @@ class DatabaseService {
       const detailsJson = JSON.stringify(details);
 
       await this.db.runAsync(
-        'INSERT INTO exercise_details (exercise_id, details, language_pair) VALUES (?, ?, ?)',
-        [exerciseId, detailsJson, languagePair]
+        'INSERT INTO exercise_details (exercise_id, details, language_pair, updated_at) VALUES (?, ?, ?, ?)',
+        [exerciseId, detailsJson, languagePair, this.now()]
       );
 
       // exercise_results ve exercise_details her zaman beraber push edilir —
@@ -1060,7 +1105,7 @@ class DatabaseService {
         details: string;
         language_pair: string;
       }>(
-        'SELECT * FROM exercise_details WHERE exercise_id = ?',
+        'SELECT * FROM exercise_details WHERE exercise_id = ? AND deleted_at IS NULL',
         [exerciseId]
       );
       
@@ -1100,9 +1145,9 @@ class DatabaseService {
         word_list_id?: number;
         word_list_name?: string;
       }>(
-        `SELECT * FROM exercise_results 
-         WHERE language_pair = ? 
-         ORDER BY date DESC 
+        `SELECT * FROM exercise_results
+         WHERE language_pair = ? AND deleted_at IS NULL
+         ORDER BY date DESC
          LIMIT ? OFFSET ?`,
         [languagePair, limit, offset]
       );
@@ -1140,8 +1185,8 @@ class DatabaseService {
 
       const createdAt = new Date().toISOString();
       const result = await this.db.runAsync(
-        'INSERT INTO custom_word_lists (name, created_at, language_pair) VALUES (?, ?, ?)',
-        [name, createdAt, languagePair]
+        'INSERT INTO custom_word_lists (name, created_at, language_pair, updated_at) VALUES (?, ?, ?, ?)',
+        [name, createdAt, languagePair, this.now()]
       );
 
       this.markDirty('custom_word_lists');
@@ -1162,23 +1207,24 @@ class DatabaseService {
 
       // Önce aynı (list_id, word, variant_key) üçlüsünün zaten var olup olmadığını kontrol et
       const existingWord = await this.db.getFirstAsync<{id: number}>(
-        'SELECT id FROM custom_word_list_items WHERE list_id = ? AND word = ? AND variant_key = ?',
+        'SELECT id FROM custom_word_list_items WHERE list_id = ? AND word = ? AND variant_key = ? AND deleted_at IS NULL',
         [listId, word.word, variantKey]
       );
 
       const addedAt = new Date().toISOString();
 
+      const ts = this.now();
       if (existingWord) {
         // Aynı varyant zaten var, güncelleme yap (example/meaning yenilenmiş olabilir)
         await this.db.runAsync(
-          'UPDATE custom_word_list_items SET meaning = ?, example = ?, level = ?, added_at = ? WHERE list_id = ? AND word = ? AND variant_key = ?',
-          [word.meaning, word.example || '', word.level || 'custom', addedAt, listId, word.word, variantKey]
+          'UPDATE custom_word_list_items SET meaning = ?, example = ?, level = ?, added_at = ?, updated_at = ? WHERE list_id = ? AND word = ? AND variant_key = ?',
+          [word.meaning, word.example || '', word.level || 'custom', addedAt, ts, listId, word.word, variantKey]
         );
       } else {
         // Yeni kayıt ekle
         await this.db.runAsync(
-          'INSERT OR IGNORE INTO custom_word_list_items (list_id, word, meaning, example, level, added_at, variant_key) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [listId, word.word, word.meaning, word.example || '', word.level || 'custom', addedAt, variantKey]
+          'INSERT OR IGNORE INTO custom_word_list_items (list_id, word, meaning, example, level, added_at, variant_key, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [listId, word.word, word.meaning, word.example || '', word.level || 'custom', addedAt, variantKey, ts]
         );
       }
 
@@ -1196,7 +1242,7 @@ class DatabaseService {
       if (!this.initialized) await this.initDatabase();
       
       const lists = await this.db.getAllAsync<{ id: number; name: string; created_at: string }>(
-        'SELECT id, name, created_at FROM custom_word_lists WHERE language_pair = ? ORDER BY created_at DESC',
+        'SELECT id, name, created_at FROM custom_word_lists WHERE language_pair = ? AND deleted_at IS NULL ORDER BY created_at DESC',
         [languagePair]
       );
       
@@ -1221,7 +1267,7 @@ class DatabaseService {
         level: string;
         variant_key: string;
       }>(
-        'SELECT word, meaning, example, level, variant_key FROM custom_word_list_items WHERE list_id = ? ORDER BY added_at DESC',
+        'SELECT word, meaning, example, level, variant_key FROM custom_word_list_items WHERE list_id = ? AND deleted_at IS NULL ORDER BY added_at DESC',
         [listId]
       );
 
@@ -1241,14 +1287,21 @@ class DatabaseService {
     }
   }
 
-  // Özel kelime listesini sil
+  // Özel kelime listesini sil (soft delete — list + child items)
   async deleteWordList(listId: number): Promise<boolean> {
     try {
       if (!this.initialized) await this.initDatabase();
-
-      await this.db.runAsync('DELETE FROM custom_word_lists WHERE id = ?', [listId]);
-      // Listeyi silmek ON DELETE CASCADE ile items'ları da siler — iki tablo da
-      // dirty. Items'ı da işaretliyoruz ki push o tabloyu da yeniden yazsın.
+      const ts = this.now();
+      await this.db.withTransactionAsync(async () => {
+        await this.db.runAsync(
+          'UPDATE custom_word_lists SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',
+          [ts, ts, listId]
+        );
+        await this.db.runAsync(
+          'UPDATE custom_word_list_items SET deleted_at = ?, updated_at = ? WHERE list_id = ? AND deleted_at IS NULL',
+          [ts, ts, listId]
+        );
+      });
       this.markDirty('custom_word_lists');
       this.markDirty('custom_word_list_items');
       return true;
@@ -1269,15 +1322,16 @@ class DatabaseService {
     try {
       if (!this.initialized) await this.initDatabase();
 
+      const ts = this.now();
       if (variantKey !== undefined) {
         await this.db.runAsync(
-          'DELETE FROM custom_word_list_items WHERE list_id = ? AND word = ? AND variant_key = ?',
-          [listId, word, variantKey]
+          'UPDATE custom_word_list_items SET deleted_at = ?, updated_at = ? WHERE list_id = ? AND word = ? AND variant_key = ? AND deleted_at IS NULL',
+          [ts, ts, listId, word, variantKey]
         );
       } else {
         await this.db.runAsync(
-          'DELETE FROM custom_word_list_items WHERE list_id = ? AND word = ?',
-          [listId, word]
+          'UPDATE custom_word_list_items SET deleted_at = ?, updated_at = ? WHERE list_id = ? AND word = ? AND deleted_at IS NULL',
+          [ts, ts, listId, word]
         );
       }
       this.markDirty('custom_word_list_items');
@@ -1302,7 +1356,7 @@ class DatabaseService {
           added_at,
           variant_key
         FROM custom_word_list_items
-        WHERE list_id = ?
+        WHERE list_id = ? AND deleted_at IS NULL
       `;
 
       const rows = await this.db.getAllAsync<{
@@ -1343,6 +1397,8 @@ class DatabaseService {
           FROM exercise_results er
           JOIN exercise_details ed ON er.id = ed.exercise_id
           WHERE er.language_pair = ?
+          AND er.deleted_at IS NULL
+          AND ed.deleted_at IS NULL
           AND er.score = er.total_questions
           AND ed.details LIKE ?
           AND er.word_list_id = ?
@@ -1387,7 +1443,7 @@ class DatabaseService {
         date: string;
         word_source?: string;
       }>(
-        'SELECT id, exercise_type, score, total_questions, date, word_source FROM exercise_results WHERE language_pair = ? ORDER BY date DESC',
+        'SELECT id, exercise_type, score, total_questions, date, word_source FROM exercise_results WHERE language_pair = ? AND deleted_at IS NULL ORDER BY date DESC',
         [languagePair]
       );
       
@@ -1404,8 +1460,8 @@ class DatabaseService {
     const query = `
       INSERT OR REPLACE INTO unfinished_exercises (
         timestamp, language_pair, exercise_type, question_index, total_questions, score,
-        asked_words, question_details, word_source, level, word_list_id, word_list_name, previous_type
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        asked_words, question_details, word_source, level, word_list_id, word_list_name, previous_type, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       exercise.timestamp,
@@ -1421,6 +1477,7 @@ class DatabaseService {
       exercise.wordListId || null,
       exercise.wordListName || null,
       exercise.previousType || null,
+      this.now(),
     ];
     await this.db.runAsync(query, params);
     this.markDirty('unfinished_exercises');
@@ -1429,8 +1486,8 @@ class DatabaseService {
   async getUnfinishedExercises(languagePair: string): Promise<UnfinishedExercise[]> {
     const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
     const query = `
-      SELECT * FROM unfinished_exercises 
-      WHERE language_pair = ? AND timestamp >= ? 
+      SELECT * FROM unfinished_exercises
+      WHERE language_pair = ? AND timestamp >= ? AND deleted_at IS NULL
       ORDER BY timestamp DESC
     `;
     const results = await this.getAllAsync<any>(query, [languagePair, twentyFourHoursAgo]);
@@ -1452,8 +1509,11 @@ class DatabaseService {
   }
 
   async deleteUnfinishedExercise(timestamp: number): Promise<void> {
-    const query = 'DELETE FROM unfinished_exercises WHERE timestamp = ?';
-    await this.db.runAsync(query, [timestamp]);
+    const ts = this.now();
+    await this.db.runAsync(
+      'UPDATE unfinished_exercises SET deleted_at = ?, updated_at = ? WHERE timestamp = ? AND deleted_at IS NULL',
+      [ts, ts, timestamp]
+    );
     this.markDirty('unfinished_exercises');
   }
 
@@ -1484,7 +1544,7 @@ class DatabaseService {
         level: string;
         learnedAt: string;
       }>(
-        'SELECT word, meaning, example, level, learnedAt FROM learned_words WHERE language_pair = ?',
+        'SELECT word, meaning, example, level, learnedAt FROM learned_words WHERE language_pair = ? AND deleted_at IS NULL',
         [languagePair]
       );
       return rows;
@@ -1565,7 +1625,7 @@ class DatabaseService {
       if (!this.initialized) await this.initDatabase();
       const rows = await this.db.getAllAsync<any>(
         `SELECT id, exercise_type, score, total_questions, date, word_source, level, word_list_id, word_list_name
-         FROM exercise_results WHERE language_pair = ?`,
+         FROM exercise_results WHERE language_pair = ? AND deleted_at IS NULL`,
         [languagePair]
       );
       return rows;
@@ -1599,8 +1659,8 @@ class DatabaseService {
     try {
       if (!this.initialized) await this.initDatabase();
       const result = await this.db.runAsync(
-        `INSERT INTO exercise_results (id, exercise_type, score, total_questions, date, language_pair, word_source, level, word_list_id, word_list_name)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO exercise_results (id, exercise_type, score, total_questions, date, language_pair, word_source, level, word_list_id, word_list_name, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           row.exercise_type,
@@ -1612,6 +1672,7 @@ class DatabaseService {
           row.level,
           row.word_list_id,
           row.word_list_name,
+          this.now(),
         ]
       );
       return result.lastInsertRowId ?? id;
@@ -1636,7 +1697,7 @@ class DatabaseService {
     try {
       if (!this.initialized) await this.initDatabase();
       const rows = await this.db.getAllAsync<any>(
-        'SELECT word, meaning, example, level, added_at, variant_key FROM custom_word_list_items WHERE list_id = ?',
+        'SELECT word, meaning, example, level, added_at, variant_key FROM custom_word_list_items WHERE list_id = ? AND deleted_at IS NULL',
         [listId]
       );
       return rows;
@@ -1661,8 +1722,8 @@ class DatabaseService {
     try {
       if (!this.initialized) await this.initDatabase();
       const result = await this.db.runAsync(
-        'INSERT INTO custom_word_lists (id, name, created_at, language_pair) VALUES (?, ?, ?, ?)',
-        [id, name, createdAt, languagePair]
+        'INSERT INTO custom_word_lists (id, name, created_at, language_pair, updated_at) VALUES (?, ?, ?, ?, ?)',
+        [id, name, createdAt, languagePair, this.now()]
       );
       return result.lastInsertRowId ?? id;
     } catch (error) {
@@ -1689,8 +1750,8 @@ class DatabaseService {
       if (!this.initialized) await this.initDatabase();
       await this.db.runAsync(
         `INSERT OR IGNORE INTO custom_word_list_items
-         (list_id, word, meaning, example, level, added_at, variant_key)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (list_id, word, meaning, example, level, added_at, variant_key, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           listId,
           item.word,
@@ -1699,6 +1760,7 @@ class DatabaseService {
           item.level,
           item.added_at,
           item.variant_key || '',
+          this.now(),
         ]
       );
       return true;
@@ -1754,6 +1816,113 @@ class DatabaseService {
       });
     } catch (error) {
       console.error('Error in wipeUserData:', error);
+    }
+  }
+
+  // ===========================================================================
+  // Incremental sync: delta query methods
+  //
+  // Each method returns rows changed since `since` (ISO timestamp). If `since`
+  // is null, ALL rows are returned (full-push fallback for first-ever sync).
+  // Both live rows (deleted_at IS NULL) and soft-deleted rows are included —
+  // cloudSync needs both to decide what to upsert vs what to delete from cloud.
+  // ===========================================================================
+
+  async getLearnedWordsChangedSince(languagePair: string, since: string | null) {
+    const base = 'SELECT word, meaning, example, level, learnedAt, deleted_at FROM learned_words WHERE language_pair = ?';
+    if (since === null) {
+      return this.getAllAsync<any>(base, [languagePair]);
+    }
+    return this.getAllAsync<any>(`${base} AND updated_at > ?`, [languagePair, since]);
+  }
+
+  async getExerciseResultsChangedSince(languagePair: string, since: string | null) {
+    const base = `SELECT id, exercise_type, score, total_questions, date, word_source, level, word_list_id, word_list_name, deleted_at
+                  FROM exercise_results WHERE language_pair = ?`;
+    if (since === null) {
+      return this.getAllAsync<any>(base, [languagePair]);
+    }
+    return this.getAllAsync<any>(`${base} AND updated_at > ?`, [languagePair, since]);
+  }
+
+  async getExerciseDetailsChangedSince(languagePair: string, since: string | null) {
+    const base = 'SELECT exercise_id, details, deleted_at FROM exercise_details WHERE language_pair = ?';
+    if (since === null) {
+      return this.getAllAsync<any>(base, [languagePair]);
+    }
+    return this.getAllAsync<any>(`${base} AND updated_at > ?`, [languagePair, since]);
+  }
+
+  async getWordListsChangedSince(languagePair: string, since: string | null) {
+    const base = 'SELECT id, name, created_at, deleted_at FROM custom_word_lists WHERE language_pair = ?';
+    if (since === null) {
+      return this.getAllAsync<any>(base, [languagePair]);
+    }
+    return this.getAllAsync<any>(`${base} AND updated_at > ?`, [languagePair, since]);
+  }
+
+  async getWordListItemsChangedSince(languagePair: string, since: string | null) {
+    const base = `SELECT i.id, i.list_id, i.word, i.meaning, i.example, i.level, i.added_at, i.variant_key, i.deleted_at
+                  FROM custom_word_list_items i
+                  JOIN custom_word_lists l ON i.list_id = l.id
+                  WHERE l.language_pair = ?`;
+    if (since === null) {
+      return this.getAllAsync<any>(base, [languagePair]);
+    }
+    return this.getAllAsync<any>(`${base} AND i.updated_at > ?`, [languagePair, since]);
+  }
+
+  async getUnfinishedExercisesChangedSince(languagePair: string, since: string | null) {
+    const base = `SELECT timestamp, language_pair, exercise_type, question_index, total_questions, score,
+                         asked_words, question_details, word_source, level, word_list_id, word_list_name, previous_type, deleted_at
+                  FROM unfinished_exercises WHERE language_pair = ?`;
+    if (since === null) {
+      return this.getAllAsync<any>(base, [languagePair]);
+    }
+    return this.getAllAsync<any>(`${base} AND updated_at > ?`, [languagePair, since]);
+  }
+
+  // ===========================================================================
+  // Incremental sync: prune old soft-deleted rows
+  // ===========================================================================
+
+  /**
+   * Hard-deletes rows that were soft-deleted more than `daysOld` days ago.
+   * Called after a successful push so the cloud has already received the
+   * delete commands and we can safely reclaim local storage.
+   */
+  async pruneSoftDeletes(languagePair: string, daysOld: number = 30): Promise<void> {
+    try {
+      if (!this.initialized) await this.initDatabase();
+      const cutoff = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000).toISOString();
+      await this.db.withTransactionAsync(async () => {
+        await this.db.runAsync(
+          'DELETE FROM learned_words WHERE deleted_at IS NOT NULL AND deleted_at < ? AND language_pair = ?',
+          [cutoff, languagePair]
+        );
+        await this.db.runAsync(
+          'DELETE FROM exercise_details WHERE deleted_at IS NOT NULL AND deleted_at < ? AND language_pair = ?',
+          [cutoff, languagePair]
+        );
+        await this.db.runAsync(
+          'DELETE FROM exercise_results WHERE deleted_at IS NOT NULL AND deleted_at < ? AND language_pair = ?',
+          [cutoff, languagePair]
+        );
+        await this.db.runAsync(
+          'DELETE FROM custom_word_list_items WHERE deleted_at IS NOT NULL AND deleted_at < ?',
+          [cutoff]
+        );
+        await this.db.runAsync(
+          'DELETE FROM custom_word_lists WHERE deleted_at IS NOT NULL AND deleted_at < ? AND language_pair = ?',
+          [cutoff, languagePair]
+        );
+        await this.db.runAsync(
+          'DELETE FROM unfinished_exercises WHERE deleted_at IS NOT NULL AND deleted_at < ? AND language_pair = ?',
+          [cutoff, languagePair]
+        );
+      });
+    } catch (error) {
+      console.warn('Error in pruneSoftDeletes (non-fatal):', error);
     }
   }
 }

@@ -37,6 +37,7 @@ import { cloudSync } from './app/services/cloudSync';
 import { onboardingState } from './app/services/onboardingState';
 import { DetailedDownloadProvider } from './app/contexts/DetailedDownloadContext';
 import { DetailedDataLoaderBanner } from './app/components/DetailedDataLoader';
+import { SyncBanner } from './app/components/SyncBanner';
 
 // Register the sync hook once, at module load. Every dbService write method
 // calls markDirty(table) → onDirty(table) → cloudSync.markTableDirty(table),
@@ -67,7 +68,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
-  const { colors, theme } = useTheme();
+  const { colors, theme, reloadTheme } = useTheme();
   const { translations, currentLanguagePair } = useLanguage();
   const { session, initializing } = useAuth();
 
@@ -82,9 +83,16 @@ const AppNavigator = () => {
   useEffect(() => {
     if (initializing) return;
     if (!session) return;
-    cloudSync.onSignInBootstrap(currentLanguagePair).catch((err) => {
-      console.warn('[cloudSync] sign-in bootstrap failed:', err);
-    });
+    cloudSync.onSignInBootstrap(currentLanguagePair)
+      .then((pulled) => {
+        if (pulled) {
+          // Cloud'dan veri çekildiyse theme gibi ayarlar değişmiş olabilir
+          reloadTheme();
+        }
+      })
+      .catch((err) => {
+        console.warn('[cloudSync] sign-in bootstrap failed:', err);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id, initializing]);
 
@@ -365,6 +373,7 @@ const ThemedAppContainer = () => {
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <AppNavigator />
         <DetailedDataLoaderBanner />
+        <SyncBanner />
       </View>
     </SafeAreaProvider>
   );

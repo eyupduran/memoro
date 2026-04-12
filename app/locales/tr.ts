@@ -265,7 +265,7 @@ export default {
       signedInAs: 'Giriş yapan: {0}',
       signOut: 'Çıkış Yap',
       signOutConfirmTitle: 'Çıkış yapmak istediğinizden emin misiniz?',
-      signOutConfirmMessage: 'Çıkış yapsanız bile bu cihazdaki verileriniz silinmez. Misafir olarak kullanmaya devam edebilirsiniz.',
+      signOutConfirmMessage: 'Çıkış yaptıktan sonra misafir olarak kullanmaya devam edebilirsiniz. Bu cihazdaki verileriniz korunur.\n\nÖnemli: Farklı bir hesapla giriş yaparsanız mevcut cihazdaki veriler silinip yeni hesabın verileri yüklenir.',
       signOutConfirm: 'Çıkış Yap',
       signOutCancel: 'İptal',
     },
@@ -373,7 +373,7 @@ export default {
     errorUnknown: 'Bir hata oluştu. Lütfen tekrar deneyin.',
     // Sign-up success flow
     signUpSuccessTitle: 'Hesap Oluşturuldu',
-    signUpSuccessMessage: 'Hoş geldiniz! Memoro hesabınız hazır.',
+    signUpSuccessMessage: 'Hesabınız başarıyla oluşturuldu. Şimdi e-posta ve şifrenizle giriş yapabilirsiniz.',
     continueAsGuest: 'Misafir olarak devam et',
     // Sign-in post bootstrap
     bootstrapTitle: 'Verileriniz yükleniyor...',

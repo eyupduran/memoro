@@ -34,7 +34,7 @@ type Mode = 'signIn' | 'signUp';
 export const AuthScreen: React.FC = () => {
   const { colors } = useTheme();
   const { translations } = useLanguage();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signOut } = useAuth();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -110,13 +110,19 @@ export const AuthScreen: React.FC = () => {
         return;
       }
 
-      // Success — dismiss back to wherever we came from. The AuthContext
-      // state flip will cause CloudAccountSection to re-render in its
-      // signed-in form. Sign-up gets a welcome alert first so the
-      // migration-about-to-happen isn't silent.
       if (mode === 'signUp') {
+        // Register başarılı — Supabase otomatik session oluşturur ama
+        // kullanıcının bilinçli olarak giriş yapmasını istiyoruz.
+        // Session'ı kapat ve login sekmesine yönlendir.
+        await signOut();
         Alert.alert(t.signUpSuccessTitle, t.signUpSuccessMessage, [
-          { text: 'OK', onPress: dismiss },
+          {
+            text: 'OK',
+            onPress: () => {
+              setMode('signIn');
+              setPassword('');
+            },
+          },
         ]);
       } else {
         dismiss();

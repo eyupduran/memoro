@@ -5,6 +5,7 @@ import { themes, ThemeType } from '../theme/themes';
 interface ThemeContextType {
   theme: ThemeType;
   setTheme: (theme: ThemeType) => void;
+  reloadTheme: () => Promise<void>;
   colors: typeof themes.light;
 }
 
@@ -42,6 +43,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         theme,
         setTheme: handleSetTheme,
+        reloadTheme: loadTheme,
         colors: themes[theme],
       }}
     >
@@ -56,4 +58,4 @@ export const useTheme = () => {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
-}; 
+};

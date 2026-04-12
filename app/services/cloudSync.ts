@@ -5,6 +5,7 @@ import { authService } from './authService';
 
 const LAST_SYNC_KEY = 'cloud_last_sync_at';
 const LAST_USER_ID_KEY = 'cloud_last_user_id';
+const LAST_PUSH_AT_PREFIX = 'cloud_last_push_at_';
 // Long-ish debounce on purpose: an exercise run fires ~10 streak writes in
 // quick succession and we want them to coalesce into one push.
 const DEBOUNCE_MS = 5000;
@@ -216,6 +217,11 @@ class CloudSyncService {
       await this.pullAll(user.id, pair);
       const now = new Date().toISOString();
       await AsyncStorage.setItem(LAST_SYNC_KEY, now);
+      // After pull, local = cloud. Set last_push_at for all tables to now
+      // so the next incremental push doesn't re-push the pulled data.
+      for (const table of ALL_SYNC_TABLES) {
+        await this.setLastPushAt(table, now);
+      }
       this.setState({ status: 'idle', lastSyncAt: now, error: null });
       return true;
     } catch (err: any) {
@@ -340,28 +346,347 @@ class CloudSyncService {
     // deleting their progress would be a hostile surprise.
     await AsyncStorage.removeItem(LAST_SYNC_KEY);
     await AsyncStorage.removeItem(LAST_USER_ID_KEY);
+    await this.clearAllLastPushAt();
     this.setState({ lastSyncAt: null, status: 'idle', error: null });
   }
 
   // ---------------------------------------------------------------------------
-  // Internal: PUSH
+  // Per-table last_push_at tracking (AsyncStorage)
+  // ---------------------------------------------------------------------------
+
+  private async getLastPushAt(table: SyncTable): Promise<string | null> {
+    return AsyncStorage.getItem(`${LAST_PUSH_AT_PREFIX}${table}`);
+  }
+
+  private async setLastPushAt(table: SyncTable, isoString: string): Promise<void> {
+    await AsyncStorage.setItem(`${LAST_PUSH_AT_PREFIX}${table}`, isoString);
+  }
+
+  private async clearAllLastPushAt(): Promise<void> {
+    for (const table of ALL_SYNC_TABLES) {
+      await AsyncStorage.removeItem(`${LAST_PUSH_AT_PREFIX}${table}`);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal: PUSH (incremental delta)
   // ---------------------------------------------------------------------------
 
   /**
-   * Push only the given set of tables to cloud, using full-replace semantics:
-   * for each table we first DELETE every existing row for this user + language
-   * pair, then INSERT the current local rows. This makes local deletes
-   * propagate to the cloud — plain upsert would never remove stale rows.
+   * Push only changed rows (delta) for each dirty table. For each table:
+   * 1. Read `last_push_at` for this table
+   * 2. Query rows where `updated_at > last_push_at` (or ALL rows if null)
+   * 3. Partition into upserts (live) and deletes (soft-deleted)
+   * 4. Send upserts via Supabase .upsert(), deletes via .delete()
+   * 5. Update `last_push_at` to `pushStartedAt`
    *
-   * Each table runs in its own try/catch so a single failure doesn't block
-   * the rest. If any table errors we throw at the end so the caller can mark
-   * the sync as failed and retry later.
-   *
-   * The delete+insert is not a real transaction (Supabase REST API doesn't
-   * expose one from the client), so there's a ~100ms window where the cloud
-   * looks empty between the two calls. Fine for Memoro's single-user usage.
+   * Special cases:
+   * - word_progress: stays full-replace (small, no row identity)
+   * - user_settings: stays upsert (single JSONB row)
    */
   private async pushTables(
+    userId: string,
+    languagePair: string,
+    tables: Set<SyncTable>
+  ) {
+    const errors: Array<{ table: string; error: any }> = [];
+    const pushStartedAt = new Date().toISOString();
+
+    const run = async (table: string, fn: () => Promise<void>) => {
+      try {
+        await fn();
+      } catch (err) {
+        console.warn(`[cloudSync] push ${table} failed:`, err);
+        errors.push({ table, error: err });
+      }
+    };
+
+    // --- learned_words (incremental) ---
+    if (tables.has('learned_words')) {
+      await run('learned_words', async () => {
+        const since = await this.getLastPushAt('learned_words');
+        const delta = await dbService.getLearnedWordsChangedSince(languagePair, since);
+        const toUpsert = delta.filter((r: any) => r.deleted_at === null);
+        const toDelete = delta.filter((r: any) => r.deleted_at !== null);
+
+        if (toUpsert.length > 0) {
+          const rows = toUpsert.map((w: any) => ({
+            user_id: userId,
+            word: w.word,
+            meaning: w.meaning,
+            example: w.example || null,
+            level: w.level,
+            learned_at: w.learnedAt,
+            language_pair: languagePair,
+          }));
+          const { error } = await supabase
+            .from('learned_words')
+            .upsert(rows, { onConflict: 'user_id,word,language_pair' });
+          if (error) throw error;
+        }
+        if (toDelete.length > 0) {
+          const { error } = await supabase
+            .from('learned_words')
+            .delete()
+            .eq('user_id', userId)
+            .eq('language_pair', languagePair)
+            .in('word', toDelete.map((w: any) => w.word));
+          if (error) throw error;
+        }
+        await this.setLastPushAt('learned_words', pushStartedAt);
+      });
+    }
+
+    // --- word_progress (full-replace, no soft delete) ---
+    if (tables.has('word_progress')) {
+      await run('word_progress', async () => {
+        const progress = await dbService.getWordProgressForSync(languagePair);
+        const { error: delErr } = await supabase
+          .from('word_progress')
+          .delete()
+          .eq('user_id', userId)
+          .eq('language_pair', languagePair);
+        if (delErr) throw delErr;
+        if (progress.length > 0) {
+          const rows = progress.map((p) => ({
+            user_id: userId,
+            word: p.word,
+            level: p.level,
+            language_pair: languagePair,
+            streak: p.streak,
+          }));
+          const { error: insErr } = await supabase
+            .from('word_progress')
+            .insert(rows);
+          if (insErr) throw insErr;
+        }
+        await this.setLastPushAt('word_progress', pushStartedAt);
+      });
+    }
+
+    // --- exercise_results + exercise_details (incremental, paired) ---
+    if (tables.has('exercise_results')) {
+      await run('exercise_results+details', async () => {
+        const since = await this.getLastPushAt('exercise_results');
+        const resultsDelta = await dbService.getExerciseResultsChangedSince(languagePair, since);
+        const detailsDelta = await dbService.getExerciseDetailsChangedSince(languagePair, since);
+
+        // Results
+        const resultsToUpsert = resultsDelta.filter((r: any) => r.deleted_at === null);
+        const resultsToDelete = resultsDelta.filter((r: any) => r.deleted_at !== null);
+
+        if (resultsToUpsert.length > 0) {
+          const rows = resultsToUpsert.map((r: any) => ({
+            user_id: userId,
+            client_id: r.id,
+            exercise_type: r.exercise_type,
+            score: r.score,
+            total_questions: r.total_questions,
+            date: r.date,
+            language_pair: languagePair,
+            word_source: r.word_source || null,
+            level: r.level || null,
+            word_list_id: r.word_list_id || null,
+            word_list_name: r.word_list_name || null,
+          }));
+          const { error } = await supabase
+            .from('exercise_results')
+            .upsert(rows, { onConflict: 'user_id,client_id,language_pair' });
+          if (error) throw error;
+        }
+        if (resultsToDelete.length > 0) {
+          const { error } = await supabase
+            .from('exercise_results')
+            .delete()
+            .eq('user_id', userId)
+            .eq('language_pair', languagePair)
+            .in('client_id', resultsToDelete.map((r: any) => r.id));
+          if (error) throw error;
+        }
+
+        // Details
+        const detailsToUpsert = detailsDelta.filter((d: any) => d.deleted_at === null);
+        const detailsToDelete = detailsDelta.filter((d: any) => d.deleted_at !== null);
+
+        if (detailsToUpsert.length > 0) {
+          const rows = detailsToUpsert.map((d: any) => ({
+            user_id: userId,
+            exercise_client_id: d.exercise_id,
+            details: typeof d.details === 'string' ? JSON.parse(d.details) : d.details,
+            language_pair: languagePair,
+          }));
+          const { error } = await supabase
+            .from('exercise_details')
+            .upsert(rows, { onConflict: 'user_id,exercise_client_id,language_pair' });
+          if (error) throw error;
+        }
+        if (detailsToDelete.length > 0) {
+          const { error } = await supabase
+            .from('exercise_details')
+            .delete()
+            .eq('user_id', userId)
+            .eq('language_pair', languagePair)
+            .in('exercise_client_id', detailsToDelete.map((d: any) => d.exercise_id));
+          if (error) throw error;
+        }
+
+        await this.setLastPushAt('exercise_results', pushStartedAt);
+      });
+    }
+
+    // --- custom_word_lists + custom_word_list_items (incremental, paired) ---
+    if (tables.has('custom_word_lists') || tables.has('custom_word_list_items')) {
+      await run('custom_word_lists+items', async () => {
+        const since = await this.getLastPushAt('custom_word_lists');
+        const listsDelta = await dbService.getWordListsChangedSince(languagePair, since);
+        const itemsDelta = await dbService.getWordListItemsChangedSince(languagePair, since);
+
+        // Lists
+        const listsToUpsert = listsDelta.filter((l: any) => l.deleted_at === null);
+        const listsToDelete = listsDelta.filter((l: any) => l.deleted_at !== null);
+
+        if (listsToUpsert.length > 0) {
+          const rows = listsToUpsert.map((l: any) => ({
+            user_id: userId,
+            client_id: l.id,
+            name: l.name,
+            created_at: l.created_at,
+            language_pair: languagePair,
+          }));
+          const { error } = await supabase
+            .from('custom_word_lists')
+            .upsert(rows, { onConflict: 'user_id,client_id,language_pair' });
+          if (error) throw error;
+        }
+        if (listsToDelete.length > 0) {
+          // Cloud CASCADE will also remove child items
+          const { error } = await supabase
+            .from('custom_word_lists')
+            .delete()
+            .eq('user_id', userId)
+            .eq('language_pair', languagePair)
+            .in('client_id', listsToDelete.map((l: any) => l.id));
+          if (error) throw error;
+        }
+
+        // Items
+        const itemsToUpsert = itemsDelta.filter((i: any) => i.deleted_at === null);
+        const itemsToDelete = itemsDelta.filter((i: any) => i.deleted_at !== null);
+
+        if (itemsToUpsert.length > 0) {
+          const rows = itemsToUpsert.map((i: any) => ({
+            user_id: userId,
+            list_client_id: i.list_id,
+            word: i.word,
+            meaning: i.meaning,
+            example: i.example || null,
+            level: i.level,
+            added_at: i.added_at,
+            variant_key: i.variant_key || '',
+          }));
+          const { error } = await supabase
+            .from('custom_word_list_items')
+            .upsert(rows, { onConflict: 'user_id,list_client_id,word,variant_key' });
+          if (error) throw error;
+        }
+        for (const item of itemsToDelete) {
+          const { error } = await supabase
+            .from('custom_word_list_items')
+            .delete()
+            .eq('user_id', userId)
+            .eq('list_client_id', (item as any).list_id)
+            .eq('word', (item as any).word)
+            .eq('variant_key', (item as any).variant_key || '');
+          if (error) throw error;
+        }
+
+        await this.setLastPushAt('custom_word_lists', pushStartedAt);
+        await this.setLastPushAt('custom_word_list_items', pushStartedAt);
+      });
+    }
+
+    // --- unfinished_exercises (incremental) ---
+    if (tables.has('unfinished_exercises')) {
+      await run('unfinished_exercises', async () => {
+        const since = await this.getLastPushAt('unfinished_exercises');
+        const delta = await dbService.getUnfinishedExercisesChangedSince(languagePair, since);
+        const toUpsert = delta.filter((r: any) => r.deleted_at === null);
+        const toDelete = delta.filter((r: any) => r.deleted_at !== null);
+
+        if (toUpsert.length > 0) {
+          const rows = toUpsert.map((ex: any) => ({
+            user_id: userId,
+            timestamp: ex.timestamp,
+            language_pair: languagePair,
+            exercise_type: ex.exercise_type,
+            question_index: ex.question_index,
+            total_questions: ex.total_questions,
+            score: ex.score,
+            asked_words: typeof ex.asked_words === 'string' ? JSON.parse(ex.asked_words) : ex.asked_words,
+            question_details: typeof ex.question_details === 'string' ? JSON.parse(ex.question_details) : ex.question_details,
+            word_source: ex.word_source || null,
+            level: ex.level || null,
+            word_list_id: ex.word_list_id || null,
+            word_list_name: ex.word_list_name || null,
+            previous_type: ex.previous_type || null,
+          }));
+          const { error } = await supabase
+            .from('unfinished_exercises')
+            .upsert(rows, { onConflict: 'user_id,timestamp,language_pair' });
+          if (error) throw error;
+        }
+        if (toDelete.length > 0) {
+          const { error } = await supabase
+            .from('unfinished_exercises')
+            .delete()
+            .eq('user_id', userId)
+            .eq('language_pair', languagePair)
+            .in('timestamp', toDelete.map((r: any) => r.timestamp));
+          if (error) throw error;
+        }
+        await this.setLastPushAt('unfinished_exercises', pushStartedAt);
+      });
+    }
+
+    // --- user_settings (always upsert, no delta needed) ---
+    if (tables.has('user_settings')) {
+      await run('user_settings', async () => {
+        const settings = await this.collectSettings();
+        const { error } = await supabase
+          .from('user_settings')
+          .upsert({ user_id: userId, data: settings });
+        if (error) throw error;
+        await this.setLastPushAt('user_settings', pushStartedAt);
+      });
+    }
+
+    // Prune old soft-deleted rows after a successful push
+    if (errors.length === 0) {
+      try {
+        await dbService.pruneSoftDeletes(languagePair, 30);
+      } catch (e) {
+        console.warn('[cloudSync] prune failed (non-fatal):', e);
+      }
+    }
+
+    if (errors.length) {
+      const first = errors[0];
+      throw new Error(
+        `${first.table}: ${first.error?.message || 'push failed'}`
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal: PUSH (legacy full-replace — kept for rollback)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Legacy full-replace push. Kept intact for rollback if incremental sync
+   * causes issues in production. To switch back, change pushTables() to call
+   * this method instead of the incremental one above.
+   */
+  private async pushTablesFullReplace(
     userId: string,
     languagePair: string,
     tables: Set<SyncTable>
