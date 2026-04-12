@@ -231,10 +231,6 @@ export default {
       dark: {
         label: 'Koyu Tema',
         description: 'Koyu arka plan ve açık renkli metinler'
-      },
-      pastel: {
-        label: 'Pastel Tema',
-        description: 'Yumuşak ve rahatlatıcı renkler'
       }
     },
     notifications: 'Bildirimler',

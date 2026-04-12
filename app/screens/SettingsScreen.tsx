@@ -199,12 +199,6 @@ export const SettingsScreen: React.FC<Props> = (props) => {
       icon: 'nights-stay',
       description: translations.settings.themes.dark.description,
     },
-    {
-      type: 'pastel',
-      label: translations.settings.themes.pastel.label,
-      icon: 'palette',
-      description: translations.settings.themes.pastel.description,
-    },
   ];
 
   return (

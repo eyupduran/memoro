@@ -21,7 +21,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const loadTheme = async () => {
     try {
       const savedTheme = await AsyncStorage.getItem('theme');
-      if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'pastel')) {
+      if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
         setTheme(savedTheme);
       }
     } catch (error) {

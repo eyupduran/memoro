@@ -424,14 +424,14 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
     const estimatedWordHeight = 110;
     const totalContentHeight = wordCount * estimatedWordHeight;
 
-    // Taban: ekran ortası (%50)
-    const minTop = screenHeight * 0.5;
+    // Taban: ekranın %45'i — MIUI saatinin hemen altı
+    const minTop = screenHeight * 0.45;
 
     // İçeriği ekran ortasının biraz altında konumlandır — content çok
     // uzunsa üst tarafa kayar ama minTop garanti.
-    const centeredTop = screenHeight * 0.55 - totalContentHeight / 2;
+    const centeredTop = screenHeight * 0.49 - totalContentHeight / 2;
 
-    const maxTop = screenHeight * 0.9;
+    const maxTop = screenHeight * 0.75;
     return Math.min(Math.max(centeredTop, minTop), maxTop);
   };
 

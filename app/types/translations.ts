@@ -147,10 +147,6 @@ export interface Translations {
         label: string;
         description: string;
       };
-      pastel: {
-        label: string;
-        description: string;
-      };
     };
     notifications: string;
     notificationTime: string;

@@ -52,9 +52,9 @@ const WORD_COUNT_OPTIONS = [3, 4, 5];
 const getInitialVerticalPosition = (wordCount: number): number => {
   const estimatedWordHeight = 110;
   const totalContentHeight = wordCount * estimatedWordHeight;
-  const minTop = WINDOW.height * 0.5;
-  const centeredTop = WINDOW.height * 0.55 - totalContentHeight / 2;
-  const maxTop = WINDOW.height * 0.9;
+  const minTop = WINDOW.height * 0.45;
+  const centeredTop = WINDOW.height * 0.49 - totalContentHeight / 2;
+  const maxTop = WINDOW.height * 0.75;
   return Math.min(Math.max(centeredTop, minTop), maxTop);
 };
 

@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 
-export type ThemeType = 'light' | 'dark' | 'pastel';
+export type ThemeType = 'light' | 'dark';
 
 interface Theme {
   background: string;
@@ -94,40 +94,9 @@ export const themes: Record<ThemeType, Theme> = {
       inactive: '#4D4D4D',
     },
   },
-  pastel: {
-    background: '#F8F9FA',
-    surface: '#E9ECEF',
-    surfaceVariant: '#DEE2E6',
-    primary: '#4B79BD',
-    secondary: '#B8E0D2',
-    accent: '#F7CAC9',
-    text: {
-      primary: '#2B2B2B',
-      secondary: '#5C5C5C',
-      light: '#8C8C8C',
-      onPrimary: '#FFFFFF',
-    },
-    border: '#CED4DA',
-    success: '#8DB596',
-    error: '#E6A5A5',
-    warning: '#F2D4A7',
-    info: '#A7C5E3',
-    card: {
-      background: '#FFFFFF',
-      border: '#CED4DA',
-      shadow: 'rgba(0, 0, 0, 0.05)',
-    },
-    icon: {
-      primary: '#4B79BD',
-      secondary: '#5C5C5C',
-      active: '#4B79BD',
-      inactive: '#CED4DA',
-    },
-  },
 };
 
 export const themeIcons: Record<ThemeType, keyof typeof MaterialIcons.glyphMap> = {
   light: 'wb-sunny',
   dark: 'nights-stay',
-  pastel: 'palette',
 }; 

@@ -231,10 +231,6 @@ export default {
       dark: {
         label: 'Tema Escuro',
         description: 'Fundo escuro com texto claro'
-      },
-      pastel: {
-        label: 'Tema Pastel',
-        description: 'Cores suaves e relaxantes'
       }
     },
     notifications: 'Notificações',
