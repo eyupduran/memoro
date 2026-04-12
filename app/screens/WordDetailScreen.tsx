@@ -15,7 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { dbService } from '../services/database';
 import { WordListModal } from '../components/WordListModal';
-import { DetailedDataLoader } from '../components/DetailedDataLoader';
+import { useDetailedDownload } from '../contexts/DetailedDownloadContext';
 import type { RootStackParamList } from '../types/navigation';
 import type { Word } from '../types/words';
 
@@ -66,7 +66,7 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [detailsLoaded, setDetailsLoaded] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showListModal, setShowListModal] = useState(false);
-  const [showDetailedLoader, setShowDetailedLoader] = useState(false);
+  const { startDownload: startDetailedDownload } = useDetailedDownload();
 
   // Navigator header title olarak kelimenin kendisini göster — "Kelime Detayı"
   // sabit başlığı yerine, böylece context her zaman ekranın tepesinde görünür.
@@ -334,7 +334,7 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           {showDownloadPrompt && (
             <TouchableOpacity
               style={[styles.downloadButton, { backgroundColor: colors.primary }]}
-              onPress={() => setShowDetailedLoader(true)}
+              onPress={() => startDetailedDownload(currentLanguagePair, () => loadDetail())}
             >
               <MaterialIcons name="cloud-download" size={20} color={colors.text.onPrimary} />
               <Text style={[styles.downloadButtonText, { color: colors.text.onPrimary }]}>
@@ -344,18 +344,6 @@ export const WordDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           )}
         </View>
 
-        {showDetailedLoader && (
-          <DetailedDataLoader
-            visible={showDetailedLoader}
-            languagePair={currentLanguagePair}
-            onComplete={() => {
-              setShowDetailedLoader(false);
-              // İndirme bittikten sonra detayı tekrar yüklemeyi dene —
-              // bu kelime detay setinde varsa artık kutular görünecek.
-              loadDetail();
-            }}
-          />
-        )}
       </View>
     );
   }

@@ -14,7 +14,7 @@ export const LanguageSelector = () => {
 
   const nativeLanguages: { code: NativeLanguage; name: string }[] = [
     { code: 'tr', name: translations.languages.tr },
-    { code: 'pt', name: translations.languages.pt },
+    // { code: 'pt', name: translations.languages.pt }, // TODO: Portekizce kelime verileri hazırlanınca aktif edilecek
   ];
 
   const learningLanguages: { code: LearningLanguage; name: string }[] = [

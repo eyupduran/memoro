@@ -35,6 +35,8 @@ import { AutoWallpaperSettingsScreen } from './app/screens/AutoWallpaperSettings
 import { dbService } from './app/services/database';
 import { cloudSync } from './app/services/cloudSync';
 import { onboardingState } from './app/services/onboardingState';
+import { DetailedDownloadProvider } from './app/contexts/DetailedDownloadContext';
+import { DetailedDataLoaderBanner } from './app/components/DetailedDataLoader';
 
 // Register the sync hook once, at module load. Every dbService write method
 // calls markDirty(table) → onDirty(table) → cloudSync.markTableDirty(table),
@@ -362,6 +364,7 @@ const ThemedAppContainer = () => {
     <SafeAreaProvider>
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <AppNavigator />
+        <DetailedDataLoaderBanner />
       </View>
     </SafeAreaProvider>
   );
@@ -372,7 +375,9 @@ export default function App() {
     <ThemeProvider>
       <LanguageProvider>
         <AuthProvider>
-          <ThemedAppContainer />
+          <DetailedDownloadProvider>
+            <ThemedAppContainer />
+          </DetailedDownloadProvider>
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

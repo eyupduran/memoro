@@ -359,10 +359,13 @@ export default {
     invalidEmail: 'Geçerli bir e-posta adresi girin.',
     passwordTooShort: 'Şifre en az 6 karakter olmalı.',
     emptyFields: 'Lütfen e-posta ve şifre alanlarını doldurun.',
+    // Mode-specific info texts
+    signInInfo: 'Daha önce oluşturduğunuz hesabınızla giriş yaparak verilerinize erişin.',
+    signUpInfo: 'Hesap oluşturarak kelimeleriniz, listeleriniz ve ilerlemeniz bulutta güvenle saklanır. Cihaz değiştirseniz bile verileriniz kaybolmaz.',
     // Error codes from authService
-    errorInvalidCredentials: 'E-posta veya şifre hatalı.',
+    errorInvalidCredentials: 'Bu e-posta ile kayıtlı bir hesap bulunamadı veya şifre hatalı. Hesabınız yoksa "Kayıt Ol" sekmesinden oluşturabilirsiniz.',
     errorEmailNotConfirmed: 'E-posta adresiniz doğrulanmamış.',
-    errorUserAlreadyRegistered: 'Bu e-posta adresi ile zaten bir hesap var. Giriş yapmayı deneyin.',
+    errorUserAlreadyRegistered: 'Bu e-posta adresi ile zaten bir hesap var. "Giriş Yap" sekmesinden giriş yapmayı deneyin.',
     errorWeakPassword: 'Şifre çok zayıf. En az 6 karakter kullanın.',
     errorInvalidEmail: 'Geçersiz e-posta adresi.',
     errorRateLimit: 'Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.',

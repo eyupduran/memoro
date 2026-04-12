@@ -95,54 +95,45 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setNativeLanguage = async (lang: NativeLanguage) => {
     await storageService.setItem('selectedLanguage', lang);
-    
+
     // Dil değiştiğinde tüm kelime listelerini temizle
     for (const level of WORD_LIST_LEVELS) {
       const key = `wordList_${level}`;
       await AsyncStorage.removeItem(key);
     }
-    
+
     setNativeLanguageState(lang);
-    
+
     // Yeni dil çifti için veriyi kontrol et ve gerekirse DataLoader'ı göster
     const newLangPair = `${learningLanguage}-${lang}`;
     const isLoaded = await dbService.isLanguageDataLoaded(newLangPair);
-    
+
     if (!isLoaded) {
-      // Veri yoksa DataLoader'ı hemen göster
+      // Veri yoksa DataLoader'ı hemen göster — checkAndLoadLanguageData
+      // tekrar çağırılmıyor çünkü showDataLoader=true zaten DataLoader'ı
+      // tetikler, DataLoader kendi içinde indirmeyi yapar.
       setShowDataLoader(true);
     }
-    
-    // Yeni dil için verileri kontrol et
-    setTimeout(() => {
-      checkAndLoadLanguageData();
-    }, 500);
   };
 
   const setLearningLanguage = async (lang: LearningLanguage) => {
     await storageService.setItem('learningLanguage', lang);
-    
+
     // Öğrenme dili değiştiğinde tüm kelime listelerini temizle
     for (const level of WORD_LIST_LEVELS) {
       const key = `wordList_${level}`;
       await AsyncStorage.removeItem(key);
     }
-    
+
     setLearningLanguageState(lang);
-    
+
     // Yeni dil çifti için veriyi kontrol et ve gerekirse DataLoader'ı göster
     const newLangPair = `${lang}-${nativeLanguage}`;
     const isLoaded = await dbService.isLanguageDataLoaded(newLangPair);
-    
+
     if (!isLoaded) {
-      // Veri yoksa DataLoader'ı hemen göster
       setShowDataLoader(true);
     }
-    
-    // Yeni dil için verileri kontrol et
-    setTimeout(() => {
-      checkAndLoadLanguageData();
-    }, 500);
   };
 
   return (

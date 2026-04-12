@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ActivityIndicator, 
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
   Dimensions,
   StatusBar,
   TouchableOpacity,
@@ -24,8 +24,8 @@ interface DataLoaderProps {
   forceUpdate?: boolean;
 }
 
-export const DataLoader: React.FC<DataLoaderProps> = ({ 
-  visible, 
+export const DataLoader: React.FC<DataLoaderProps> = ({
+  visible,
   onComplete,
   languagePair,
   forceUpdate = false
@@ -37,30 +37,46 @@ export const DataLoader: React.FC<DataLoaderProps> = ({
   const [statusText, setStatusText] = useState('');
   const [currentLevel, setCurrentLevel] = useState<string | undefined>();
   const [loadingImages, setLoadingImages] = useState(false);
+  // Guard: loadData sadece bir kez çalışsın, tekrar tetiklenmesin
+  const loadingRef = useRef(false);
+  const completedRef = useRef(false);
 
   useEffect(() => {
-    if (visible) {
+    if (visible && !loadingRef.current && !completedRef.current) {
       loadData();
     }
   }, [visible, languagePair]);
 
+  // Component unmount olursa ref'leri sıfırla
+  useEffect(() => {
+    return () => {
+      loadingRef.current = false;
+      completedRef.current = false;
+    };
+  }, []);
+
   const loadData = async () => {
+    if (loadingRef.current || completedRef.current) return;
+    loadingRef.current = true;
+
     try {
       setStatus('loading');
       setStatusText(translations.dataLoader.loading);
 
       // Eğer forceUpdate true ise veya veriler henüz indirilmemişse
       const isLoaded = !forceUpdate && await dbService.isLanguageDataLoaded(languagePair);
-      
+
       if (isLoaded) {
         console.log(`${languagePair} dil çifti için veriler zaten indirilmiş`);
         setProgress(80);
-        
+
         await loadBackgroundImages();
-        
+
         setProgress(100);
         setStatus('completed');
         setStatusText(translations.dataLoader.completed);
+        completedRef.current = true;
+        loadingRef.current = false;
         setTimeout(onComplete, 1500);
         return;
       }
@@ -95,13 +111,16 @@ export const DataLoader: React.FC<DataLoaderProps> = ({
       setProgress(100);
       setStatus('completed');
       setStatusText(translations.dataLoader.completed);
-      
+      completedRef.current = true;
+      loadingRef.current = false;
+
       // Tamamlandığında callback'i çağır
       setTimeout(onComplete, 1500);
     } catch (error) {
       console.error('Veri indirme hatası:', error);
       setStatus('error');
       setStatusText(translations.dataLoader.error);
+      loadingRef.current = false;
     }
   };
 

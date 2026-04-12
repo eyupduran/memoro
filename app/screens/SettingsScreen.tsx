@@ -10,7 +10,7 @@ import { RootStackParamList } from '../types/navigation';
 import * as Notifications from 'expo-notifications';
 import { LanguageSelectorSettings } from '../components/LanguageSelectorSettings';
 import { DataLoader } from '../components/DataLoader';
-import { DetailedDataLoader } from '../components/DetailedDataLoader';
+import { useDetailedDownload } from '../contexts/DetailedDownloadContext';
 import { checkWordDataExists } from '../utils/database';
 import { CloudAccountSection } from '../components/CloudAccountSection';
 import WordListDownloadModal from '../components/WordListDownloadModal';
@@ -23,7 +23,7 @@ export const SettingsScreen: React.FC<Props> = (props) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [hasDownloadedData, setHasDownloadedData] = useState(false);
   const [showDataLoader, setShowDataLoader] = useState(false);
-  const [showDetailedDataLoader, setShowDetailedDataLoader] = useState(false);
+  const { startDownload: startDetailedDownload } = useDetailedDownload();
   const isInitialMount = useRef(true);
   const [showWordListModal, setShowWordListModal] = useState(false);
 
@@ -332,7 +332,7 @@ export const SettingsScreen: React.FC<Props> = (props) => {
                 if (globalShowDataLoader) {
                   setGlobalShowDataLoader(false);
                 }
-                setShowDetailedDataLoader(true);
+                startDetailedDownload(currentLanguagePair);
               }}
             >
               <Text style={[styles.updateButtonText, { color: colors.text.onPrimary }]}>
@@ -396,15 +396,6 @@ export const SettingsScreen: React.FC<Props> = (props) => {
         </View>
       )}
 
-      {showDetailedDataLoader && (
-        <View style={styles.loaderContainer}>
-          <DetailedDataLoader
-            visible={showDetailedDataLoader}
-            onComplete={() => setShowDetailedDataLoader(false)}
-            languagePair={currentLanguagePair}
-          />
-        </View>
-      )}
 
       <WordListDownloadModal
         visible={showWordListModal}

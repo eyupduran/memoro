@@ -190,6 +190,19 @@ export const AuthScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
+        {/* Mode-specific info banner */}
+        <View style={[styles.infoBanner, { backgroundColor: colors.primary + '12' }]}>
+          <MaterialIcons
+            name={mode === 'signIn' ? 'login' : 'person-add'}
+            size={18}
+            color={colors.primary}
+            style={{ marginRight: 8, marginTop: 1 }}
+          />
+          <Text style={[styles.infoText, { color: colors.text.secondary }]}>
+            {mode === 'signIn' ? t.signInInfo : t.signUpInfo}
+          </Text>
+        </View>
+
         <View style={styles.form}>
           <Text style={[styles.label, { color: colors.text.secondary }]}>
             {t.emailLabel}
@@ -330,6 +343,18 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 15,
     fontWeight: '600',
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
   },
   form: {
     marginBottom: 16,

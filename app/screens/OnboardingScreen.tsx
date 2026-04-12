@@ -97,9 +97,15 @@ export const OnboardingScreen = () => {
     }
   };
 
-  const handleWordListComplete = () => {
+  const handleWordListComplete = async () => {
+    // OnboardingPredefinedWordListsScreen kendi DataLoader'ını zaten çalıştırdı
+    // ve veri yüklendi. Tekrar DataLoader açmaya gerek yok — doğrudan bitir.
     setShowWordListScreen(false);
-    setShowDataLoader(true);
+    try {
+      await onboardingState.markSeen();
+    } catch (error) {
+      console.error('Error marking onboarding as seen:', error);
+    }
   };
 
   const currentItem = onboardingData[activeIndex];
