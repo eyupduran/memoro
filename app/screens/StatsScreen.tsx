@@ -12,6 +12,7 @@ import {
   Pressable,
   TextInput,
   Animated,
+  Keyboard,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -70,6 +71,8 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
   const [allWords, setAllWords] = useState<LearnedWord[]>([]);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [newWordListName, setNewWordListName] = useState('');
+  const [showCreateListInput, setShowCreateListInput] = useState(false);
+  const createListInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     loadAllWords();
@@ -528,6 +531,8 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
       const success = await dbService.createWordList(newWordListName.trim(), currentLanguagePair);
       if (success) {
         setNewWordListName('');
+        setShowCreateListInput(false);
+        Keyboard.dismiss();
         loadWordLists();
         showAlert({
           title: translations.wordListModal?.success || 'Başarılı',
@@ -572,17 +577,14 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
           {
             backgroundColor: colors.surface,
             borderColor: colors.border,
-            borderLeftColor: accentColor,
-            borderLeftWidth: 4,
           },
         ]}
         onPress={() => navigation.navigate('WordListDetail', { listId: item.id.toString(), listName: item.name })}
+        onLongPress={() => handleDeleteWordList(item.id, item.name)}
       >
         <View style={styles.wordListCardBody}>
-          <View style={styles.wordListCardLeft}>
-            <View style={[styles.wordListIconCircle, { backgroundColor: accentColor + '15' }]}>
-              <MaterialIcons name="format-list-bulleted" size={22} color={accentColor} />
-            </View>
+          <View style={[styles.wordListIconCircle, { backgroundColor: accentColor + '15' }]}>
+            <MaterialIcons name="folder-open" size={22} color={accentColor} />
           </View>
           <View style={styles.wordListCardCenter}>
             <View style={styles.wordListNameRow}>
@@ -595,35 +597,36 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
             </View>
             <View style={styles.wordListMeta}>
               <View style={styles.wordListMetaItem}>
-                <MaterialIcons name="text-snippet" size={13} color={colors.text.secondary} />
-                <Text style={[styles.wordListMetaText, { color: colors.text.secondary }]}>
+                <MaterialIcons name="text-snippet" size={13} color={colors.text.light} />
+                <Text style={[styles.wordListMetaText, { color: colors.text.light }]}>
                   {item.word_count} {translations.stats.wordCountLabel || 'kelime'}
                 </Text>
               </View>
-              <View style={[styles.wordListMetaDot, { backgroundColor: colors.text.secondary }]} />
+              <View style={[styles.wordListMetaDot, { backgroundColor: colors.text.light }]} />
               <View style={styles.wordListMetaItem}>
-                <MaterialIcons name="access-time" size={13} color={colors.text.secondary} />
-                <Text style={[styles.wordListMetaText, { color: colors.text.secondary }]}>
+                <MaterialIcons name="access-time" size={13} color={colors.text.light} />
+                <Text style={[styles.wordListMetaText, { color: colors.text.light }]}>
                   {formatDate(item.created_at)}
                 </Text>
               </View>
             </View>
           </View>
-          <MaterialIcons name="chevron-right" size={22} color={colors.text.secondary} style={{ opacity: 0.4 }} />
-        </View>
-        <View style={[styles.wordListCardFooter, { borderTopColor: colors.border }]}>
-          <TouchableOpacity
-            style={[styles.wordListDeleteChip, { backgroundColor: colors.error + '12' }]}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleDeleteWordList(item.id, item.name);
-            }}
-          >
-            <MaterialIcons name="remove-circle-outline" size={14} color={colors.error} />
-            <Text style={[styles.wordListDeleteChipText, { color: colors.error }]}>
-              {translations.wordListModal?.deleteListTitle || 'Listeyi Sil'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.wordListCardActions}>
+            <TouchableOpacity
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDeleteWordList(item.id, item.name);
+              }}
+              style={[styles.wordListDeleteChip, { backgroundColor: colors.error + '12' }]}
+            >
+              <MaterialIcons name="remove-circle-outline" size={14} color={colors.error} />
+              <Text style={[styles.wordListDeleteChipText, { color: colors.error }]}>
+                {translations.wordListModal?.deleteListTitle || 'Listeyi Sil'}
+              </Text>
+            </TouchableOpacity>
+            <MaterialIcons name="chevron-right" size={22} color={colors.text.light} />
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -644,80 +647,108 @@ export const StatsScreen: React.FC<Props> = ({ navigation }): React.ReactElement
 
   // Kelime Listeleri tab içeriği
   const renderWordListsTab = () => {
-  return (
+    return (
       <View style={styles.tabContent}>
-        {/* Yeni liste oluşturma bölümü */}
-        <View style={[styles.createListContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <TextInput
-            style={[
-              styles.createListInput,
-              { 
-                backgroundColor: colors.background,
-                borderColor: colors.border,
-                color: colors.text.primary,
-              }
-            ]}
-            placeholder={translations.wordListModal?.newListPlaceholder || 'Yeni liste adı...'}
-            placeholderTextColor={colors.text.secondary}
-            value={newWordListName}
-            onChangeText={setNewWordListName}
-            onSubmitEditing={handleCreateWordList}
-          />
-          <TouchableOpacity
-            style={[
-              styles.createListButton,
-              { 
-                backgroundColor: newWordListName.trim() ? colors.primary : colors.surface,
-                borderColor: colors.border,
-              }
-            ]}
-            onPress={handleCreateWordList}
-            disabled={!newWordListName.trim()}
-          >
-            <MaterialIcons 
-              name="add" 
-              size={20} 
-              color={newWordListName.trim() ? colors.text.onPrimary : colors.text.secondary} 
-            />
-            <Text style={[
-              styles.createListButtonText,
-              { 
-                color: newWordListName.trim() ? colors.text.onPrimary : colors.text.secondary,
-              }
-            ]}>
-              {translations.wordListModal?.create || 'Oluştur'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <View style={styles.wordListsTabInner}>
+          {/* Yeni liste oluşturma bölümü */}
+          {showCreateListInput ? (
+            <View style={[styles.createListCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <TextInput
+                ref={createListInputRef}
+                style={[
+                  styles.createListInput,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.primary + '40',
+                    color: colors.text.primary,
+                  },
+                ]}
+                placeholder={translations.wordListModal?.newListPlaceholder || 'Yeni liste adı...'}
+                placeholderTextColor={colors.text.light}
+                value={newWordListName}
+                onChangeText={setNewWordListName}
+                onSubmitEditing={handleCreateWordList}
+                returnKeyType="done"
+                maxLength={50}
+                autoFocus
+              />
+              <View style={styles.createListActions}>
+                <TouchableOpacity
+                  style={[styles.createListCancelBtn, { borderColor: colors.border }]}
+                  onPress={() => {
+                    setShowCreateListInput(false);
+                    setNewWordListName('');
+                    Keyboard.dismiss();
+                  }}
+                >
+                  <Text style={[styles.createListCancelText, { color: colors.text.secondary }]}>
+                    {translations.wordListModal?.deleteListCancel || 'İptal'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.createListConfirmBtn, { backgroundColor: colors.primary }]}
+                  onPress={handleCreateWordList}
+                  disabled={!newWordListName.trim()}
+                >
+                  <MaterialIcons name="check" size={18} color={colors.text.onPrimary} />
+                  <Text style={[styles.createListConfirmText, { color: colors.text.onPrimary }]}>
+                    {translations.wordListModal?.create || 'Oluştur'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={[styles.newListButton, { borderColor: colors.primary + '30', backgroundColor: colors.primary + '08' }]}
+              onPress={() => setShowCreateListInput(true)}
+            >
+              <View style={[styles.newListIconCircle, { backgroundColor: colors.primary + '20' }]}>
+                <MaterialIcons name="add" size={22} color={colors.primary} />
+              </View>
+              <Text style={[styles.newListButtonText, { color: colors.primary }]}>
+                {translations.wordListModal?.createNewList || 'Yeni Liste Oluştur'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
-        {loadingLists ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        ) : wordLists.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <MaterialIcons 
-              name="list" 
-              size={64} 
-              color={colors.text.secondary}
-              style={styles.emptyIcon}
-            />
-            <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
-              {translations.wordListModal?.noLists || 'Henüz liste oluşturulmamış'}
-            </Text>
-            <Text style={[styles.emptySubtext, { color: colors.text.secondary }]}>
-              {translations.wordListModal?.noLists ? 'Kelimelerinizi organize etmek için listeler oluşturabilirsiniz' : 'Kelimelerinizi organize etmek için listeler oluşturabilirsiniz'}
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={wordLists}
-            renderItem={renderWordListItem}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.wordListsGridContainer}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
+          {/* Listeler */}
+          {loadingLists ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : wordLists.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <View style={[styles.emptyIconCircle, { backgroundColor: colors.surfaceVariant }]}>
+                <MaterialIcons name="playlist-add" size={40} color={colors.text.light} />
+              </View>
+              <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
+                {translations.wordListModal?.noLists || 'Henüz liste oluşturulmamış'}
+              </Text>
+              <Text style={[styles.emptySubtext, { color: colors.text.light }]}>
+                {translations.wordListModal?.noListsHint || 'Yukarıdan yeni bir liste oluşturun'}
+              </Text>
+            </View>
+          ) : (
+            <>
+              {/* Ayırıcı */}
+              <View style={styles.listDividerRow}>
+                <View style={[styles.listDividerLine, { backgroundColor: colors.border }]} />
+                <Text style={[styles.listDividerText, { color: colors.text.light }]}>
+                  {translations.wordListModal?.existingLists || 'Listelerim'}
+                </Text>
+                <View style={[styles.listDividerLine, { backgroundColor: colors.border }]} />
+              </View>
+              <FlatList
+                data={wordLists}
+                renderItem={renderWordListItem}
+                keyExtractor={(item) => item.id.toString()}
+                contentContainerStyle={styles.wordListsGridContainer}
+                showsVerticalScrollIndicator={false}
+              />
+            </>
+          )}
+        </View>
       </View>
     );
   };
@@ -1107,8 +1138,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   wordListsGridContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
     paddingBottom: 20,
   },
   wordListCard: {
@@ -1125,12 +1154,8 @@ const styles = StyleSheet.create({
   wordListCardBody: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingRight: 12,
-    paddingLeft: 14,
-  },
-  wordListCardLeft: {
-    marginRight: 14,
+    padding: 14,
+    gap: 14,
   },
   wordListIconCircle: {
     width: 42,
@@ -1141,7 +1166,6 @@ const styles = StyleSheet.create({
   },
   wordListCardCenter: {
     flex: 1,
-    marginRight: 8,
   },
   wordListNameRow: {
     flexDirection: 'row',
@@ -1171,12 +1195,6 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     marginHorizontal: 7,
     opacity: 0.4,
-  },
-  wordListCardFooter: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
   },
   wordListDeleteChip: {
     flexDirection: 'row',
@@ -1376,6 +1394,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  wordListCardActions: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  wordListDeleteBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   deleteListButton: {
     padding: 6,
     borderRadius: 8,
@@ -1483,33 +1512,97 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  createListContainer: {
+  wordListsTabInner: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  newListButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    gap: 10,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    marginBottom: 16,
+    gap: 12,
+  },
+  newListIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newListButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  createListCard: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 16,
   },
   createListInput: {
-    flex: 1,
-    height: 44,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
+    height: 46,
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 14,
     fontSize: 16,
   },
-  createListButton: {
+  createListActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 6,
+    gap: 10,
+    marginTop: 12,
   },
-  createListButtonText: {
+  createListCancelBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  createListCancelText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  createListConfirmBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    height: 42,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  createListConfirmText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  listDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    gap: 12,
+  },
+  listDividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  listDividerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

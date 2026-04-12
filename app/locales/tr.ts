@@ -198,7 +198,8 @@ export default {
     definitionLabel: 'Tanım'
   },
   wordListDetail: {
-    variantsCount: '{0} farklı anlam — genişletmek için dokun'
+    variantsCount: '{0} farklı anlam',
+    variantsModalSubtitle: '{0} farklı anlam eklendi',
   },
   wordListModal: {
     title: 'Kelime Listesi Seç',
@@ -217,7 +218,10 @@ export default {
     deleteListConfirm: 'Evet, Sil',
     deleteListCancel: 'İptal',
     deleteListSuccess: 'Liste başarıyla silindi',
-    deleteListError: 'Liste silinirken bir hata oluştu'
+    deleteListError: 'Liste silinirken bir hata oluştu',
+    createNewList: 'Yeni Liste Oluştur',
+    existingLists: 'Listelerim',
+    noListsHint: 'Yukarıdan yeni bir liste oluşturun',
   },
   settings: {
     title: 'Ayarlar',
@@ -360,7 +364,7 @@ export default {
     signInInfo: 'Daha önce oluşturduğunuz hesabınızla giriş yaparak verilerinize erişin.',
     signUpInfo: 'Hesap oluşturarak kelimeleriniz, listeleriniz ve ilerlemeniz bulutta güvenle saklanır. Cihaz değiştirseniz bile verileriniz kaybolmaz.',
     // Error codes from authService
-    errorInvalidCredentials: 'Bu e-posta ile kayıtlı bir hesap bulunamadı veya şifre hatalı. Hesabınız yoksa "Kayıt Ol" sekmesinden oluşturabilirsiniz.',
+    errorInvalidCredentials: 'E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.',
     errorEmailNotConfirmed: 'E-posta adresiniz doğrulanmamış.',
     errorUserAlreadyRegistered: 'Bu e-posta adresi ile zaten bir hesap var. "Giriş Yap" sekmesinden giriş yapmayı deneyin.',
     errorWeakPassword: 'Şifre çok zayıf. En az 6 karakter kullanın.',

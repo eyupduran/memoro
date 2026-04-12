@@ -28,7 +28,6 @@
     "expo-intent-launcher": "~12.0.1",
     "expo-media-library": "~17.0.6",
     "expo-notifications": "^0.29.14",
-    "expo-screen-capture": "~7.0.1",
     "expo-sharing": "~13.0.1",
     "expo-speech": "~13.0.1",
     "expo-sqlite": "~15.1.4",

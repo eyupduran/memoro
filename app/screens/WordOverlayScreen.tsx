@@ -18,7 +18,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
-import * as ScreenCapture from 'expo-screen-capture';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { Word } from '../types/words';
 import { storageService } from '../services/storage';
@@ -707,8 +706,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
       const window = Dimensions.get('window');
       const screen = Dimensions.get('screen');
   
-      await ScreenCapture.preventScreenCaptureAsync();
-      
       const captureRef = viewShotRef.current;
       if (captureRef && typeof captureRef.capture === 'function') {
         // @ts-ignore - Linter, kütüphane belgelerine rağmen hata veriyor
@@ -756,8 +753,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         variant: 'error',
         buttons: [{ text: translations.alerts.okay, style: 'default' }],
       });
-    } finally {
-      await ScreenCapture.allowScreenCaptureAsync();
     }
   };
 
@@ -768,8 +763,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         showAlert({ title: translations.alerts.permissionRequired, message: translations.alerts.galleryPermission, variant: 'warning' });
         return;
       }
-
-      await ScreenCapture.preventScreenCaptureAsync();
 
       const captureRef = viewShotRef.current;
       if (!captureRef || typeof captureRef.capture !== 'function') {
@@ -859,8 +852,6 @@ export const WordOverlayScreen: React.FC<Props> = ({ route, navigation }) => {
         variant: 'error',
         buttons: [{ text: translations.alerts.okay, style: 'default' }],
       });
-    } finally {
-      await ScreenCapture.allowScreenCaptureAsync();
     }
   };
 

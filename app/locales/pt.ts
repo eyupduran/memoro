@@ -198,7 +198,8 @@ export default {
     definitionLabel: 'Definição'
   },
   wordListDetail: {
-    variantsCount: '{0} significados diferentes — toque para expandir'
+    variantsCount: '{0} significados diferentes',
+    variantsModalSubtitle: '{0} significados diferentes adicionados',
   },
   wordListModal: {
     title: 'Selecionar Lista de Palavras',
@@ -217,7 +218,10 @@ export default {
     deleteListConfirm: 'Sim, Excluir',
     deleteListCancel: 'Cancelar',
     deleteListSuccess: 'Lista excluída com sucesso',
-    deleteListError: 'Ocorreu um erro ao excluir a lista'
+    deleteListError: 'Ocorreu um erro ao excluir a lista',
+    createNewList: 'Criar Nova Lista',
+    existingLists: 'Minhas Listas',
+    noListsHint: 'Crie uma nova lista acima',
   },
   settings: {
     title: 'Configurações',
@@ -358,7 +362,7 @@ export default {
     // Mode-specific info texts
     signInInfo: 'Entre com sua conta existente para acessar seus dados.',
     signUpInfo: 'Ao criar uma conta, suas palavras, listas e progresso são salvos na nuvem. Seus dados ficam seguros mesmo se trocar de dispositivo.',
-    errorInvalidCredentials: 'Nenhuma conta encontrada com este e-mail ou a senha está incorreta. Se não tem uma conta, crie uma na aba "Criar Conta".',
+    errorInvalidCredentials: 'E-mail ou senha incorretos. Verifique seus dados e tente novamente.',
     errorEmailNotConfirmed: 'E-mail ainda não confirmado.',
     errorUserAlreadyRegistered: 'Já existe uma conta com este e-mail. Tente entrar na aba "Entrar".',
     errorWeakPassword: 'Senha muito fraca. Use pelo menos 6 caracteres.',

@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   TextInput,
   Animated,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -43,8 +45,8 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedWords, setSelectedWords] = useState<Word[]>([]);
   const [showMaxWordsMessage, setShowMaxWordsMessage] = useState(false);
-  // Açılmış grup anahtarlarını tutar (aynı kelimenin çoklu varyantları için).
-  const [expandedWords, setExpandedWords] = useState<Set<string>>(new Set());
+  // Modal'da gösterilecek varyant grubunu tutar.
+  const [variantModalGroup, setVariantModalGroup] = useState<{ word: string; variants: Word[] } | null>(null);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const searchInputRef = useRef<TextInput>(null);
@@ -156,16 +158,8 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
     return items;
   }, [filteredWords]);
 
-  const toggleGroup = (groupKey: string) => {
-    setExpandedWords((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupKey)) {
-        next.delete(groupKey);
-      } else {
-        next.add(groupKey);
-      }
-      return next;
-    });
+  const openVariantModal = (group: { word: string; variants: Word[] }) => {
+    setVariantModalGroup(group);
   };
 
   const handleScroll = (event: any) => {
@@ -263,19 +257,17 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
   // "bu kelimenin alt satırları var" ipucunu verir. Tıklanınca altındaki varyantlar
   // genişler/kapanır. Grup başlığı seçilemez (seçim sadece yaprak varyant kartlarında).
   const renderGroupHeader = (group: { key: string; word: string; variants: Word[] }) => {
-    const isExpanded = expandedWords.has(group.key);
-    // İstatistiksel özet: varyantlardan birinin level'ı, en yüksek streak.
     const firstVariant = group.variants[0];
     const maxStreak = group.variants.reduce((max, v) => Math.max(max, v.streak || 0), 0);
     const hasHighStreak = maxStreak >= APP_CONSTANTS.STREAK_THRESHOLD;
-    const variantCountText = (translations.wordListDetail?.variantsCount || '{0} varyant')
+    const variantCountText = (translations.wordListDetail?.variantsCount || '{0} farklı anlam')
       .replace('{0}', String(group.variants.length));
 
     return (
       <TouchableOpacity
         style={styles.wordItemContainer}
         activeOpacity={0.8}
-        onPress={() => toggleGroup(group.key)}
+        onPress={() => openVariantModal({ word: group.word, variants: group.variants })}
       >
         <View style={[
           styles.wordItem,
@@ -312,14 +304,22 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
                 <MaterialIcons name="volume-up" size={20} color={colors.primary} />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.meaningText, { color: colors.text.secondary }]}>
-              {variantCountText}
+            <View style={styles.variantBadgeRow}>
+              <View style={[styles.variantBadge, { backgroundColor: colors.primary + '15' }]}>
+                <MaterialIcons name="style" size={14} color={colors.primary} />
+                <Text style={[styles.variantBadgeText, { color: colors.primary }]}>
+                  {variantCountText}
+                </Text>
+              </View>
+            </View>
+            <Text style={[styles.meaningText, { color: colors.text.secondary }]} numberOfLines={1}>
+              {firstVariant.meaning}
             </Text>
           </View>
 
-          <View style={styles.wordActions}>
+          <View style={styles.groupChevron}>
             <MaterialIcons
-              name={isExpanded ? 'expand-less' : 'expand-more'}
+              name="chevron-right"
               size={28}
               color={colors.text.secondary}
             />
@@ -335,21 +335,7 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
     if (item.type === 'single') {
       return renderWordItem({ item: item.word });
     }
-    const isExpanded = expandedWords.has(item.key);
-    return (
-      <View>
-        {renderGroupHeader(item)}
-        {isExpanded && (
-          <View style={styles.variantsContainer}>
-            {item.variants.map((v) => (
-              <View key={v.id} style={styles.variantRow}>
-                {renderWordItem({ item: v })}
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-    );
+    return renderGroupHeader(item);
   };
 
   const renderWordItem = ({ item }: { item: Word }) => {
@@ -523,9 +509,113 @@ export const WordListDetailScreen: React.FC<Props> = ({ route, navigation }): Re
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          extraData={expandedWords}
+          extraData={selectedWords}
         />
       )}
+      {/* Varyant detay modal'ı — aynı kelimeden birden fazla eklendiğinde alt anlamları gösterir */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={variantModalGroup !== null}
+        onRequestClose={() => setVariantModalGroup(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setVariantModalGroup(null)}
+        >
+          <TouchableOpacity activeOpacity={1} style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            {variantModalGroup && (
+              <>
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalTitleRow}>
+                    <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
+                      {variantModalGroup.word}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.modalSpeakButton}
+                      onPress={() => speakText(variantModalGroup.word)}
+                    >
+                      <MaterialIcons name="volume-up" size={22} color={colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setVariantModalGroup(null)}
+                    style={styles.modalCloseButton}
+                  >
+                    <MaterialIcons name="close" size={24} color={colors.text.primary} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={[styles.modalSubtitle, { color: colors.text.secondary }]}>
+                  {(translations.wordListDetail?.variantsModalSubtitle || '{0} farklı anlam eklendi')
+                    .replace('{0}', String(variantModalGroup.variants.length))}
+                </Text>
+                <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+                  {variantModalGroup.variants.map((variant, index) => {
+                    const isSelected = selectedWords.some(w => w.id === variant.id);
+                    return (
+                      <View
+                        key={variant.id}
+                        style={[
+                          styles.modalVariantCard,
+                          {
+                            backgroundColor: colors.surface,
+                            borderColor: isSelected ? colors.primary : colors.border,
+                            borderWidth: isSelected ? 2 : 1,
+                          },
+                        ]}
+                      >
+                        <View style={styles.modalVariantIndex}>
+                          <Text style={[styles.modalVariantIndexText, { color: colors.primary, backgroundColor: colors.primary + '15' }]}>
+                            {index + 1}
+                          </Text>
+                        </View>
+                        <View style={styles.modalVariantBody}>
+                          <Text style={[styles.modalVariantMeaning, { color: colors.text.primary }]}>
+                            {variant.meaning}
+                          </Text>
+                          {variant.example && (
+                            <Text style={[styles.modalVariantExample, { color: colors.text.secondary }]}>
+                              <Text style={styles.examplePrefix}>
+                                {translations.dictionaryScreen?.examplePrefix || 'Örnek:'}
+                              </Text>{' '}
+                              {variant.example}
+                            </Text>
+                          )}
+                        </View>
+                        <View style={styles.modalVariantActions}>
+                          <TouchableOpacity
+                            style={[styles.modalActionButton, { backgroundColor: isSelected ? colors.primary + '15' : 'transparent', borderColor: isSelected ? colors.primary : colors.border }]}
+                            onPress={() => handleWordSelect(variant)}
+                          >
+                            <MaterialIcons name={isSelected ? 'check' : 'add'} size={16} color={isSelected ? colors.primary : colors.text.secondary} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.modalActionButton, { backgroundColor: colors.error + '10', borderColor: colors.error + '30' }]}
+                            onPress={() => {
+                              handleRemoveWord(variant);
+                              // Silinen varyant sonrası modal'ı güncelle
+                              const remaining = variantModalGroup.variants.filter(v => v.id !== variant.id);
+                              if (remaining.length <= 1) {
+                                setVariantModalGroup(null);
+                              } else {
+                                setVariantModalGroup({ ...variantModalGroup, variants: remaining });
+                              }
+                            }}
+                          >
+                            <MaterialIcons name="remove-circle-outline" size={16} color={colors.error} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
       {selectedWords.length > 0 && (
       <View style={styles.bottomContainer}>
         {showMaxWordsMessage && (
@@ -605,15 +695,29 @@ const styles = StyleSheet.create({
   selectedWordItemContainer: {
     padding: 0,
   },
-  // Grup başlığının altındaki yaprak varyant kartlarını içerir.
-  // Sol padding ile ana satırdan görsel olarak ayırılır.
-  variantsContainer: {
-    paddingLeft: 16,
-    marginTop: -4,
+  // Grup başlığındaki varyant badge satırı ve chevron
+  variantBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  variantRow: {
-    // Her varyant, içindeki wordItemContainer'ın kendi marginBottom'ı ile zaten boşluklu.
+  variantBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  variantBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  groupChevron: {
+    position: 'absolute',
+    right: 8,
+    top: '50%',
+    marginTop: -14,
   },
   wordItem: {
     padding: 12,
@@ -766,5 +870,95 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
+  },
+  // Varyant modal stilleri
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingTop: 12,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  modalSpeakButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  modalScrollView: {
+    flexGrow: 0,
+  },
+  modalVariantCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  modalVariantIndex: {
+    marginRight: 10,
+    marginTop: 2,
+  },
+  modalVariantIndexText: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    textAlign: 'center',
+    lineHeight: 24,
+    fontSize: 12,
+    fontWeight: '700',
+    overflow: 'hidden',
+  },
+  modalVariantBody: {
+    flex: 1,
+  },
+  modalVariantMeaning: {
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  modalVariantExample: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    lineHeight: 17,
+  },
+  modalVariantActions: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 8,
+  },
+  modalActionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 }); 
